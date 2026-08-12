@@ -1,5 +1,16 @@
 {
   "dependencies": {
+    "com.datasakura.jitter-physics-baker": {
+      "version": "file:com.datasakura.jitter-physics-baker",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.modules.jsonserialize": "1.0.0",
+        "com.unity.modules.physics": "1.0.0",
+        "com.unity.modules.imgui": "1.0.0",
+        "com.unity.modules.uielements": "1.0.0"
+      }
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.13",
       "depth": 0,

@@ -120,3 +120,11 @@ InitTestScene*.unity*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# UPM hides a folder from Unity by ending its name with '~'. Those folders carry the
+# dormant Jitter2 snapshot, the installable integration sources, the server projection,
+# samples, docs and tooling - the package is broken without them. A global "*~" backup
+# rule (git's core.excludesFile) would silently drop all of them, so they are re-included
+# here, where repository rules take precedence.
+!Packages/com.datasakura.jitter-physics-baker/**/*~/
+!Packages/com.datasakura.jitter-physics-baker/*~/
