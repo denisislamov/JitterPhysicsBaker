@@ -35,7 +35,7 @@ Epic
 | JP-E04 | Частично | Authoring/collection/converters/bake pipeline и запись артефакта готовы; EditMode-прогон не выполнялся |
 | JP-E05 | Частично | World builder готов и проверен на `.NET`; Unity-сторона не прогонялась |
 | JP-E06 | Частично | Setup/About окна есть; Bake UI и artifact management отсутствуют |
-| JP-E07 | Частично | `Server~/Tests` и file artifact provider работают; projection/embedded provider/startup API отсутствуют |
+| JP-E07 | Частично | `Server~/Tests`, file artifact provider и startup API работают; source projection и embedded provider отсутствуют |
 | JP-E08–JP-E12 | Не начато | — |
 
 ### Что проверено прогоном
@@ -44,7 +44,7 @@ Epic
 cd Packages/com.datasakura.jitter-physics-baker
 ./tools~/verify-jitter2-lock.py     # lock совпадает со snapshot (96 файлов)
 ./tools~/test-jitter2-lock.py       # инварианты канонического хэша (19 проверок)
-./tools~/test-dotnet.sh             # 55 тестов, .NET 10, зелёные
+./tools~/test-dotnet.sh             # 63 теста, .NET 10, зелёные
 
 cd -
 python3 tools/verify-package-meta.py  # полные .meta, нет LFS-указателей
@@ -1051,18 +1051,26 @@ Acceptance criteria:
 
 Зависимости: JP-T07.3, JP-T07.4, JP-E05.
 
+Статус: **Готово** — `JitterPhysicsServerStartup` поверх любого provider-а; embedded provider (JP-T07.4) подключится без изменений API.
+
 Subtasks:
 
-- [ ] Resolve selected provider.
-- [ ] Validate artifact/runtime/tick settings.
-- [ ] Build static world до accept-enabled.
-- [ ] Вернуть Ready/typed failure.
-- [ ] Вывести safe self-check metrics.
+- [x] Resolve selected provider.
+  - Startup принимает `IPhysicsArtifactProvider`; выбор источника (file/embedded/CLI) остаётся за потребителем.
+- [x] Validate artifact/runtime/tick settings.
+  - `runtimeCompatibilityId` обязателен; ожидаемый `levelId` и tick rate проверяются, а не перенимаются: сервер, молча принявший чужой tick rate, расходится с предсказанием клиента по построению.
+- [x] Build static world до accept-enabled.
+- [x] Вернуть Ready/typed failure.
+  - Промежуточного состояния нет: при отказе `Artifact` = null и мир остаётся без геометрии, `RequireReady()` бросает.
+- [x] Вывести safe self-check metrics.
+  - Одна строка для docker smoke: level, короткий artifact hash, короткий topology fingerprint, counts, tick rate, elapsed; полные хэши в лог не попадают.
 
 Acceptance criteria:
 
-- [ ] Server не включает connection approval без Ready world.
-- [ ] Package не запускает отдельный physics service.
+- [x] Server не включает connection approval без Ready world.
+  - Проверено тестами: недоставленный артефакт, чужой уровень, чужой tick rate, чужая runtime-семантика и повторный старт не оставляют в мире ни одного тела.
+- [x] Package не запускает отдельный physics service.
+  - Это шаг старта внутри match server-а; `World.Step` по-прежнему у потребителя.
 
 ### JP-T07.6. Создать `Server~/Tests`
 
@@ -1085,7 +1093,7 @@ Subtasks:
 Acceptance criteria:
 
 - [x] Dormant snapshot компилируется и проходит runtime tests в CI.
-  - Локально: 55 тестов, `.NET 10`, зелёные. Подключение к CI — JP-T01.4.
+  - Локально: 63 теста, `.NET 10`, зелёные. Подключение к CI — JP-T01.4.
 
 Проект существует именно потому, что «зелено в Unity» ничего не говорит про сервер: тот компилирует те же исходники другим компилятором и рантаймом.
 
