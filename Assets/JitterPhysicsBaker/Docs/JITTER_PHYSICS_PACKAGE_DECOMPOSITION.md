@@ -35,7 +35,7 @@ Epic
 | JP-E04 | Частично | Authoring/collection/converters/bake pipeline и запись артефакта готовы; EditMode-прогон не выполнялся |
 | JP-E05 | Частично | World builder готов и проверен на `.NET`; Unity-сторона не прогонялась |
 | JP-E06 | Частично | Setup/About окна есть; Bake UI и artifact management отсутствуют |
-| JP-E07 | Частично | `Server~/Tests` работает; projection/providers/startup API отсутствуют |
+| JP-E07 | Частично | `Server~/Tests` и file artifact provider работают; projection/embedded provider/startup API отсутствуют |
 | JP-E08–JP-E12 | Не начато | — |
 
 ### Что проверено прогоном
@@ -44,7 +44,7 @@ Epic
 cd Packages/com.datasakura.jitter-physics-baker
 ./tools~/verify-jitter2-lock.py     # lock совпадает со snapshot (96 файлов)
 ./tools~/test-jitter2-lock.py       # инварианты канонического хэша (19 проверок)
-./tools~/test-dotnet.sh             # 45 тестов, .NET 10, зелёные
+./tools~/test-dotnet.sh             # 55 тестов, .NET 10, зелёные
 
 cd -
 python3 tools/verify-package-meta.py  # полные .meta, нет LFS-указателей
@@ -1010,16 +1010,23 @@ Acceptance criteria:
 
 Зависимости: JP-E03.
 
+Статус: **Готово** — `FilePhysicsArtifactProvider` за общей границей `IPhysicsArtifactProvider`.
+
 Subtasks:
 
-- [ ] Load immutable binary/manifest path.
-- [ ] Validate before returning artifact.
-- [ ] Typed missing/corrupt errors.
-- [ ] Документировать mount/content/registry integration boundary.
+- [x] Load immutable binary/manifest path.
+  - Провайдер конфигурируется путём к manifest-у (`--physics-manifest <path>`), payload читается из его же папки по имени из манифеста; переименование при доставке покрывается явным payload path.
+- [x] Validate before returning artifact.
+  - Хэш, декодирование, семантический валидатор и cross-check манифеста выполняются до возврата; при заданном `runtimeCompatibilityId` артефакт чужой семантики отклоняется здесь же.
+- [x] Typed missing/corrupt errors.
+  - Добавлен код `SourceUnavailable` (файла нет/не читается) — он отделён от кодов повреждения, потому что действие оператора другое: доставить артефакт, а не перепечь его.
+- [x] Документировать mount/content/registry integration boundary.
+  - `Server~/README.md`: пакет не доставляет артефакт, а определяет, как сервер его принимает.
 
 Acceptance criteria:
 
-- [ ] Provider не предполагает EFT path или deploy system.
+- [x] Provider не предполагает EFT path или deploy system.
+  - Ни путей, ни имён проектов потребителя; манифест — недоверенный вход, имя payload-а обязано быть простым именем файла, иначе отказ.
 
 ### JP-T07.4. Реализовать embedded exact-bytes provider/export
 
@@ -1072,13 +1079,13 @@ Subtasks:
 - [x] Подключить package sources ссылками.
   - Contracts, ArtifactCodec, JitterIntegration и общие тест-файлы включаются по ссылке, без копий: копия — это форк, которого никто не замечает.
 - [x] Codec/world-builder/provider tests.
-  - Codec и world-builder есть; provider-ов ещё не существует (JP-T07.3/JP-T07.4).
+  - Codec, world-builder и file artifact provider покрыты; embedded provider — JP-T07.4.
 - [ ] Golden topology parity fixture.
 
 Acceptance criteria:
 
 - [x] Dormant snapshot компилируется и проходит runtime tests в CI.
-  - Локально: 45 тестов, `.NET 10`, зелёные. Подключение к CI — JP-T01.4.
+  - Локально: 55 тестов, `.NET 10`, зелёные. Подключение к CI — JP-T01.4.
 
 Проект существует именно потому, что «зелено в Unity» ничего не говорит про сервер: тот компилирует те же исходники другим компилятором и рантаймом.
 
