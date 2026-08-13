@@ -46,15 +46,23 @@ bash tools/run-unity-tests.sh editmode      # только EditMode
 ## Компиляция Editor-кода без Unity
 
 Unity-проекты `*.csproj` в корне генерируются редактором и содержат фиксированные списки
-файлов, поэтому новый файл в них не попадёт, пока редактор не откроют. Если нужно быстро
-проверить, что Editor-код компилируется, добавьте файл в соответствующий `<Compile Include>`
-и выполните:
+файлов, поэтому новый файл в них не попадёт, пока редактор не откроют. Чтобы быстро
+проверить, что Editor-код компилируется:
 
 ```sh
+python3 tools/dev-refresh-csproj.py
 dotnet build DataSakura.JitterPhysics.Editor.csproj -v q --nologo
+dotnet build DataSakura.JitterPhysics.Editor.Tests.csproj -v q --nologo
 ```
 
-`*.csproj` не отслеживаются git, править их безопасно.
+`*.csproj` не отслеживаются git, править их безопасно: Unity перезапишет результат.
+
+Файлы, добавленные в пакет мимо редактора, остаются без `.meta`, и
+`verify-package-meta.py` это поймает. Создать недостающие:
+
+```sh
+python3 tools/dev-make-meta.py
+```
 
 ## Правила, которые нельзя нарушать
 
@@ -85,4 +93,5 @@ dotnet build DataSakura.JitterPhysics.Editor.csproj -v q --nologo
 - Сообщения коммитов: `type(scope): summary` + список изменений с объяснением причины.
 - Отмечать задачу выполненной в декомпозиции можно только после фактического прогона; если
   прогон не выполнялся, это указывается прямо в статусе.
+
 
