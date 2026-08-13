@@ -128,3 +128,4 @@ Thumbs.db
 # here, where repository rules take precedence.
 !Packages/com.datasakura.jitter-physics-baker/**/*~/
 !Packages/com.datasakura.jitter-physics-baker/*~/
+__pycache__/

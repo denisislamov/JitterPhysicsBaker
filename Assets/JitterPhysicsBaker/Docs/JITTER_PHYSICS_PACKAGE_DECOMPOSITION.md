@@ -32,7 +32,7 @@ Epic
 | JP-E01 | Частично | Package/assembly graph/dev project готовы; CI отсутствует |
 | JP-E02 | Частично | Snapshot/lock/discovery готовы; installer и receipt lifecycle отсутствуют |
 | JP-E03 | Готово | Contracts, codec, manifest, runtime ID, token, golden/corrupt suite |
-| JP-E04 | Частично | Authoring/collection/converters/bake pipeline готовы; запись артефакта на диск отсутствует |
+| JP-E04 | Частично | Authoring/collection/converters/bake pipeline и запись артефакта готовы; EditMode-прогон не выполнялся |
 | JP-E05 | Частично | World builder готов и проверен на `.NET`; Unity-сторона не прогонялась |
 | JP-E06 | Частично | Setup/About окна есть; Bake UI и artifact management отсутствуют |
 | JP-E07 | Частично | `Server~/Tests` работает; projection/providers/startup API отсутствуют |
@@ -722,12 +722,12 @@ Acceptance criteria:
 
 Зависимости: JP-T04.1–JP-T04.4, JP-T02.3.
 
-Статус: **Частично** — диагностика есть, отдельного validator-прохода и связи с Setup нет.
+Статус: **Готово** — диагностика собрана, `JitterPhysicsBakeCommand` подставляет `runtimeCompatibilityId` из compatibility report.
 
 Subtasks:
 
-- [ ] Setup/Jitter compatibility validation.
-  - Bake отказывается работать без валидного `runtimeCompatibilityId`, но автоматически из Setup он ещё не подставляется.
+- [x] Setup/Jitter compatibility validation.
+  - `JitterPhysicsBakeCommand` берёт id только из `JitterPhysicsCompatibilityReport`; передать его аргументом нельзя.
 - [x] Authoring/ID validation.
 - [x] Collider/transform/mesh validation.
 - [x] World profile/tick/precision validation.
@@ -737,29 +737,30 @@ Subtasks:
 Acceptance criteria:
 
 - [x] Unsupported input не пропускается silently.
-- [ ] Incompatible Jitter hash блокирует bake.
-  - Механизм есть (без корректного runtime ID сборка невозможна), но связка Setup → Bake не собрана.
+- [x] Incompatible Jitter hash блокирует bake.
+  - `Missing`/`Incompatible`/`Duplicate`/`UnsupportedPlugin` дают отказ с объяснением причины.
 
 ### JP-T04.6. Реализовать deterministic bake pipeline
 
 Зависимости: JP-E03, JP-T04.5.
 
-Статус: **Частично** — артефакт строится и хэшируется, запись на диск отсутствует.
+Статус: **Готово** — артефакт строится, хэшируется и атомарно записывается в проект.
 
 Subtasks:
 
 - [x] Collect -> convert -> canonicalize -> write -> hash.
 - [x] Создать manifest.
-- [ ] Создать `JitterPhysicsArtifactAsset` + `TextAsset`.
-- [ ] Использовать temp + atomic replace.
-- [ ] Не выполнять bake в Play Mode.
-- [ ] Сохранять previous valid artifact при failure.
+- [x] Создать `JitterPhysicsArtifactAsset` + `TextAsset`.
+- [x] Использовать temp + atomic replace.
+- [x] Не выполнять bake в Play Mode.
+- [x] Сохранять previous valid artifact при failure.
 
 Acceptance criteria:
 
 - [x] Repeat bake exact.
 - [x] One semantic source change меняет hash.
-- [ ] Runtime повторно проверяет asset binary hash.
+- [x] Runtime повторно проверяет asset binary hash.
+  - `JitterPhysicsArtifactLoader` перехэширует payload и сверяет метаданные asset-а с декодированным содержимым.
 
 Сборка всё-или-ничего: частично конвертируемый уровень не записывается как частично корректный артефакт, потому что недостающая геометрия проявилась бы дырой в стене в рантайме, а не сообщением при запекании.
 
@@ -768,7 +769,7 @@ Epic acceptance:
 - [x] Box/Sphere/Capsule/Mesh baking проходит EditMode fixtures.
   - Fixtures написаны и компилируются; прогон в Unity Test Runner не выполнялся.
 - [ ] Designer получает actionable validation и stable artifact.
-  - Валидация actionable, но артефакт пока не сохраняется в проект.
+  - Валидация actionable, артефакт пишется в проект; прогон в Unity Test Runner не выполнялся.
 
 ## JP-E05. Jitter world builder и runtime integration source
 
@@ -1614,12 +1615,12 @@ JP-E10 начинается только после Gate B. JP-E11 начина�
 
 Порядок отражает зависимости и текущие блокеры, а не приоритет «по важности».
 
-1. **JP-T04.6 (остаток) — запись артефакта в проект.** Сейчас bake строит и хэширует артефакт, но никуда его не сохраняет. Без этого workflow дизайнера не замкнут, и JP-T06.2/JP-T06.3 не на чем строить. Нужны `JitterPhysicsArtifactAsset` + `TextAsset`, temp + atomic replace, запрет bake в Play Mode и сохранение предыдущего валидного артефакта при ошибке.
-2. **JP-T04.5 (остаток) — связать Setup и Bake.** Прокинуть `runtimeCompatibilityId` из compatibility report в baker, чтобы несовместимый Jitter реально блокировал запекание, а не только теоретически.
-3. **JP-T02.4–JP-T02.6 — installer и receipt.** Разблокирует Unity-сторону JP-E05 (проверку fingerprint-паритета) и JP-T06.1.
+1. **Прогнать Unity EditMode-тесты.** Запись артефакта (`JitterPhysicsArtifactWriteTests`) проверяется против настоящего AssetDatabase, поэтому до прогона в Test Runner JP-E04 нельзя считать закрытым.
+2. **JP-T02.4–JP-T02.6 — installer и receipt.** Разблокирует Unity-сторону JP-E05 (проверку fingerprint-паритета) и JP-T06.1.
+3. **JP-T06.2/JP-T06.3 — Bake UI и artifact management.** Теперь есть на чём строить: `JitterPhysicsBakeCommand` даёт единственную точку входа с результатом и списком issue.
 4. **JP-T02.1 — синк EFT-форка.** Снимет отклонение 1: изменится `sourceContentHash` и, как следствие, `runtimeCompatibilityId`. Это ожидаемое поведение, а не проблема.
 5. **JP-T01.4 — CI.** Скрипты для шагов уже готовы, нужен сам workflow.
 6. **JP-T00.2 — characterization fixtures.** Без них acceptance criteria JP-T04.3 не закрывается: сейчас конвертеры проверены сами против себя, а не против текущего поведения EFT.
 
-Отдельно: **прогнать Unity EditMode-тесты**. Они написаны и компилируются, но ни разу не выполнялись — редактор держал проект занятым.
+Отдельно: **прогон Unity-тестов** покрывает и EditMode-фикстуры конвертеров, и запись артефакта — обе группы написаны и компилируются, но ни разу не выполнялись: редактор держал проект занятым.
 
