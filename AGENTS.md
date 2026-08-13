@@ -53,7 +53,13 @@ Unity-проекты `*.csproj` в корне генерируются реда�
 python3 tools/dev-refresh-csproj.py
 dotnet build DataSakura.JitterPhysics.Editor.csproj -v q --nologo
 dotnet build DataSakura.JitterPhysics.Editor.Tests.csproj -v q --nologo
+dotnet build DataSakura.JitterPhysics.Tests.csproj -v q --nologo
 ```
+
+Последние две команды обязательны при правке тестов из `Tests/`. `Server~/Tests` собирается
+с NUnit 4 из NuGet, а Unity поставляет свой NUnit 3, и конструкции вроде `Is.AnyOf` есть
+только в первом: тест, зелёный под `.NET`, может не компилироваться в редакторе. Эти сборки
+ссылаются ровно на те сборки, которые использует Unity, поэтому ловят расхождение сразу.
 
 `*.csproj` не отслеживаются git, править их безопасно: Unity перезапишет результат.
 
@@ -93,5 +99,6 @@ python3 tools/dev-make-meta.py
 - Сообщения коммитов: `type(scope): summary` + список изменений с объяснением причины.
 - Отмечать задачу выполненной в декомпозиции можно только после фактического прогона; если
   прогон не выполнялся, это указывается прямо в статусе.
+
 
 
