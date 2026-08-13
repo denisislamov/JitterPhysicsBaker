@@ -52,14 +52,17 @@ ArtifactCodec, UnityArtifact, Authoring, Editor и `not present` для `Jitter2
 1. В Setup нажать `Install Jitter2`.
 
 Ожидаемо: предупреждение о том, что снапшот — непатченный upstream; файлы появились в
-`Assets/DataSakura/ThirdParty/Jitter2/` вместе с `Jitter2.Core.asmdef`; создан
-`Assets/DataSakura/JitterPhysics/InstallationReceipt.json`; после компиляции About
-показывает `Jitter2.Core: compiled`.
+`Assets/DataSakura/ThirdParty/Jitter2/` вместе с `Jitter2.Core.asmdef` и `csc.rsp`
+(`-langversion:latest`); создан `Assets/DataSakura/JitterPhysics/InstallationReceipt.json`;
+после компиляции About показывает `Jitter2.Core: compiled`.
 
-Известное ограничение: снапшот не патчен под Unity (нет `JITTER_UNITY`, используются
-аппаратные интринсики). Если компиляция падает — это **ожидаемый** результат текущего
-релиза, зафиксируйте его как `SKIP` с текстом ошибки и переходите к MT-04 только если
-`Jitter2.Core` собрался.
+Замечание про `csc.rsp`: upstream Jitter2 использует синтаксис C# 10+ (file-scoped
+namespaces, коллекционные выражения `[...]`), а Unity по умолчанию компилирует asmdef-сборку
+более старой версией языка. Файл `csc.rsp` поднимает версию языка только для этой папки. Если
+после этого остаются ошибки компиляции (например, недоступные `System.Runtime.Intrinsics`),
+это по-прежнему **ожидаемый** результат текущего релиза — зафиксируйте `SKIP` с текстом
+ошибки. К MT-04 переходить в любом случае; к MT-05/MT-27 — только если `Jitter2.Core`
+собрался.
 
 ### MT-04. Внешний Jitter2 не трогают
 
@@ -239,7 +242,17 @@ ArtifactCodec, UnityArtifact, Authoring, Editor и `not present` для `Jitter2
 1. `Setup > Install server runtime sources...`, выбрать пустую папку.
 
 Ожидаемо: в папке подпапки `Contracts/`, `ArtifactCodec/`, `Integration/` и
-`JitterPhysics.projection.json` со списком файлов и хэшей; ни одного файла с `UnityEngine`.
+`JitterPhysics.projection.json` со списком файлов и хэшей. Ни один файл **не подключает**
+движок — проверять именно директивы, а не подстроку:
+
+```sh
+grep -rn "using UnityEngine\|using UnityEditor" <папка проекции>   # ожидаемо: пусто
+```
+
+Замечание: `Contracts/PhysicsMath.cs` содержит `UnityEngine.Vector3` внутри XML-doc — это
+объяснение, **почему** запись намеренно не использует тип движка, а не зависимость. Наивный
+`grep UnityEngine` поймает этот комментарий; критерий — только `using`-директивы, потому что
+компилируется именно они.
 
 ### MT-26. Verify ловит расхождение
 
@@ -342,4 +355,6 @@ MT-26 verify проекции               :
 MT-27 построение мира               : 
 MT-28 паритет топологии             : 
 ```
+
+
 
