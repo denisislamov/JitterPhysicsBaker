@@ -1,0 +1,76 @@
+name: package
+
+# Everything here is a check that already exists as a script in the repository. CI runs the
+# same commands a maintainer runs locally, so "green on my machine" and "green in CI" cannot
+# mean two different things.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  portable:
+    name: Portable checks (.NET 10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The dormant Jitter2 snapshot is hashed file by file, so a shallow or filtered
+          # checkout would produce a source hash that matches nothing.
+          fetch-depth: 1
+          lfs: true
+
+      - name: Package layout, .meta files and LFS pointers
+        run: python3 tools/verify-package-meta.py
+
+      - name: Jitter2 lock matches the dormant snapshot
+        run: python3 "Packages/com.datasakura.jitter-physics-baker/tools~/verify-jitter2-lock.py"
+
+      - name: Canonical source hash invariants
+        run: python3 "Packages/com.datasakura.jitter-physics-baker/tools~/test-jitter2-lock.py"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Contracts, codec, providers and world builder under .NET
+        run: bash "Packages/com.datasakura.jitter-physics-baker/tools~/test-dotnet.sh"
+
+  unity:
+    name: Unity EditMode and PlayMode
+    runs-on: ubuntu-latest
+    # A Unity run needs a licence, and a fork's pull request has no access to secrets. The job
+    # is skipped rather than failed in that case: a red build that everybody learns to ignore
+    # is worse than an honestly absent one.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Packages/packages-lock.json') }}
+          restore-keys: Library-
+
+      - uses: game-ci/unity-test-runner@v4
+        id: tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          testMode: all
+          artifactsPath: test-results
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity test results
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unity-test-results
+          path: test-results
+

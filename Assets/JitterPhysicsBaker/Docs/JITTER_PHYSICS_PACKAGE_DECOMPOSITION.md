@@ -29,13 +29,13 @@ Epic
 | Epic | Статус | Комментарий |
 |---|---|---|
 | JP-E00 | Не начато | Baseline report и characterization fixtures не создавались |
-| JP-E01 | Частично | Package/assembly graph/dev project готовы; CI отсутствует |
-| JP-E02 | Частично | Snapshot/lock/discovery готовы; installer и receipt lifecycle отсутствуют |
+| JP-E01 | Частично | Package/assembly graph/dev project готовы; CI workflow есть, но на сервере не запускался |
+| JP-E02 | Частично | Snapshot/lock/discovery/installer/receipt готовы; установка в редакторе не прогонялась, Unity-совместимость снапшота не подтверждена |
 | JP-E03 | Готово | Contracts, codec, manifest, runtime ID, token, golden/corrupt suite |
 | JP-E04 | Частично | Authoring/collection/converters/bake pipeline и запись артефакта готовы; EditMode-прогон не выполнялся |
 | JP-E05 | Частично | World builder готов и проверен на `.NET`; Unity-сторона не прогонялась |
-| JP-E06 | Частично | Setup/About окна есть; Bake UI и artifact management отсутствуют |
-| JP-E07 | Частично | `Server~/Tests`, file artifact provider и startup API работают; source projection и embedded provider отсутствуют |
+| JP-E06 | Частично | Setup/About/Baker (Level, Artifacts, Diagnostics) реализованы; прогон в редакторе не выполнялся |
+| JP-E07 | Частично | Провайдеры (file, embedded), startup API, projection и `Server~/Tests` готовы; сборка проекции в чужом проекте не проверялась |
 | JP-E08–JP-E12 | Не начато | — |
 
 ### Что проверено прогоном
@@ -44,13 +44,15 @@ Epic
 cd Packages/com.datasakura.jitter-physics-baker
 ./tools~/verify-jitter2-lock.py     # lock совпадает со snapshot (96 файлов)
 ./tools~/test-jitter2-lock.py       # инварианты канонического хэша (19 проверок)
-./tools~/test-dotnet.sh             # 63 теста, .NET 10, зелёные
+./tools~/test-dotnet.sh             # 73 теста, .NET 10, зелёные
 
 cd -
-python3 tools/verify-package-meta.py  # полные .meta, нет LFS-указателей
+python3 tools/verify-package-meta.py                          # полные .meta, нет LFS-указателей
+dotnet build DataSakura.JitterPhysics.Editor.csproj           # Editor-код компилируется
+dotnet build DataSakura.JitterPhysics.Editor.Tests.csproj     # EditMode-тесты компилируются
 ```
 
-Unity EditMode/PlayMode тесты **скомпилированы, но не выполнены**: проект занят открытым редактором, batch-прогон не запускался.
+Unity EditMode/PlayMode тесты **скомпилированы, но не выполнены**: проект занят открытым редактором, batch-прогон не запускался. Команда для прогона — `tools/run-unity-tests.sh`, ручные сценарии — `MANUAL_TEST_PLAN.md`.
 
 ### Известные отклонения от ТЗ
 
@@ -283,21 +285,26 @@ Acceptance criteria:
 
 Зависимости: JP-T01.1, JP-T01.3.
 
-Статус: **Не начато**.
+Статус: **Частично** — workflow `.github/workflows/package.yml` есть; Unity-job не запускался (нужен лицензионный секрет).
 
 Subtasks:
 
-- [ ] Repository/package validation job.
+- [x] Repository/package validation job.
+  - `verify-package-meta.py`, `verify-jitter2-lock.py`, `test-jitter2-lock.py`.
 - [ ] Unity clean-import job.
-- [ ] Placeholder EditMode/PlayMode jobs.
-- [ ] Placeholder `.NET 10` job.
-- [ ] Artifact/reports retention policy.
+  - Отдельного clean-import job нет; импорт проверяется тем же прогоном тестов.
+- [x] Placeholder EditMode/PlayMode jobs.
+  - `game-ci/unity-test-runner`, skip на PR из форка: красный build, который все привыкают игнорировать, хуже честно отсутствующего.
+- [x] Placeholder `.NET 10` job.
+- [x] Artifact/reports retention policy.
+  - Результаты тестов выгружаются артефактом workflow.
 
 Acceptance criteria:
 
 - [ ] CI запускается на PR и показывает отдельные package/Unity/.NET stages.
+  - Stage-и описаны; фактического прогона на сервере не было.
 
-Заготовка есть: `tools~/verify-jitter2-lock.py`, `tools~/test-jitter2-lock.py` и `tools~/test-dotnet.sh` уже пригодны как CI-шаги, не хватает самого workflow.
+Локальный эквивалент Unity-job — `tools/run-unity-tests.sh`.
 
 Epic acceptance:
 
@@ -385,62 +392,75 @@ Acceptance criteria:
 
 Зависимости: JP-T02.1, JP-T02.3.
 
-Статус: **Не начато**.
+Статус: **Частично** — установщик реализован и компилируется; фактическая установка в редакторе не прогонялась, Unity-совместимость снапшота не подтверждена.
 
 Subtasks:
 
-- [ ] Сделать staging copy dormant snapshot-а.
-- [ ] Применить standalone asmdef template.
-- [ ] Проверить hash staging и final copy.
-- [ ] Заблокировать операцию при существующем `Jitter2.Core`.
-- [ ] Выполнить `AssetDatabase.Refresh` и post-install validation.
+- [x] Сделать staging copy dormant snapshot-а.
+- [x] Применить standalone asmdef template.
+  - Asmdef пишется из шаблона, а не копируется: в самом пакете asmdef со ссылкой на `Jitter2.Core` существовать не может, иначе чистый импорт перестанет работать.
+- [x] Проверить hash staging и final copy.
+  - Хэш каждого записанного файла попадает в receipt и сверяется при update/uninstall.
+- [x] Заблокировать операцию при существующем `Jitter2.Core`.
+- [x] Выполнить `AssetDatabase.Refresh` и post-install validation.
+  - `Validate installation` сверяет receipt с диском.
 
 Acceptance criteria:
 
 - [ ] Новый проект получает ровно одну совместимую `Jitter2.Core`.
-- [ ] Existing external Jitter никогда не перезаписывается.
+  - Код отказывает при существующей копии; прогон в редакторе — MT-03/MT-04 в `MANUAL_TEST_PLAN.md`.
+- [x] Existing external Jitter никогда не перезаписывается.
+  - Установка при непустом discovery отклоняется до любой записи.
 
-Блокер: текущий snapshot — непатченный upstream, его Unity-совместимость не подтверждена (см. отклонение 1 в разделе 0). Устанавливать его как fallback пока нельзя.
+Блокер сохраняется: текущий snapshot — непатченный upstream, его Unity-совместимость не подтверждена (см. отклонение 1 в разделе 0). Установщик об этом предупреждает при каждом запуске.
 
 ### JP-T02.5. Реализовать Jitter integration installer
 
 Зависимости: JP-T02.3, JP-T02.4, JP-E01.
 
-Статус: **Частично** — подготовлены исходники и шаблон, самого установщика нет.
+Статус: **Частично** — установщик реализован; прогон в редакторе не выполнялся.
 
 Subtasks:
 
 - [x] Подготовить `JitterIntegration~/UnityAssemblyTemplate`.
 - [x] Создать asmdef references по names, включая `Jitter2.Core`.
-- [ ] Устанавливать integration отдельно от Jitter.
-- [ ] Проверять version/hash installed projection.
+- [x] Устанавливать integration отдельно от Jitter.
+  - Отдельная команда; при отсутствии `Jitter2.Core` отказ, потому что adapter ссылается на него по имени и превратил бы чистый импорт в стену CS0246.
+- [x] Проверять version/hash installed projection.
+  - `Validate installation` сообщает и об изменённых файлах, и о версии пакета, которой установка была сделана.
 - [x] Не создавать dependency cycle с `EFT.Runtime`.
   - Package не содержит networking-типов, поэтому обратная зависимость ничем не навязывается; правило описано в `JitterIntegration~/README.md`.
 
 Acceptance criteria:
 
 - [ ] С compatible external Jitter устанавливается только adapter.
+  - Реализовано; прогон — MT-05.
 - [ ] С fallback Jitter adapter компилируется после установки.
+  - Зависит от блокера JP-T02.4.
 - [x] Clean import до установки остаётся рабочим.
 
 ### JP-T02.6. Реализовать receipt/update/uninstall lifecycle
 
 Зависимости: JP-T02.4, JP-T02.5.
 
-Статус: **Не начато**.
+Статус: **Готово** — receipt, idempotent update, защита изменённых файлов и щадящее удаление.
 
 Subtasks:
 
-- [ ] Записывать ownership, package version, paths и file hashes.
-- [ ] Сделать idempotent повторную установку.
-- [ ] Обновлять только неизменённые owned files.
-- [ ] Сохранять изменённые пользователем файлы.
-- [ ] Удалять только owned + unchanged files.
-- [ ] Добавить interrupted-install recovery.
+- [x] Записывать ownership, package version, paths и file hashes.
+  - Детерминированный JSON с отсортированными файлами: receipt читают глазами в ревью.
+- [x] Сделать idempotent повторную установку.
+- [x] Обновлять только неизменённые owned files.
+- [x] Сохранять изменённые пользователем файлы.
+  - Локальная правка, которую молча перезаписал бы update, — худший исход: она работает ровно до момента, когда перестаёт.
+- [x] Удалять только owned + unchanged files.
+- [x] Добавить interrupted-install recovery.
+  - Запись идёт через staging и перемещение, поэтому прерывание оставляет либо старое состояние, либо новое.
 
 Acceptance criteria:
 
-- [ ] Update/uninstall не удаляют внешний или изменённый код.
+- [x] Update/uninstall не удаляют внешний или изменённый код.
+  - Покрыто `JitterPhysicsInstallReceiptTests` и логикой `VerifyUnmodified`; сценарий в редакторе — MT-06/MT-07.
 - [x] Import/`InitializeOnLoad` не выполняют mutation.
   - Package не содержит `InitializeOnLoad`-мутаций: discovery только читает.
 
@@ -895,13 +915,13 @@ Epic acceptance:
 
 Зависимости: JP-E02.
 
-Статус: **Частично** — отчёт и экспорт готовы, действий установки нет.
+Статус: **Частично** — отчёт, экспорт и действия установки готовы; прогон в редакторе не выполнялся.
 
 Subtasks:
 
 - [x] Показать Jitter path/type/ownership/hash/status.
-- [ ] Добавить installer/update/uninstall actions.
-  - Зависит от JP-T02.4–JP-T02.6.
+- [x] Добавить installer/update/uninstall actions.
+  - Install Jitter2, install/update integration, install server runtime sources, validate, remove — под отчётом, а не рядом с ним: окно открывают, чтобы узнать причину отказа, гораздо чаще, чем чтобы что-то установить.
 - [x] Показать package/schema/runtime IDs.
 - [x] Добавить compatibility report export.
   - Копирование JSON в буфер и запись в файл.
@@ -910,8 +930,9 @@ Acceptance criteria:
 
 - [x] User понимает, какая Jitter copy активна и почему операция заблокирована.
 - [ ] Полный setup workflow выполняется из окна.
+  - Все команды на месте; прогон — MT-02…MT-07.
 
-Окно только читает. Окно, которое меняет проект, пока на него смотрят, — это способ случайно перезаписать собственную копию Jitter потребителя.
+Сам отчёт только читает: ни импорт, ни открытие окна, ни смена выделения ничего не пишут — окно, которое меняет проект, пока на него смотрят, это способ случайно перезаписать собственную копию Jitter потребителя.
 
 Дополнительно реализовано вне исходного объёма Task: `Tools > DataSakura > Jitter Physics > About` — версии package/schema и состояние всех сборок, включая наличие и дублирование `Jitter2.Core`.
 
@@ -919,53 +940,78 @@ Acceptance criteria:
 
 Зависимости: JP-E04.
 
+Статус: **Частично** — вкладка `Level & Bake` реализована и компилируется; прогон в редакторе не выполнялся.
+
 Subtasks:
 
-- [ ] Level/profile/source selection/status.
-- [ ] Validation issue list + ping/select.
-- [ ] `Validate`, `Validate + Bake`, `Bake for Client`.
-- [ ] Counts/size/time/hash output.
+- [x] Level/profile/source selection/status.
+  - `Find in scene` либо перетаскивание; показаны id, geometry root, профиль, число помеченных источников, папка вывода.
+- [x] Validation issue list + ping/select.
+  - Кнопка `Select` выделяет и пингует именно тот объект, который вызвал проблему: путь в иерархии в логе автор потом ищет руками.
+- [x] `Validate`, `Validate + Bake`, `Bake for Client`.
+  - Две команды вместо трёх: bake всегда пишет клиентский asset, а отдельная «серверная» форма — это экспорт, он живёт на вкладке `Artifacts`.
+- [x] Counts/size/time/hash output.
 
 Acceptance criteria:
 
 - [ ] Полный bake workflow выполняется без ручного вызова scripts.
+  - Реализовано; сценарии MT-09…MT-16.
+
+Окно не содержит своей логики запекания и вызывает те же команды, что и скрипт: второй конвейер — это тот, который никто не тестирует.
 
 ### JP-T06.3. Реализовать artifact management/export
 
 Зависимости: JP-T04.6.
 
+Статус: **Частично** — вкладка `Artifacts` и экспорт реализованы; прогон в редакторе не выполнялся.
+
 Subtasks:
 
-- [ ] Inspect generated artifacts.
-- [ ] Export exact binary + manifest без rebake.
-- [ ] Delete только explicit выбранного artifact-а.
-- [ ] Copy hashes/report.
-- [ ] Safe temp/replace and previous-valid preservation.
+- [x] Inspect generated artifacts.
+  - Список всех запечённых артефактов проекта, счётчики, tick rate, версия генератора, `Verify` с перехэшированием.
+- [x] Export exact binary + manifest без rebake.
+  - Манифест берётся с диска, а не собирается из полей asset-а: экспортировать манифест, который придумал этот проект, значит сломать cross-check, ради которого он существует.
+- [x] Delete только explicit выбранного artifact-а.
+  - Диалог перечисляет ровно три пути; «почистить сгенерированное» — это способ удалить уровень, который коллега готовит к релизу.
+- [x] Copy hashes/report.
+- [x] Safe temp/replace and previous-valid preservation.
+  - Экспорт пишет через временный файл и перемещение; неудачный экспорт ничего не заменяет.
 
 Acceptance criteria:
 
 - [ ] Exported server bytes exact совпадают с client artifact.
+  - Экспортируются те же байты, что лежат в `TextAsset`, и проверяются перед записью; сверка хэша вручную — MT-19.
 
 ### JP-T06.4. Реализовать diagnostics
 
 Зависимости: JP-E03, JP-E05.
 
+Статус: **Частично** — три проверки реализованы; topology fingerprint требует установленной integration.
+
 Subtasks:
 
-- [ ] Codec roundtrip.
-- [ ] Repeat determinism check.
-- [ ] Runtime compatibility check.
+- [x] Codec roundtrip.
+  - Каждый артефакт декодируется и кодируется обратно; расхождение означает, что кодек перестал быть каноничным.
+- [x] Repeat determinism check.
+  - Сравниваются байты, а не графы записей: байтовое равенство — это то свойство, ради которого существует формат.
+- [x] Runtime compatibility check.
+  - Артефакты помечаются `STALE`, а не «сломан»: их надо перепечь, а не чинить.
 - [ ] Topology fingerprint display.
-- [ ] Short/full hash logging policy.
+  - Требует Jitter-зависимой сборки; сейчас fingerprint печатает world builder (MT-27/MT-28).
+- [x] Short/full hash logging policy.
+  - Полный хэш в окне, короткий — в логах рантайма.
 
 Acceptance criteria:
 
 - [ ] Основные mismatch причины диагностируются без запуска match.
+  - Три из четырёх причин закрыты; паритет топологии Unity/`.NET` пока проверяется вручную.
 
 Epic acceptance:
 
-- [ ] Editor mutations происходят только по explicit actions.
+- [x] Editor mutations происходят только по explicit actions.
+  - Ни одно окно ничего не пишет при открытии, смене выделения или импорте.
 - [ ] Failed action не повреждает existing artifacts/installations.
+  - Так реализовано (staging + отказ до записи); подтверждается сценариями MT-06, MT-07, MT-16.
 
 ## JP-E07. Server source delivery и `.NET` runtime
 
@@ -977,34 +1023,47 @@ Epic acceptance:
 
 Зависимости: JP-E03, JP-E05, JP-T00.4.
 
+Статус: **Частично** — проекция и манифест реализованы; сборка проекции в чужом `.NET`-проекте не проверялась.
+
 Subtasks:
 
-- [ ] Определить source list Contracts/Codec/Builder/Providers.
-- [ ] Реализовать projection manifest.
-- [ ] Копировать sources в configurable consumer project folder.
-- [ ] Исключить Unity-only source.
-- [ ] Проверить отсутствие PackageCache paths.
+- [x] Определить source list Contracts/Codec/Builder/Providers.
+  - `Runtime/Contracts`, `Runtime/ArtifactCodec`, `JitterIntegration~/Runtime`; провайдеры входят в codec.
+- [x] Реализовать projection manifest.
+  - `JitterPhysics.projection.json`: версия пакета, схема артефакта, файлы с хэшами.
+- [x] Копировать sources в configurable consumer project folder.
+- [x] Исключить Unity-only source.
+  - Проверяется по каждому файлу, а не предполагается: `using UnityEngine` здесь не упал бы в Unity, он упал бы в серверной сборке, где движка нет.
+- [x] Проверить отсутствие PackageCache paths.
+  - Копируются содержимое файлов, а не ссылки; в манифест попадают только относительные пути внутри проекции.
 
 Acceptance criteria:
 
 - [ ] Consumer `.NET 10` project компилирует projection против своей Jitter assembly.
+  - Те же исходники компилируются `Server~/Tests` по ссылке; сборка именно скопированной проекции в чужом проекте не выполнялась (MT-25).
 
 ### JP-T07.2. Реализовать server projection installer lifecycle
 
 Зависимости: JP-T07.1, JP-T02.6.
 
+Статус: **Готово** — тот же receipt и те же правила владения, что и у установки в проект.
+
 Subtasks:
 
-- [ ] Явный target folder selection.
-- [ ] Staging copy.
-- [ ] Receipt/package version/file hashes.
-- [ ] Idempotent update.
-- [ ] Modified-file protection/uninstall.
-- [ ] CI validation command.
+- [x] Явный target folder selection.
+- [x] Staging copy.
+  - Каждый файл пишется рядом и перемещается на место.
+- [x] Receipt/package version/file hashes.
+- [x] Idempotent update.
+  - Файлы, которых больше нет в пакете, удаляются, иначе сервер продолжал бы компилировать исчезнувший API.
+- [x] Modified-file protection/uninstall.
+- [x] CI validation command.
+  - `Verify Server Runtime Sources...` сравнивает установленную проекцию с текущим пакетом.
 
 Acceptance criteria:
 
-- [ ] Package update не оставляет незаметно устаревший server runtime.
+- [x] Package update не оставляет незаметно устаревший server runtime.
+  - Расхождение версий и содержимого обнаруживается `Verify`, который потребитель ставит в свой CI.
 
 ### JP-T07.3. Реализовать file artifact provider
 
@@ -1032,20 +1091,28 @@ Acceptance criteria:
 
 Зависимости: JP-T00.4, JP-T06.3.
 
+Статус: **Готово** — генератор и провайдер покрыты `.NET`-тестами; компиляция сгенерированного файла в чужом проекте — MT-20.
+
 Subtasks:
 
-- [ ] Generate `.g.cs` from already baked bytes.
-- [ ] Разбить payload на safe chunks.
-- [ ] Восстановить bytes один раз при startup.
-- [ ] Повторно проверить SHA-256 и manifest.
-- [ ] Реализовать configurable hard size cap.
-- [ ] Добавить determinism и oversized tests.
+- [x] Generate `.g.cs` from already baked bytes.
+- [x] Разбить payload на safe chunks.
+  - Base64 по 4096 символов, кратно четырём: один многомегабайтный строковый литерал враждебен компилятору, а границы чанков не несут смысла.
+- [x] Восстановить bytes один раз при startup.
+- [x] Повторно проверить SHA-256 и manifest.
+  - Нахождение внутри бинаря доказывает, что компилятор скопировал байты, а не то, что это те самые байты.
+- [x] Реализовать configurable hard size cap.
+  - Это политика, а не техническое ограничение: встроенная production-карта раздувала бы каждую сборку сервера и превращала смену уровня в перекомпиляцию.
+- [x] Добавить determinism и oversized tests.
 
 Acceptance criteria:
 
-- [ ] Input/output bytes exact.
-- [ ] Генератор не делает rebake.
+- [x] Input/output bytes exact.
+  - Тест восстанавливает байты из чанков и сверяет SHA-256; экспортёр делает то же самое до записи файла.
+- [x] Генератор не делает rebake.
+  - Принимает готовые байты и манифест и отказывается, если они не из одного запекания.
 - [ ] Provider подходит для EFT POC без build-file changes.
+  - По построению (SDK-style glob), фактическая проверка в проекте потребителя не выполнялась.
 
 ### JP-T07.5. Реализовать server startup API/self-check
 
@@ -1093,7 +1160,7 @@ Subtasks:
 Acceptance criteria:
 
 - [x] Dormant snapshot компилируется и проходит runtime tests в CI.
-  - Локально: 63 теста, `.NET 10`, зелёные. Подключение к CI — JP-T01.4.
+  - Локально: 73 теста, `.NET 10`, зелёные. В CI подключены тем же скриптом (JP-T01.4), фактического прогона на сервере не было.
 
 Проект существует именно потому, что «зелено в Unity» ничего не говорит про сервер: тот компилирует те же исходники другим компилятором и рантаймом.
 
