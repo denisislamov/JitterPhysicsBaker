@@ -43,8 +43,11 @@ Epic
 ```sh
 cd Packages/com.datasakura.jitter-physics-baker
 ./tools~/verify-jitter2-lock.py     # lock совпадает со snapshot (96 файлов)
-./tools~/test-jitter2-lock.py       # инварианты канонического хэша
+./tools~/test-jitter2-lock.py       # инварианты канонического хэша (19 проверок)
 ./tools~/test-dotnet.sh             # 45 тестов, .NET 10, зелёные
+
+cd -
+python3 tools/verify-package-meta.py  # полные .meta, нет LFS-указателей
 ```
 
 Unity EditMode/PlayMode тесты **скомпилированы, но не выполнены**: проект занят открытым редактором, batch-прогон не запускался.
