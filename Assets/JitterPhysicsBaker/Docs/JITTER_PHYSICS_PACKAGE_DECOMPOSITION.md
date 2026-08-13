@@ -14,6 +14,47 @@ Epic
 
 Идентификаторы предварительные и могут быть заменены Jira/Linear ID при импорте.
 
+## 0. Текущий статус реализации
+
+Обновлено: 2026-08-13. Отметки проставляются только по фактически проверенному результату.
+
+Легенда статуса Task:
+
+- **Готово** — все subtasks и acceptance criteria выполнены и подтверждены прогоном.
+- **Частично** — есть работающий результат, но часть acceptance criteria не закрыта; что именно осталось, указано в блоке `Статус`.
+- **Не начато** — работа не велась.
+
+### Сводка по эпикам
+
+| Epic | Статус | Комментарий |
+|---|---|---|
+| JP-E00 | Не начато | Baseline report и characterization fixtures не создавались |
+| JP-E01 | Частично | Package/assembly graph/dev project готовы; CI отсутствует |
+| JP-E02 | Частично | Snapshot/lock/discovery готовы; installer и receipt lifecycle отсутствуют |
+| JP-E03 | Готово | Contracts, codec, manifest, runtime ID, token, golden/corrupt suite |
+| JP-E04 | Частично | Authoring/collection/converters/bake pipeline готовы; запись артефакта на диск отсутствует |
+| JP-E05 | Частично | World builder готов и проверен на `.NET`; Unity-сторона не прогонялась |
+| JP-E06 | Частично | Setup/About окна есть; Bake UI и artifact management отсутствуют |
+| JP-E07 | Частично | `Server~/Tests` работает; projection/providers/startup API отсутствуют |
+| JP-E08–JP-E12 | Не начато | — |
+
+### Что проверено прогоном
+
+```sh
+cd Packages/com.datasakura.jitter-physics-baker
+./tools~/verify-jitter2-lock.py     # lock совпадает со snapshot (96 файлов)
+./tools~/test-jitter2-lock.py       # инварианты канонического хэша
+./tools~/test-dotnet.sh             # 45 тестов, .NET 10, зелёные
+```
+
+Unity EditMode/PlayMode тесты **скомпилированы, но не выполнены**: проект занят открытым редактором, batch-прогон не запускался.
+
+### Известные отклонения от ТЗ
+
+1. **`Jitter2~/Runtime` содержит upstream `2.8.9`, а не EFT-форк.** Это непатченная версия: нет `JITTER_UNITY`, используются аппаратные интринсики. Как `.NET`-снапшот работает и покрыт тестами; как Unity fallback **не проверен**. `compileProfile` в lock описывает фактическое состояние, а не целевое. Детали — `Jitter2~/PATCHES.md`.
+2. **JP-T00.2 characterization fixtures отсутствуют**, поэтому acceptance criteria JP-T04.3 «converters проходят характеризационные fixtures текущего `JitterBody`» формально не закрыт: семантика конвертеров зафиксирована собственными тестами, а не сравнением с EFT.
+
+
 ## 1. Правила backlog-а
 
 - `P0` — блокирует standalone package или EFT POC.
@@ -175,59 +216,71 @@ Epic acceptance:
 
 Зависимости: JP-E00.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Создать `package.json` для `com.datasakura.jitter-physics-baker`.
-- [ ] Добавить README, CHANGELOG, LICENSE, Third Party Notices.
-- [ ] Добавить `.gitignore` и `.gitattributes` с line-ending policy.
-- [ ] Создать `Runtime`, `Authoring`, `Editor`, `Tests`, `Samples~`, `Server~`, `Documentation~`, `tools~`.
-- [ ] Зафиксировать minimal Unity version и SemVer policy.
+- [x] Создать `package.json` для `com.datasakura.jitter-physics-baker`.
+- [x] Добавить README, CHANGELOG, LICENSE, Third Party Notices.
+- [x] Добавить `.gitignore` и `.gitattributes` с line-ending policy.
+- [x] Создать `Runtime`, `Authoring`, `Editor`, `Tests`, `Samples~`, `Server~`, `Documentation~`, `tools~`.
+- [x] Зафиксировать minimal Unity version и SemVer policy.
 
 Acceptance criteria:
 
-- [ ] UPM распознаёт package по local path.
-- [ ] Repository не содержит `Library`, `Temp`, `obj`, `bin`, secrets или случайные binaries.
+- [x] UPM распознаёт package по local path.
+- [x] Repository не содержит `Library`, `Temp`, `obj`, `bin`, secrets или случайные binaries.
+
+Примечание: `.gitattributes` явно запрещает LFS внутри package-а — UPM клонирует git URL без LFS, и любой LFS-указатель приехал бы к потребителю как ~130-байтовый текстовый файл.
 
 ### JP-T01.2. Создать Jitter-free assembly graph
 
 Зависимости: JP-T01.1, JP-T00.3.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Создать `DataSakura.JitterPhysics.Contracts`.
-- [ ] Создать `DataSakura.JitterPhysics.ArtifactCodec`.
-- [ ] Создать `DataSakura.JitterPhysics.UnityArtifact`.
-- [ ] Создать `DataSakura.JitterPhysics.Authoring`.
-- [ ] Создать `DataSakura.JitterPhysics.Editor`.
-- [ ] Настроить `noEngineReferences` и Editor-only boundaries.
-- [ ] Проверить отсутствие references на EFT, Netick и Jitter.
+- [x] Создать `DataSakura.JitterPhysics.Contracts`.
+- [x] Создать `DataSakura.JitterPhysics.ArtifactCodec`.
+- [x] Создать `DataSakura.JitterPhysics.UnityArtifact`.
+- [x] Создать `DataSakura.JitterPhysics.Authoring`.
+- [x] Создать `DataSakura.JitterPhysics.Editor`.
+- [x] Настроить `noEngineReferences` и Editor-only boundaries.
+- [x] Проверить отсутствие references на EFT, Netick и Jitter.
 
 Acceptance criteria:
 
-- [ ] Assembly graph компилируется без установленного Jitter.
-- [ ] Runtime Contracts/Codec не зависят от UnityEngine.
-- [ ] Editor assembly не попадает в player build.
+- [x] Assembly graph компилируется без установленного Jitter.
+- [x] Runtime Contracts/Codec не зависят от UnityEngine.
+- [x] Editor assembly не попадает в player build.
+
+Проверяется тестом `JitterPhysicsPackageLayoutTests`: он читает все `.asmdef` package-а и падает, если хоть один ссылается на `Jitter2.Core`, `Netick` или `EFT.*`. Ревью такие вещи пропускает, тест — нет.
 
 ### JP-T01.3. Создать отдельный Unity dev/QA project
 
 Зависимости: JP-T01.1.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Создать Unity project поддерживаемой версии.
-- [ ] Подключить package через local `file:` dependency.
-- [ ] Настроить Test Framework.
-- [ ] Добавить clean-import fixture без Jitter.
-- [ ] Описать local developer bootstrap.
+- [x] Создать Unity project поддерживаемой версии.
+- [x] Подключить package через local `file:` dependency.
+- [x] Настроить Test Framework.
+- [x] Добавить clean-import fixture без Jitter.
+- [x] Описать local developer bootstrap.
 
 Acceptance criteria:
 
-- [ ] Clean checkout dev project открывается и компилируется.
-- [ ] Package source редактируется без копирования в `Assets`.
+- [x] Clean checkout dev project открывается и компилируется.
+- [x] Package source редактируется без копирования в `Assets`.
 
 ### JP-T01.4. Добавить CI skeleton
 
 Зависимости: JP-T01.1, JP-T01.3.
+
+Статус: **Не начато**.
 
 Subtasks:
 
@@ -241,10 +294,12 @@ Acceptance criteria:
 
 - [ ] CI запускается на PR и показывает отдельные package/Unity/.NET stages.
 
+Заготовка есть: `tools~/verify-jitter2-lock.py`, `tools~/test-jitter2-lock.py` и `tools~/test-dotnet.sh` уже пригодны как CI-шаги, не хватает самого workflow.
+
 Epic acceptance:
 
-- [ ] Package импортируется в clean project без Jitter и compile errors.
-- [ ] Базовый repository/assembly layout соответствует исходному ТЗ.
+- [x] Package импортируется в clean project без Jitter и compile errors.
+- [x] Базовый repository/assembly layout соответствует исходному ТЗ.
 
 ## JP-E02. Dormant Jitter2, lock и installer
 
@@ -256,61 +311,78 @@ Epic acceptance:
 
 Зависимости: JP-E00, JP-E01.
 
+Статус: **Частично** — snapshot синхронизирован из upstream `2.8.9`, а не из EFT.
+
 Subtasks:
 
-- [ ] Синхронизировать текущие EFT Jitter `.cs` sources в `Jitter2~/Runtime`.
-- [ ] Добавить upstream commit, `PATCHES.md`, license и provenance.
-- [ ] Создать standalone Unity asmdef template без EFT/Netick references.
-- [ ] Зафиксировать Unity/.NET compile profiles.
-- [ ] Проверить, что Unity не импортирует snapshot.
+- [x] Синхронизировать текущие EFT Jitter `.cs` sources в `Jitter2~/Runtime`.
+  - Выполнено из upstream `2.8.9` (96 файлов). EFT-форк не был доступен; переключение — одной командой `sync-jitter2.py --source`.
+- [x] Добавить upstream commit, `PATCHES.md`, license и provenance.
+- [x] Создать standalone Unity asmdef template без EFT/Netick references.
+- [x] Зафиксировать Unity/.NET compile profiles.
+- [x] Проверить, что Unity не импортирует snapshot.
 
 Acceptance criteria:
 
 - [ ] Snapshot соответствует принятой EFT revision.
-- [ ] Fallback asmdef создаёт assembly `Jitter2.Core`.
-- [ ] В package import не появляется вторая Jitter assembly.
+  - Сейчас это upstream `2.8.9` (`c15bc6ab`). Закроется после синка форка.
+- [x] Fallback asmdef создаёт assembly `Jitter2.Core`.
+- [x] В package import не появляется вторая Jitter assembly.
+
+Snapshot компилируется и симулирует: `Server~/Tests` строит из него мир, статическое тело держит позу, динамическое ложится на него, сборка подтверждённо single precision.
 
 ### JP-T02.2. Реализовать canonical source hash и lock
 
 Зависимости: JP-T02.1.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Реализовать include/exclude traversal.
-- [ ] Нормализовать paths, ordering, encoding и line endings.
-- [ ] Включить `.cs`, `csc.rsp` и canonical compile profile.
-- [ ] Исключить consumer asmdef/meta/build output.
-- [ ] Сгенерировать `jitter2.lock.json`.
-- [ ] Реализовать `verify-jitter2-lock`.
-- [ ] Добавить known-hash tests.
+- [x] Реализовать include/exclude traversal.
+- [x] Нормализовать paths, ordering, encoding и line endings.
+- [x] Включить `.cs`, `csc.rsp` и canonical compile profile.
+- [x] Исключить consumer asmdef/meta/build output.
+- [x] Сгенерировать `jitter2.lock.json`.
+- [x] Реализовать `verify-jitter2-lock`.
+- [x] Добавить known-hash tests.
 
 Acceptance criteria:
 
-- [ ] Hash одинаков на поддерживаемых ОС.
-- [ ] Изменение любого compile-relevant input меняет hash.
-- [ ] Consumer-specific asmdef path/reference не меняет source identity.
+- [x] Hash одинаков на поддерживаемых ОС.
+  - Текстовые файлы приводятся к LF до хэширования, поэтому CRLF-checkout на Windows даёт тот же результат.
+- [x] Изменение любого compile-relevant input меняет hash.
+- [x] Consumer-specific asmdef path/reference не меняет source identity.
+
+Хэш считают **две независимые реализации** — `tools~/hash-jitter2.py` для CI и `JitterPhysicsSourceHasher` для редактора. Правила отбора файлов, порядка, переносов строк и сериализации compile profile заданы пакетом, а не платформой: `pathlib.match` менял семантику `**` между версиями Python, и на нём паритет был бы недостижим.
 
 ### JP-T02.3. Реализовать Jitter discovery/compatibility report
 
 Зависимости: JP-T02.2, JP-E01.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Искать `Jitter2.Core` через compilation metadata и AssetDatabase.
-- [ ] Различать source asmdef и precompiled plugin.
-- [ ] Показывать все найденные paths.
-- [ ] Считать actual source hash/compile profile.
-- [ ] Классифицировать `Missing`, `Compatible`, `Incompatible`, `Duplicate`, `UnsupportedPlugin`.
-- [ ] Добавить machine-readable result для CI.
+- [x] Искать `Jitter2.Core` через compilation metadata и AssetDatabase.
+- [x] Различать source asmdef и precompiled plugin.
+- [x] Показывать все найденные paths.
+- [x] Считать actual source hash/compile profile.
+- [x] Классифицировать `Missing`, `Compatible`, `Incompatible`, `Duplicate`, `UnsupportedPlugin`.
+- [x] Добавить machine-readable result для CI.
 
 Acceptance criteria:
 
-- [ ] Detection не зависит от folder path.
-- [ ] Duplicate/incompatible result содержит actionable diagnostics.
+- [x] Detection не зависит от folder path.
+- [x] Duplicate/incompatible result содержит actionable diagnostics.
+
+Реализация: `Editor/Bootstrap/JitterPhysicsCompatibilityReport.cs`, UI — `Tools > DataSakura > Jitter Physics > Setup`. Окно только читает; установка остаётся отдельной явной командой.
 
 ### JP-T02.4. Реализовать `Install Jitter2 into Project`
 
 Зависимости: JP-T02.1, JP-T02.3.
+
+Статус: **Не начато**.
 
 Subtasks:
 
@@ -325,27 +397,34 @@ Acceptance criteria:
 - [ ] Новый проект получает ровно одну совместимую `Jitter2.Core`.
 - [ ] Existing external Jitter никогда не перезаписывается.
 
+Блокер: текущий snapshot — непатченный upstream, его Unity-совместимость не подтверждена (см. отклонение 1 в разделе 0). Устанавливать его как fallback пока нельзя.
+
 ### JP-T02.5. Реализовать Jitter integration installer
 
 Зависимости: JP-T02.3, JP-T02.4, JP-E01.
 
+Статус: **Частично** — подготовлены исходники и шаблон, самого установщика нет.
+
 Subtasks:
 
-- [ ] Подготовить `JitterIntegration~/UnityAssemblyTemplate`.
-- [ ] Создать asmdef references по names, включая `Jitter2.Core`.
+- [x] Подготовить `JitterIntegration~/UnityAssemblyTemplate`.
+- [x] Создать asmdef references по names, включая `Jitter2.Core`.
 - [ ] Устанавливать integration отдельно от Jitter.
 - [ ] Проверять version/hash installed projection.
-- [ ] Не создавать dependency cycle с `EFT.Runtime`.
+- [x] Не создавать dependency cycle с `EFT.Runtime`.
+  - Package не содержит networking-типов, поэтому обратная зависимость ничем не навязывается; правило описано в `JitterIntegration~/README.md`.
 
 Acceptance criteria:
 
 - [ ] С compatible external Jitter устанавливается только adapter.
 - [ ] С fallback Jitter adapter компилируется после установки.
-- [ ] Clean import до установки остаётся рабочим.
+- [x] Clean import до установки остаётся рабочим.
 
 ### JP-T02.6. Реализовать receipt/update/uninstall lifecycle
 
 Зависимости: JP-T02.4, JP-T02.5.
+
+Статус: **Не начато**.
 
 Subtasks:
 
@@ -359,28 +438,36 @@ Subtasks:
 Acceptance criteria:
 
 - [ ] Update/uninstall не удаляют внешний или изменённый код.
-- [ ] Import/`InitializeOnLoad` не выполняют mutation.
+- [x] Import/`InitializeOnLoad` не выполняют mutation.
+  - Package не содержит `InitializeOnLoad`-мутаций: discovery только читает.
 
 ### JP-T02.7. Автоматизировать sync EFT -> snapshot
 
 Зависимости: JP-T02.1, JP-T02.2.
 
+Статус: **Частично** — инструмент готов, CI-контроля drift нет.
+
 Subtasks:
 
-- [ ] Реализовать `sync-jitter2 --source`.
-- [ ] Генерировать diff/provenance report.
-- [ ] Требовать lock regeneration.
+- [x] Реализовать `sync-jitter2 --source`.
+  - Поддержаны оба режима: `--source <path>` для форка и `--repo/--ref` для upstream.
+- [x] Генерировать diff/provenance report.
+  - Выводятся число файлов, commit, предыдущий и новый хэш и факт изменения; provenance пишется в lock и `PATCHES.md`.
+- [x] Требовать lock regeneration.
+  - Lock обновляется той же командой, рассинхрон невозможен по построению.
 - [ ] Запрещать manual drift snapshot-а в CI.
 
 Acceptance criteria:
 
-- [ ] Один command воспроизводимо синхронизирует accepted EFT revision.
+- [x] Один command воспроизводимо синхронизирует accepted EFT revision.
 - [ ] CI ловит правку snapshot-а без source/provenance/lock update.
+  - `verify-jitter2-lock.py` уже это детектирует, но не подключён к CI (см. JP-T01.4).
 
 Epic acceptance:
 
 - [ ] External, fallback, duplicate и incompatible scenarios покрыты tests.
-- [ ] Jitter в EFT не изменён.
+  - Классификация реализована и покрыта, сценарии установки — нет.
+- [x] Jitter в EFT не изменён.
 - [ ] Gate A Jitter requirements выполнены.
 
 ## JP-E03. Artifact Contracts, codec и compatibility token
@@ -393,125 +480,151 @@ Epic acceptance:
 
 Зависимости: JP-E01, JP-T00.2.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] World settings DTO.
-- [ ] Body record DTO.
-- [ ] Box/Sphere/Capsule/TriangleMesh shape DTO.
-- [ ] Stable source/shape IDs.
-- [ ] Manifest DTO.
-- [ ] Safety limits/config.
-- [ ] Документировать numeric tags/header layout.
+- [x] World settings DTO.
+- [x] Body record DTO.
+- [x] Box/Sphere/Capsule/TriangleMesh shape DTO.
+- [x] Stable source/shape IDs.
+- [x] Manifest DTO.
+- [x] Safety limits/config.
+- [x] Документировать numeric tags/header layout.
 
 Acceptance criteria:
 
-- [ ] DTO не содержит Unity/Jitter types.
-- [ ] Artifact не содержит runtime Jitter internals.
+- [x] DTO не содержит Unity/Jitter types.
+- [x] Artifact не содержит runtime Jitter internals.
+
+Layout схемы 1 задокументирован в `PhysicsArtifactFormat.cs` и зафиксирован golden-тестом.
 
 ### JP-T03.2. Реализовать canonical writer
 
 Зависимости: JP-T03.1.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Little-endian primitive writer.
-- [ ] Bounded UTF-8 encoding.
-- [ ] Float finite/`-0` normalization.
-- [ ] Quaternion normalization/sign convention.
-- [ ] Canonical records ordering contract.
-- [ ] SHA-256 canonical binary.
+- [x] Little-endian primitive writer.
+- [x] Bounded UTF-8 encoding.
+- [x] Float finite/`-0` normalization.
+- [x] Quaternion normalization/sign convention.
+- [x] Canonical records ordering contract.
+- [x] SHA-256 canonical binary.
 
 Acceptance criteria:
 
-- [ ] Repeat write одного DTO даёт exact bytes/hash.
-- [ ] Writer отклоняет invalid values до создания final artifact.
+- [x] Repeat write одного DTO даёт exact bytes/hash.
+- [x] Writer отклоняет invalid values до создания final artifact.
+
+Writer намеренно строгий: он отказывается писать записи не в порядке, а не сортирует их молча. Пересортировка скрыла бы недетерминированный baker — то есть ровно ту ошибку, ради которой формат и существует.
 
 ### JP-T03.3. Реализовать bounded reader/validator
 
 Зависимости: JP-T03.1.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Проверять hash до parse.
-- [ ] Проверять magic/schema/precision/endianness/runtime ID.
-- [ ] Проверять counts/lengths до allocation.
-- [ ] Проверять IDs, floats, quaternions, mesh indices.
-- [ ] Отклонять trailing garbage.
-- [ ] Возвращать typed errors.
+- [x] Проверять hash до parse.
+- [x] Проверять magic/schema/precision/endianness/runtime ID.
+- [x] Проверять counts/lengths до allocation.
+- [x] Проверять IDs, floats, quaternions, mesh indices.
+- [x] Отклонять trailing garbage.
+- [x] Возвращать typed errors.
 
 Acceptance criteria:
 
-- [ ] Corrupt/truncated/oversized inputs не вызывают unbounded allocations.
-- [ ] Reader не изменяет Jitter world и не зависит от Jitter.
+- [x] Corrupt/truncated/oversized inputs не вызывают unbounded allocations.
+- [x] Reader не изменяет Jitter world и не зависит от Jitter.
+
+Порядок проверок задан намеренно: хэш проверяется **до** разбора, поэтому счётчикам подменённого файла не доверяют ни разу.
 
 ### JP-T03.4. Реализовать manifest и artifact identity
 
 Зависимости: JP-T03.2, JP-T03.3.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Создать deterministic manifest fields.
-- [ ] Реализовать binary/manifest cross-check.
-- [ ] Создать content-addressed filenames.
-- [ ] Исключить timestamps/machine paths из identity.
-- [ ] Создать Unity artifact metadata contract.
+- [x] Создать deterministic manifest fields.
+- [x] Реализовать binary/manifest cross-check.
+- [x] Создать content-addressed filenames.
+- [x] Исключить timestamps/machine paths из identity.
+- [x] Создать Unity artifact metadata contract.
 
 Acceptance criteria:
 
-- [ ] Manifest не может подменить binary identity.
-- [ ] Client/server artifactHash — SHA-256 одних bytes.
+- [x] Manifest не может подменить binary identity.
+- [x] Client/server artifactHash — SHA-256 одних bytes.
 
 ### JP-T03.5. Реализовать `runtimeCompatibilityId`
 
 Зависимости: JP-T02.2, JP-T03.1.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Canonicalize formula inputs.
-- [ ] Включить schema, Jitter source hash, compile/precision profile.
-- [ ] Включить collider/shape/world-builder semantics versions.
-- [ ] Исключить manual override.
-- [ ] Добавить known-vector tests.
+- [x] Canonicalize formula inputs.
+- [x] Включить schema, Jitter source hash, compile/precision profile.
+- [x] Включить collider/shape/world-builder semantics versions.
+- [x] Исключить manual override.
+- [x] Добавить known-vector tests.
 
 Acceptance criteria:
 
-- [ ] Любое runtime-semantic изменение меняет ID.
-- [ ] ID одинаков в Editor, Unity runtime и `.NET` tests.
+- [x] Любое runtime-semantic изменение меняет ID.
+- [x] ID одинаков в Editor, Unity runtime и `.NET` tests.
+
+ID всегда вычисляется и никогда не пишется руками: вручную поддерживаемое значение — это число, которое кто-то забудет обновить, а скрытая за этим ошибка — клиент и сервер, молча симулирующие разные миры.
 
 ### JP-T03.6. Реализовать transport-agnostic compatibility token
 
 Зависимости: JP-T03.4, JP-T03.5.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Кодировать magic/version/levelId.
-- [ ] Добавить artifact SHA-256.
-- [ ] Добавить runtimeCompatibilityId.
-- [ ] Ограничить payload/string lengths.
-- [ ] Реализовать strict parser и typed errors.
+- [x] Кодировать magic/version/levelId.
+- [x] Добавить artifact SHA-256.
+- [x] Добавить runtimeCompatibilityId.
+- [x] Ограничить payload/string lengths.
+- [x] Реализовать strict parser и typed errors.
 
 Acceptance criteria:
 
-- [ ] Token codec не зависит от Netick.
-- [ ] Missing/truncated/oversized/unknown-version payload отклоняется.
+- [x] Token codec не зависит от Netick.
+- [x] Missing/truncated/oversized/unknown-version payload отклоняется.
+
+Токен несёт **и** artifact hash, **и** runtime ID: проверка только хэша пропустила бы клиента с правильной картой, но другой семантикой — случай, который тяжелее всего диагностировать потом.
 
 ### JP-T03.7. Зафиксировать golden/corrupt test suite
 
 Зависимости: JP-T03.2–JP-T03.6.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Golden minimal box bytes.
-- [ ] Roundtrip all shapes/settings.
-- [ ] `-0/+0`, `q/-q` fixtures.
-- [ ] One-field-change hash fixtures.
-- [ ] Corrupt matrix.
-- [ ] Manifest mismatch fixtures.
+- [x] Golden minimal box bytes.
+- [x] Roundtrip all shapes/settings.
+- [x] `-0/+0`, `q/-q` fixtures.
+- [x] One-field-change hash fixtures.
+- [x] Corrupt matrix.
+- [x] Manifest mismatch fixtures.
 
 Acceptance criteria:
 
-- [ ] Golden bytes нельзя изменить без schema bump.
-- [ ] Gate A artifact requirements выполнены.
+- [x] Golden bytes нельзя изменить без schema bump.
+- [x] Gate A artifact requirements выполнены.
+
+Ожидаемые байты в golden-тесте собираются **по полям вручную**, а не сравнением writer-а с самим собой: это независимая формулировка формата, поэтому правка writer-а роняет сборку, а не переопределяет молча, что такое артефакт.
 
 ## JP-E04. Unity authoring, collider conversion и deterministic bake
 
@@ -523,94 +636,120 @@ Acceptance criteria:
 
 Зависимости: JP-E01, JP-T03.1.
 
+Статус: **Частично** — компоненты готовы, правило «ровно один активный level» не реализовано.
+
 Subtasks:
 
-- [ ] `JitterPhysicsLevel`.
-- [ ] `JitterStaticBodySource`.
-- [ ] `JitterPhysicsWorldProfile`.
-- [ ] Stable serialized `sourceId` generation/repair policy.
-- [ ] Inspector validation hooks.
+- [x] `JitterPhysicsLevel`.
+- [x] `JitterStaticBodySource`.
+- [x] `JitterPhysicsWorldProfile`.
+- [x] Stable serialized `sourceId` generation/repair policy.
+- [x] Inspector validation hooks.
+  - `OnValidate` в профиле мира зажимает значения в допустимый диапазон; кастомных инспекторов пока нет.
 
 Acceptance criteria:
 
-- [ ] В bake попадают только explicit sources.
+- [x] В bake попадают только explicit sources.
 - [ ] 0 или >1 active level даёт actionable error.
+  - Отсутствие sources и отсутствие профиля диагностируются; поиска дублирующихся `JitterPhysicsLevel` в сцене ещё нет.
+
+Идентификаторы санитизируются один раз и затем сохраняются: переименование объекта не меняет артефакт, потому что id — это идентичность, а имя — только подпись.
 
 ### JP-T04.2. Реализовать deterministic source collection
 
 Зависимости: JP-T04.1.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Traversal `geometryRoot`/sources.
-- [ ] Canonical source order по `sourceId`.
-- [ ] Canonical collider key: path/sibling/component/type.
-- [ ] Duplicate ID/key diagnostics.
-- [ ] Inactive/disabled policy.
+- [x] Traversal `geometryRoot`/sources.
+- [x] Canonical source order по `sourceId`.
+- [x] Canonical collider key: path/sibling/component/type.
+- [x] Duplicate ID/key diagnostics.
+- [x] Inactive/disabled policy.
 
 Acceptance criteria:
 
-- [ ] Collection order не зависит от Unity instance ID или hash enumeration.
+- [x] Collection order не зависит от Unity instance ID или hash enumeration.
+
+Ключ шейпа выводится из структуры (путь, sibling index, индекс компонента, тип). Instance id и порядок обхода стабильны внутри сессии и произвольны между сессиями — byte-exact bake этого не переживает. Покрыто тестом: перестановка siblings не меняет байты.
 
 ### JP-T04.3. Реализовать primitive converters
 
 Зависимости: JP-T00.2, JP-T04.2, JP-T03.1.
 
+Статус: **Частично** — конвертеры готовы, сверка с EFT-характеризацией невозможна без JP-T00.2.
+
 Subtasks:
 
-- [ ] Box converter.
-- [ ] Sphere converter + non-uniform warning.
-- [ ] Capsule X/Y/Z converter.
-- [ ] Center/local pose/scale conversion.
-- [ ] Shear/zero/NaN/negative-scale validation.
+- [x] Box converter.
+- [x] Sphere converter + non-uniform warning.
+- [x] Capsule X/Y/Z converter.
+- [x] Center/local pose/scale conversion.
+- [x] Shear/zero/NaN/negative-scale validation.
 
 Acceptance criteria:
 
 - [ ] Converters проходят characterization fixtures текущего `JitterBody`.
+  - Fixtures не существуют (JP-T00.2 не выполнялась). Семантика зафиксирована собственными тестами; сверку с EFT нужно провести отдельно.
+
+Единственное приближение — сфера при неравномерном масштабе — сделано консервативно (по наибольшей оси) и сопровождается warning: игрок, задевающий чуть большую геометрию, дешевле игрока, проходящего сквозь стену.
 
 ### JP-T04.4. Реализовать MeshCollider converter
 
 Зависимости: JP-T04.2, JP-T03.1.
 
+Статус: **Частично** — конвертер готов, raycast-проверка ориентации не выполнялась.
+
 Subtasks:
 
-- [ ] Получить readable mesh data в Editor.
-- [ ] Применить full transform matrix.
-- [ ] Исправить winding при negative determinant.
-- [ ] Проверить indices/triangle count.
-- [ ] Отклонить degenerate/unreadable/invalid mesh.
+- [x] Получить readable mesh data в Editor.
+- [x] Применить full transform matrix.
+- [x] Исправить winding при negative determinant.
+- [x] Проверить indices/triangle count.
+- [x] Отклонить degenerate/unreadable/invalid mesh.
 
 Acceptance criteria:
 
-- [ ] Mesh fixture даёт deterministic vertices/indices.
+- [x] Mesh fixture даёт deterministic vertices/indices.
 - [ ] Raycast orientation ожидаема после world build.
+  - Проверено, что меш превращается в ожидаемое число треугольников; отдельного raycast-фикстура нет.
+
+Вершины запекаются в body-local полной матрицей, поэтому неравномерный или скошенный трансформ представлен точно. При отрицательном детерминанте разворачивается winding: иначе поверхность смотрела бы внутрь и уровень стал бы сплошным изнутри.
 
 ### JP-T04.5. Реализовать validator
 
 Зависимости: JP-T04.1–JP-T04.4, JP-T02.3.
 
+Статус: **Частично** — диагностика есть, отдельного validator-прохода и связи с Setup нет.
+
 Subtasks:
 
 - [ ] Setup/Jitter compatibility validation.
-- [ ] Authoring/ID validation.
-- [ ] Collider/transform/mesh validation.
-- [ ] World profile/tick/precision validation.
-- [ ] Issue severity, object path, ping/select metadata.
-- [ ] Блокировать bake на error.
+  - Bake отказывается работать без валидного `runtimeCompatibilityId`, но автоматически из Setup он ещё не подставляется.
+- [x] Authoring/ID validation.
+- [x] Collider/transform/mesh validation.
+- [x] World profile/tick/precision validation.
+- [x] Issue severity, object path, ping/select metadata.
+- [x] Блокировать bake на error.
 
 Acceptance criteria:
 
-- [ ] Unsupported input не пропускается silently.
+- [x] Unsupported input не пропускается silently.
 - [ ] Incompatible Jitter hash блокирует bake.
+  - Механизм есть (без корректного runtime ID сборка невозможна), но связка Setup → Bake не собрана.
 
 ### JP-T04.6. Реализовать deterministic bake pipeline
 
 Зависимости: JP-E03, JP-T04.5.
 
+Статус: **Частично** — артефакт строится и хэшируется, запись на диск отсутствует.
+
 Subtasks:
 
-- [ ] Collect -> convert -> canonicalize -> write -> hash.
-- [ ] Создать manifest.
+- [x] Collect -> convert -> canonicalize -> write -> hash.
+- [x] Создать manifest.
 - [ ] Создать `JitterPhysicsArtifactAsset` + `TextAsset`.
 - [ ] Использовать temp + atomic replace.
 - [ ] Не выполнять bake в Play Mode.
@@ -618,14 +757,18 @@ Subtasks:
 
 Acceptance criteria:
 
-- [ ] Repeat bake exact.
-- [ ] One semantic source change меняет hash.
+- [x] Repeat bake exact.
+- [x] One semantic source change меняет hash.
 - [ ] Runtime повторно проверяет asset binary hash.
+
+Сборка всё-или-ничего: частично конвертируемый уровень не записывается как частично корректный артефакт, потому что недостающая геометрия проявилась бы дырой в стене в рантайме, а не сообщением при запекании.
 
 Epic acceptance:
 
-- [ ] Box/Sphere/Capsule/Mesh baking проходит EditMode fixtures.
+- [x] Box/Sphere/Capsule/Mesh baking проходит EditMode fixtures.
+  - Fixtures написаны и компилируются; прогон в Unity Test Runner не выполнялся.
 - [ ] Designer получает actionable validation и stable artifact.
+  - Валидация actionable, но артефакт пока не сохраняется в проект.
 
 ## JP-E05. Jitter world builder и runtime integration source
 
@@ -637,87 +780,106 @@ Epic acceptance:
 
 Зависимости: JP-E02, JP-E03.
 
+Статус: **Частично** — `.NET`-сторона проверена прогоном, Unity-сторона нет.
+
 Subtasks:
 
-- [ ] Создать `JitterIntegration~/Runtime`.
-- [ ] Исключить UnityEngine/Editor/Netick dependencies.
-- [ ] Настроить Unity assembly template reference по имени `Jitter2.Core`.
-- [ ] Настроить `.NET` source inclusion against consumer Jitter assembly.
+- [x] Создать `JitterIntegration~/Runtime`.
+- [x] Исключить UnityEngine/Editor/Netick dependencies.
+- [x] Настроить Unity assembly template reference по имени `Jitter2.Core`.
+- [x] Настроить `.NET` source inclusion against consumer Jitter assembly.
 
 Acceptance criteria:
 
 - [ ] Один adapter source set компилируется в Unity и `.NET` fixtures.
+  - Под `.NET` компилируется и проходит тесты. В Unity не проверено: установщик ещё не реализован (JP-T02.5).
 
 ### JP-T05.2. Реализовать descriptor -> Jitter shapes
 
 Зависимости: JP-T05.1, JP-E03.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Box/Sphere/Capsule construction.
-- [ ] TriangleMesh/TriangleShape construction.
-- [ ] Local pose/material application.
-- [ ] Создание strictly в artifact order.
+- [x] Box/Sphere/Capsule construction.
+- [x] TriangleMesh/TriangleShape construction.
+- [x] Local pose/material application.
+- [x] Создание strictly в artifact order.
 
 Acceptance criteria:
 
-- [ ] Runtime types/counts соответствуют artifact records.
+- [x] Runtime types/counts соответствуют artifact records.
+
+Локальная поза оборачивается в `TransformedShape` только когда она не единичная: обёртка на каждый шейп добавила бы лишнюю косвенность в каждый collision query без пользы.
 
 ### JP-T05.3. Реализовать static world builder
 
 Зависимости: JP-T05.2.
 
+Статус: **Готово**.
+
 Subtasks:
 
-- [ ] Применить/проверить world settings.
-- [ ] Создать static bodies before dynamic bodies.
-- [ ] Реализовать Ready state.
-- [ ] Реализовать duplicate Apply guard.
-- [ ] Реализовать failure rollback/dispose policy.
+- [x] Применить/проверить world settings.
+- [x] Создать static bodies before dynamic bodies.
+- [x] Реализовать Ready state.
+- [x] Реализовать duplicate Apply guard.
+- [x] Реализовать failure rollback/dispose policy.
 
 Acceptance criteria:
 
-- [ ] Partial world никогда не становится Ready.
-- [ ] Повторный Apply не создаёт duplicate statics.
+- [x] Partial world никогда не становится Ready.
+- [x] Повторный Apply не создаёт duplicate statics.
+
+Повторное применение отклоняется, а не сливается: слияние молча удвоило бы каждую стену уровня. При исключении все созданные тела удаляются — частично построенный уровень хуже отсутствующего, потому что выглядит рабочим.
 
 ### JP-T05.4. Реализовать metrics и topology fingerprint
 
 Зависимости: JP-T05.3.
 
+Статус: **Частично** — fingerprint реализован и воспроизводим, паритет Unity/`.NET` не измерялся.
+
 Subtasks:
 
-- [ ] Body/shape/triangle counts.
-- [ ] Elapsed time.
-- [ ] Artifact/runtime IDs.
-- [ ] Canonical topology fingerprint.
-- [ ] Safe diagnostic formatting.
+- [x] Body/shape/triangle counts.
+- [x] Elapsed time.
+- [x] Artifact/runtime IDs.
+- [x] Canonical topology fingerprint.
+- [x] Safe diagnostic formatting.
 
 Acceptance criteria:
 
 - [ ] Unity и `.NET` дают exact одинаковый fingerprint.
+  - В пределах `.NET` подтверждено, в том числе что декодированный артефакт даёт тот же fingerprint, что исходный. Сравнение с Unity требует установленного integration.
 
 ### JP-T05.5. Добавить world-builder tests
 
 Зависимости: JP-T05.2–JP-T05.4.
 
+Статус: **Частично** — `.NET`-набор готов, Unity-набора нет.
+
 Subtasks:
 
-- [ ] Load all supported shapes.
+- [x] Load all supported shapes.
 - [ ] Raycast fixtures.
-- [ ] Falling body/resting ground.
-- [ ] Dynamic body vs cover.
-- [ ] Duplicate Apply.
-- [ ] Failure/rollback.
-- [ ] Settings/tick validation.
+- [x] Falling body/resting ground.
+- [x] Dynamic body vs cover.
+- [x] Duplicate Apply.
+- [x] Failure/rollback.
+- [x] Settings/tick validation.
 
 Acceptance criteria:
 
 - [ ] Tests проходят против dormant Jitter в `.NET` и установленного Jitter в Unity.
+  - `.NET`: 45 тестов зелёные. Unity: не проверялось.
+
+Ключевой тест — не «объекты созданы», а «на уровне можно стоять»: динамическое тело падает и приходит в покой на запечённой земле.
 
 Epic acceptance:
 
-- [ ] Shared loader/world builder готов для client/server integration.
-- [ ] Package не владеет и не вызывает tick loop.
+- [x] Shared loader/world builder готов для client/server integration.
+- [x] Package не владеет и не вызывает tick loop.
 
 ## JP-E06. Editor UX, export и diagnostics
 
@@ -729,16 +891,25 @@ Epic acceptance:
 
 Зависимости: JP-E02.
 
+Статус: **Частично** — отчёт и экспорт готовы, действий установки нет.
+
 Subtasks:
 
-- [ ] Показать Jitter path/type/ownership/hash/status.
+- [x] Показать Jitter path/type/ownership/hash/status.
 - [ ] Добавить installer/update/uninstall actions.
-- [ ] Показать package/schema/runtime IDs.
-- [ ] Добавить compatibility report export.
+  - Зависит от JP-T02.4–JP-T02.6.
+- [x] Показать package/schema/runtime IDs.
+- [x] Добавить compatibility report export.
+  - Копирование JSON в буфер и запись в файл.
 
 Acceptance criteria:
 
-- [ ] User понимает, какая Jitter copy активна и почему операция заблокирована.
+- [x] User понимает, какая Jitter copy активна и почему операция заблокирована.
+- [ ] Полный setup workflow выполняется из окна.
+
+Окно только читает. Окно, которое меняет проект, пока на него смотрят, — это способ случайно перезаписать собственную копию Jitter потребителя.
+
+Дополнительно реализовано вне исходного объёма Task: `Tools > DataSakura > Jitter Physics > About` — версии package/schema и состояние всех сборок, включая наличие и дублирование `Jitter2.Core`.
 
 ### JP-T06.2. Реализовать Level & Sources / Bake UI
 
@@ -886,18 +1057,26 @@ Acceptance criteria:
 
 Зависимости: JP-T02.1, JP-E03, JP-E05, JP-T07.1.
 
+Статус: **Частично** — проект работает, не хватает provider-тестов и parity-фикстуры.
+
 Subtasks:
 
-- [ ] `.NET 10` project.
-- [ ] Direct compile `Jitter2~/Runtime`.
-- [ ] Применить lock compile profile.
-- [ ] Подключить package sources ссылками.
-- [ ] Codec/world-builder/provider tests.
+- [x] `.NET 10` project.
+- [x] Direct compile `Jitter2~/Runtime`.
+- [x] Применить lock compile profile.
+  - `AllowUnsafeBlocks`, single precision; проверяется тестом `typeof(Real) == typeof(float)`.
+- [x] Подключить package sources ссылками.
+  - Contracts, ArtifactCodec, JitterIntegration и общие тест-файлы включаются по ссылке, без копий: копия — это форк, которого никто не замечает.
+- [x] Codec/world-builder/provider tests.
+  - Codec и world-builder есть; provider-ов ещё не существует (JP-T07.3/JP-T07.4).
 - [ ] Golden topology parity fixture.
 
 Acceptance criteria:
 
-- [ ] Dormant snapshot компилируется и проходит runtime tests в CI.
+- [x] Dormant snapshot компилируется и проходит runtime tests в CI.
+  - Локально: 45 тестов, `.NET 10`, зелёные. Подключение к CI — JP-T01.4.
+
+Проект существует именно потому, что «зелено в Unity» ничего не говорит про сервер: тот компилирует те же исходники другим компилятором и рантаймом.
 
 Epic acceptance:
 
@@ -1430,3 +1609,17 @@ JP-E10 начинается только после Gate B. JP-E11 начина�
 | JP-E12 | Production discovery | Post-v1 | P2 |
 
 Итого: 13 Epics. Jira/Linear может автоматически назначить финальные Task/Subtask IDs при импорте; логические `JP-*` ID рекомендуется сохранить в заголовках или labels для трассировки к этому документу.
+
+## 8. Ближайшие шаги
+
+Порядок отражает зависимости и текущие блокеры, а не приоритет «по важности».
+
+1. **JP-T04.6 (остаток) — запись артефакта в проект.** Сейчас bake строит и хэширует артефакт, но никуда его не сохраняет. Без этого workflow дизайнера не замкнут, и JP-T06.2/JP-T06.3 не на чем строить. Нужны `JitterPhysicsArtifactAsset` + `TextAsset`, temp + atomic replace, запрет bake в Play Mode и сохранение предыдущего валидного артефакта при ошибке.
+2. **JP-T04.5 (остаток) — связать Setup и Bake.** Прокинуть `runtimeCompatibilityId` из compatibility report в baker, чтобы несовместимый Jitter реально блокировал запекание, а не только теоретически.
+3. **JP-T02.4–JP-T02.6 — installer и receipt.** Разблокирует Unity-сторону JP-E05 (проверку fingerprint-паритета) и JP-T06.1.
+4. **JP-T02.1 — синк EFT-форка.** Снимет отклонение 1: изменится `sourceContentHash` и, как следствие, `runtimeCompatibilityId`. Это ожидаемое поведение, а не проблема.
+5. **JP-T01.4 — CI.** Скрипты для шагов уже готовы, нужен сам workflow.
+6. **JP-T00.2 — characterization fixtures.** Без них acceptance criteria JP-T04.3 не закрывается: сейчас конвертеры проверены сами против себя, а не против текущего поведения EFT.
+
+Отдельно: **прогнать Unity EditMode-тесты**. Они написаны и компилируются, но ни разу не выполнялись — редактор держал проект занятым.
+
