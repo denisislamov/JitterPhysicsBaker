@@ -346,6 +346,24 @@ dotnet test --filter FullyQualifiedName~TopologyFingerprint
 его с той же позиции, clear удаляет только динамические тела. После удаления integration define
 `DATASAKURA_JITTER_INTEGRATION` снят и Jitter-зависимый demo runtime снова не компилируется.
 
+### MT-30. Scene View показывает разницу с последним bake
+
+1. Открыть запечённую demo-сцену и включить
+   `Tools > DataSakura > Jitter Physics > Show Baked Geometry Overlay`.
+2. Убедиться, что запечённые colliders показаны зелёным wire overlay, а в легенде число
+   `matching` равно числу shapes текущей сцены.
+3. Переместить или изменить размер одного collider-а.
+4. Добавить включённый `BoxCollider` под geometry root без `JitterStaticBodySource`.
+5. Удалить другой collider, не выполняя bake.
+6. Выполнить успешный bake и снова посмотреть Scene View.
+7. Выключить тот же пункт меню.
+
+Ожидаемо: у изменённого collider-а старый pose остаётся зелёным, текущий становится красным;
+непомеченный collider красный; удалённая после bake геометрия остаётся зелёным «призраком».
+После bake актуальная помеченная геометрия зелёная, красный непомеченный collider остаётся
+красным. Toggle имеет checkmark, выключение полностью убирает overlay. Включение и просмотр
+ничего не записывают в сцену, артефакт или source ids.
+
 ## 9. Отчёт
 
 Скопировать таблицу и заполнить:
@@ -380,6 +398,6 @@ MT-26 verify проекции               :
 MT-27 построение мира               : 
 MT-28 паритет топологии             : 
 MT-29 demo UI и optional Jitter      :
+MT-30 Scene View bake overlay        :
 ```
-
 

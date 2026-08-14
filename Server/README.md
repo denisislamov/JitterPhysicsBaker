@@ -1,5 +1,8 @@
 # Jitter Physics Web Viewer
 
+Russian developer guide:
+[server artifact testing](../Assets/JitterPhysicsBaker/Docs/SERVER_ARTIFACT_TESTING.md).
+
 A standalone .NET dedicated-server example for the
 `com.datasakura.jitter-physics-baker` package. It loads baked level artifacts, rebuilds each
 static world with the package's shared loader, steps them on a fixed timestep, and renders
@@ -100,12 +103,11 @@ that a deployment smoke test can grep for:
 | Option | Meaning |
 |---|---|
 | `--manifest <path>` | Load this exact manifest instead of scanning `artifacts/`. |
-| `--artifacts <dir>` | Scan this folder for the single manifest to load. |
-| `--level <id>` | Refuse to start unless the artifact's level id matches. |
-| `--tick-rate <hz>` | Refuse to start unless the artifact's tick rate matches. |
+| `--artifacts <dir>` | Scan this folder and host every manifest it contains; prefer an absolute path. |
 
-The last two exist so a launcher that knows what it is hosting turns "the wrong artifact was
-delivered" into a startup failure instead of a match on the wrong map.
+The shared `JitterPhysicsServerStartup` API also supports expected level-id and tick-rate
+checks for a real launcher. This gallery currently accepts both values from each artifact and
+does not expose those expectations as command-line options.
 
 ## HTTP API
 
@@ -125,4 +127,3 @@ different compiler and runtime. The generator lets this project — and CI — b
 full load → world-build → step → render path with no editor in the loop. The authoritative
 artifact still comes from the Unity bake; the two share the codec, so an identical scene
 produces identical bytes.
-
