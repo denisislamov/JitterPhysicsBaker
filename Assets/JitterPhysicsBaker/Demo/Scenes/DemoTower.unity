@@ -2295,6 +2295,7 @@ GameObject:
   m_Component:
   - component: {fileID: 100000099}
   - component: {fileID: 100000100}
+  - component: {fileID: 100000101}
   m_Layer: 0
   m_Name: Tower Level
   m_TagString: Untagged
@@ -2319,6 +2320,25 @@ MonoBehaviour:
   worldProfile: {fileID: 11400000, guid: 16042d3c4508446d6947886a550df38c, type: 2}
   generatedFolder: Assets/Generated/JitterPhysics
   lastArtifactHash: 
+--- !u!114 &100000101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f77edc71acba41d483f150b7e315289, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DataSakura.JitterPhysics.Demo.Runtime::DataSakura.JitterPhysics.Demo.JitterPhysicsDemoRuntimeViewer
+  artifact: {fileID: 0}
+  level: {fileID: 100000100}
+  initialDrops: 12
+  dropInterval: 0.6
+  maxBodies: 90
+  dropCenter: {x: 0, y: 14, z: 0}
+  dropSpread: 6
 --- !u!4 &100000099
 Transform:
   m_ObjectHideFlags: 0

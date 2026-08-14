@@ -329,6 +329,23 @@ dotnet test --filter FullyQualifiedName~TopologyFingerprint
 Ожидаемо: строки совпадают символ в символ. Расхождение означает, что клиент и сервер
 строят разную статическую геометрию — это блокер релиза, а не косметика.
 
+### MT-29. Физика demo-сцен управляется через UI и остаётся опциональной
+
+1. Удалить package-owned integration через Setup, открыть любую сцену из
+   `Assets/JitterPhysicsBaker/Demo/Scenes/`.
+2. Убедиться, что проект компилируется без `DataSakura.JitterPhysics.Demo.Runtime` и без
+   missing-assembly errors.
+3. Установить Jitter2 и integration через Setup, дождаться перекомпиляции.
+4. `Demo > Bake All Demo Scenes`, открыть любую demo-сцену и войти в Play Mode.
+5. В экранной панели нажать `Drop sphere`, `Drop box`, `Pause physics`, `Resume physics`,
+   `Clear`; переключить `Auto drop`.
+6. Удалить integration через Setup и дождаться перекомпиляции.
+
+Ожидаемо: runtime-сборка появляется только после успешной установки integration; сферы и
+кубы падают и сталкиваются с запечённой геометрией; пауза останавливает мир, resume продолжает
+его с той же позиции, clear удаляет только динамические тела. После удаления integration define
+`DATASAKURA_JITTER_INTEGRATION` снят и Jitter-зависимый demo runtime снова не компилируется.
+
 ## 9. Отчёт
 
 Скопировать таблицу и заполнить:
@@ -362,8 +379,7 @@ MT-25 установка проекции            :
 MT-26 verify проекции               : 
 MT-27 построение мира               : 
 MT-28 паритет топологии             : 
+MT-29 demo UI и optional Jitter      :
 ```
-
-
 
 

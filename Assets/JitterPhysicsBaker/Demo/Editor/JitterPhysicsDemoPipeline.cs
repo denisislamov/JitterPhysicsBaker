@@ -146,7 +146,38 @@ namespace DataSakura.JitterPhysics.Demo.Editor
                 + $"Baked '{result.Output.Manifest.LevelId}': {result.Output.Manifest.BodyCount} bodies, "
                 + $"{result.Output.Manifest.ShapeCount} shapes, hash {result.Output.ArtifactHash}");
 
+            WireRuntimeArtifact(scene, level, asset);
             return Export(asset, result.Output.Manifest.LevelId);
+        }
+
+        private static void WireRuntimeArtifact(
+            Scene scene,
+            JitterPhysicsLevel level,
+            JitterPhysicsArtifactAsset asset)
+        {
+            // The demo runtime is optional, so the editor pipeline cannot reference its assembly.
+            // When integration is installed, bind the exact baked asset into the scene so the same
+            // UI also works in a player where AssetDatabase lookup is unavailable.
+            Type viewerType = Type.GetType(
+                "DataSakura.JitterPhysics.Demo.JitterPhysicsDemoRuntimeViewer, "
+                + "DataSakura.JitterPhysics.Demo.Runtime");
+            if (viewerType == null)
+            {
+                return;
+            }
+
+            Component viewer = level.GetComponent(viewerType);
+            if (viewer == null)
+            {
+                viewer = level.gameObject.AddComponent(viewerType);
+            }
+
+            var serialized = new SerializedObject(viewer);
+            serialized.FindProperty("artifact").objectReferenceValue = asset;
+            serialized.FindProperty("level").objectReferenceValue = level;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
         }
 
         private static JitterPhysicsLevel FindLevel(Scene scene)
@@ -214,6 +245,7 @@ namespace DataSakura.JitterPhysics.Demo.Editor
                 return false;
             }
 
+            WireRuntimeArtifact(level.gameObject.scene, level, asset);
             return Export(asset, asset.LevelId);
         }
 
@@ -291,7 +323,6 @@ namespace DataSakura.JitterPhysics.Demo.Editor
         }
     }
 }
-
 
 
 

@@ -16,7 +16,7 @@ Epic
 
 ## 0. Текущий статус реализации
 
-Обновлено: 2026-08-13. Отметки проставляются только по фактически проверенному результату.
+Обновлено: 2026-08-14. Отметки проставляются только по фактически проверенному результату.
 
 Легенда статуса Task:
 
@@ -30,13 +30,14 @@ Epic
 |---|---|---|
 | JP-E00 | Не начато | Baseline report и characterization fixtures не создавались |
 | JP-E01 | Частично | Package/assembly graph/dev project готовы; CI workflow есть, но на сервере не запускался |
-| JP-E02 | Частично | Snapshot/lock/discovery/installer/receipt готовы; установка в редакторе не прогонялась, Unity-совместимость снапшота не подтверждена |
+| JP-E02 | Частично | Snapshot/lock/discovery/installer/receipt готовы; fallback и integration установлены и проверены в Unity, external/duplicate сценарии не прогонялись |
 | JP-E03 | Готово | Contracts, codec, manifest, runtime ID, token, golden/corrupt suite |
 | JP-E04 | Частично | Authoring/collection/converters/bake pipeline и запись артефакта готовы; EditMode-прогон не выполнялся |
-| JP-E05 | Частично | World builder готов и проверен на `.NET`; Unity-сторона не прогонялась |
+| JP-E05 | Частично | World builder проверен на `.NET` и в Unity demo PlayMode; формальный cross-runtime parity fixture не завершён |
 | JP-E06 | Частично | Setup/About/Baker (Level, Artifacts, Diagnostics) реализованы; прогон в редакторе не выполнялся |
 | JP-E07 | Частично | Провайдеры (file, embedded), startup API, projection и `Server~/Tests` готовы; сборка проекции в чужом проекте не проверялась |
-| JP-E08–JP-E12 | Не начато | — |
+| JP-E08 | Частично | Demo-сцены, Jitter-gated runtime UI и samples реализованы; основной demo PlayMode проверен, два dev-режима и полный комплект документации не завершены |
+| JP-E09–JP-E12 | Не начато | — |
 
 ### Что проверено прогоном
 
@@ -52,7 +53,12 @@ dotnet build DataSakura.JitterPhysics.Editor.csproj           # Editor-код к
 dotnet build DataSakura.JitterPhysics.Editor.Tests.csproj     # EditMode-тесты компилируются
 ```
 
-Unity EditMode/PlayMode тесты **скомпилированы, но не выполнены**: проект занят открытым редактором, batch-прогон не запускался. Команда для прогона — `tools/run-unity-tests.sh`, ручные сценарии — `MANUAL_TEST_PLAN.md`.
+В Unity 6000.3.19f1 вручную проверены установка package-owned fallback и integration,
+совместимость receipt/lock, bake пяти demo-сцен (5/5), запуск `JitterDemoArena` в PlayMode,
+падение Sphere/Box и Pause/Resume через runtime UI. Полный EditMode/PlayMode suite
+**скомпилирован, но не выполнен**: batch-прогон 2026-08-14 остановился до запуска тестов
+из-за несовместимого протокола Unity Licensing Client (`1.18.1`). Команда для повторного
+прогона — `tools/run-unity-tests.sh`, ручные сценарии — `MANUAL_TEST_PLAN.md`.
 
 ### Известные отклонения от ТЗ
 
@@ -392,7 +398,8 @@ Acceptance criteria:
 
 Зависимости: JP-T02.1, JP-T02.3.
 
-Статус: **Частично** — установщик реализован и компилируется; фактическая установка в редакторе не прогонялась, Unity-совместимость снапшота не подтверждена.
+Статус: **Частично** — package-owned fallback установлен, распознан по receipt и скомпилирован
+в Unity 6000.3.19f1; сценарии clean-project/external/duplicate и uninstall ещё не прогонялись.
 
 Subtasks:
 
@@ -431,7 +438,8 @@ Acceptance criteria:
 
 Зависимости: JP-T02.3, JP-T02.4, JP-E01.
 
-Статус: **Частично** — установщик реализован; прогон в редакторе не выполнялся.
+Статус: **Частично** — fallback integration установлен и скомпилирован в редакторе;
+external-Jitter и uninstall сценарии ещё не прогонялись.
 
 Subtasks:
 
@@ -448,8 +456,8 @@ Acceptance criteria:
 
 - [ ] С compatible external Jitter устанавливается только adapter.
   - Реализовано; прогон — MT-05.
-- [ ] С fallback Jitter adapter компилируется после установки.
-  - Зависит от блокера JP-T02.4.
+- [x] С fallback Jitter adapter компилируется после установки.
+  - Проверено в Unity 6000.3.19f1; тот же define включает runtime UI demo.
 - [x] Clean import до установки остаётся рабочим.
 
 ### JP-T02.6. Реализовать receipt/update/uninstall lifecycle
@@ -817,7 +825,8 @@ Epic acceptance:
 
 Зависимости: JP-E02, JP-E03.
 
-Статус: **Частично** — `.NET`-сторона проверена прогоном, Unity-сторона нет.
+Статус: **Частично** — один source set компилируется под `.NET` и после установки в Unity;
+отдельный формальный parity fixture ещё не завершён.
 
 Subtasks:
 
@@ -828,8 +837,9 @@ Subtasks:
 
 Acceptance criteria:
 
-- [ ] Один adapter source set компилируется в Unity и `.NET` fixtures.
-  - Под `.NET` компилируется и проходит тесты. В Unity не проверено: установщик ещё не реализован (JP-T02.5).
+- [x] Один adapter source set компилируется в Unity и `.NET` fixtures.
+  - Под `.NET` проходит общий suite; в Unity adapter и demo runtime скомпилированы после
+    явной установки integration.
 
 ### JP-T05.2. Реализовать descriptor -> Jitter shapes
 
@@ -1207,6 +1217,10 @@ Acceptance criteria:
 
 Зависимости: JP-E04, JP-E05, JP-E06.
 
+Статус: **Частично** — пять сцен и Jitter-зависимый runtime UI реализованы; bake 5/5 и
+основной сценарий `JitterDemoArena` (step, Sphere/Box, Pause/Resume) проверены в PlayMode.
+Формальные fixtures для всех типов сцен и topology diagnostics ещё не завершены.
+
 Subtasks:
 
 - [ ] Static primitives scene.
@@ -1218,11 +1232,16 @@ Subtasks:
 
 Acceptance criteria:
 
-- [ ] Demo показывает bake -> load -> runtime Jitter step без EFT/Netick.
+- [x] Demo показывает bake -> load -> runtime Jitter step без EFT/Netick.
+  - Runtime-сборка появляется только после явной установки Jitter integration.
 
 ### JP-T08.3. Подготовить Samples~
 
 Зависимости: JP-T08.2.
+
+Статус: **Частично** — устанавливаемые bouncing-ball, FPS и artifact-verification samples
+реализованы; основной project demo прогнан, но optional Samples import/uninstall и их
+отдельный PlayMode smoke не выполнялись.
 
 Subtasks:
 
@@ -1239,6 +1258,9 @@ Acceptance criteria:
 ### JP-T08.4. Написать package documentation
 
 Зависимости: JP-E02–JP-E07.
+
+Статус: **Частично** — README, getting-started, samples и server demo описаны; отдельные
+полные руководства по формату, versioning и cross-runtime ограничениям не завершены.
 
 Subtasks:
 
@@ -1721,4 +1743,3 @@ JP-E10 начинается только после Gate B. JP-E11 начина�
 6. **JP-T00.2 — characterization fixtures.** Без них acceptance criteria JP-T04.3 не закрывается: сейчас конвертеры проверены сами против себя, а не против текущего поведения EFT.
 
 Отдельно: **прогон Unity-тестов** покрывает и EditMode-фикстуры конвертеров, и запись артефакта — обе группы написаны и компилируются, но ни разу не выполнялись: редактор держал проект занятым.
-

@@ -32,6 +32,7 @@ SCENES_DIR = REPO / "Assets" / "JitterPhysicsBaker" / "Demo" / "Scenes"
 # Stable references into project assets, read once from the known-good scene and its meta files.
 LEVEL_SCRIPT_GUID = "af1ec471b187a412dbf4ad29e650afd4"        # JitterPhysicsLevel.cs
 SOURCE_SCRIPT_GUID = "db661d0a2ecfa4d6b895b4a1fe53b1c1"       # JitterStaticBodySource.cs
+VIEWER_SCRIPT_GUID = "4f77edc71acba41d483f150b7e315289"       # JitterPhysicsDemoRuntimeViewer.cs
 WORLD_PROFILE_GUID = "16042d3c4508446d6947886a550df38c"       # JitterDemoWorldProfile.asset
 MATERIAL_GUID = "2a59cd3870e6c478db09ccad2313e0ed"           # JitterDemoSurface.mat
 
@@ -489,8 +490,11 @@ def build_scene(level: dict, ids: Ids) -> str:
     level_go = ids.take()
     level_tf = ids.take()
     level_mb = ids.take()
-    blocks.append(game_object(level_go, level["displayName"] + " Level", [level_tf, level_mb]))
+    viewer_mb = ids.take()
+    blocks.append(game_object(
+        level_go, level["displayName"] + " Level", [level_tf, level_mb, viewer_mb]))
     blocks.append(level_component(level_mb, level_go, level["levelId"], geometry_tf))
+    blocks.append(viewer_component(viewer_mb, level_go, level_mb))
     blocks.append(transform(level_tf, level_go, (0, 0, 0), (0, 0, 0, 1), (1, 1, 1), 0, []))
 
     roots = [geometry_tf, cam_tf, light_tf, level_tf]
@@ -621,6 +625,31 @@ def level_component(mb: int, go: int, level_id: str, geometry_tf: int) -> str:
     )
 
 
+def viewer_component(mb: int, go: int, level_mb: int) -> str:
+    """Runtime controls, gated by the integration assembly's scripting define."""
+    return (
+        f"--- !u!114 &{mb}\n"
+        "MonoBehaviour:\n"
+        "  m_ObjectHideFlags: 0\n"
+        "  m_CorrespondingSourceObject: {fileID: 0}\n"
+        "  m_PrefabInstance: {fileID: 0}\n"
+        "  m_PrefabAsset: {fileID: 0}\n"
+        f"  m_GameObject: {{fileID: {go}}}\n"
+        "  m_Enabled: 1\n"
+        "  m_EditorHideFlags: 0\n"
+        f"  m_Script: {{fileID: 11500000, guid: {VIEWER_SCRIPT_GUID}, type: 3}}\n"
+        "  m_Name:\n"
+        "  m_EditorClassIdentifier: DataSakura.JitterPhysics.Demo.Runtime::DataSakura.JitterPhysics.Demo.JitterPhysicsDemoRuntimeViewer\n"
+        "  artifact: {fileID: 0}\n"
+        f"  level: {{fileID: {level_mb}}}\n"
+        "  initialDrops: 12\n"
+        "  dropInterval: 0.6\n"
+        "  maxBodies: 90\n"
+        "  dropCenter: {x: 0, y: 14, z: 0}\n"
+        "  dropSpread: 6\n"
+    )
+
+
 def scene_meta(level_id: str) -> str:
     return (
         "fileFormatVersion: 2\n"
@@ -653,4 +682,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

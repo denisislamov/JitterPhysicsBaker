@@ -62,11 +62,32 @@ namespace DataSakura.JitterPhysics.Demo.Editor
 
             JitterPhysicsLevel level = levelRoot.AddComponent<JitterPhysicsLevel>();
             ConfigureLevel(level, geometryRoot.transform, profile);
+            AttachRuntimeViewer(levelRoot, level);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
 
             return level;
+        }
+
+        private static void AttachRuntimeViewer(GameObject host, JitterPhysicsLevel level)
+        {
+            // The runtime assembly intentionally does not exist until the user installs the
+            // Jitter integration. Reflection keeps this editor-only scene generator independent
+            // from that optional assembly while still wiring the playable UI when it is present.
+            System.Type viewerType = System.Type.GetType(
+                "DataSakura.JitterPhysics.Demo.JitterPhysicsDemoRuntimeViewer, "
+                + "DataSakura.JitterPhysics.Demo.Runtime");
+
+            if (viewerType == null)
+            {
+                return;
+            }
+
+            Component viewer = host.AddComponent(viewerType);
+            var serialized = new SerializedObject(viewer);
+            serialized.FindProperty("level").objectReferenceValue = level;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void BuildGeometry(Transform root, Mesh hill, Material material)
@@ -418,4 +439,3 @@ namespace DataSakura.JitterPhysics.Demo.Editor
         }
     }
 }
-

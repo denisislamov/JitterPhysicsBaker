@@ -29,6 +29,20 @@ The four box/sphere/capsule scenes and their seed artifacts come from one defini
 different geometry. `tools/author-demo-scenes.py` writes the committed `.unity` files from that
 definition; the arena is authored separately because it carries a mesh collider.
 
+### Playing the scenes in Unity
+
+The committed scenes are safe to keep in the development project before Jitter is installed:
+their runtime assembly is gated by `DATASAKURA_JITTER_INTEGRATION`. Use **Tools > DataSakura >
+Jitter Physics > Setup** to install Jitter2 and then the integration adapter; the installer adds
+the gate only after the adapter was written successfully. Next run **Demo > Bake All Demo Scenes**,
+open any demo scene and enter Play Mode. Baking also assigns the generated artifact to the runtime
+component, so the same scene keeps working when it is included in a standalone player.
+
+The panel in the top-left corner is the runtime control surface. It can drop spheres or boxes,
+clear dynamic bodies, pause/resume the Jitter world and toggle automatic drops. It intentionally
+uses IMGUI rather than Unity's legacy input API, so the controls work in projects configured for
+the new Input System as well.
+
 ## Layout
 
 ```
@@ -111,6 +125,4 @@ different compiler and runtime. The generator lets this project — and CI — b
 full load → world-build → step → render path with no editor in the loop. The authoritative
 artifact still comes from the Unity bake; the two share the codec, so an identical scene
 produces identical bytes.
-
-
 
