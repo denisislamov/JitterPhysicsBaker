@@ -6,7 +6,9 @@ using DataSakura.JitterPhysics.Editor.Baking;
 using DataSakura.JitterPhysics.Editor.Export;
 using DataSakura.JitterPhysics.UnityArtifact;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace DataSakura.JitterPhysics.Demo.Editor
 {
@@ -47,7 +49,118 @@ namespace DataSakura.JitterPhysics.Demo.Editor
                 return;
             }
 
-            Export(asset);
+            Export(asset, asset.LevelId);
+        }
+
+        /// <summary>Folder holding the committed demo scenes.</summary>
+        public const string ScenesFolder = "Assets/JitterPhysicsBaker/Demo/Scenes";
+
+        [MenuItem(MenuRoot + "Bake All Demo Scenes", false, 102)]
+        public static void BakeAllFromMenu()
+        {
+            BakeAllScenes();
+        }
+
+        /// <summary>
+        /// Opens every committed demo scene, bakes its level and exports the artifact to the server
+        /// folder. This is the authoritative path: it replaces the seed artifacts with the exact
+        /// bytes a Unity bake produces from the scenes the user can open and edit.
+        /// </summary>
+        /// <remarks>
+        /// It refuses to run in Play Mode and asks to save unsaved changes first, because opening
+        /// scenes one after another discards whatever is in the current one.
+        /// </remarks>
+        public static bool BakeAllScenes()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError(JitterPhysicsPackage.LogPrefix + "Leave Play Mode before baking.");
+                return false;
+            }
+
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return false;
+            }
+
+            string[] scenePaths = Directory.GetFiles(ScenesFolder, "*.unity", SearchOption.TopDirectoryOnly);
+            Array.Sort(scenePaths, StringComparer.Ordinal);
+
+            if (scenePaths.Length == 0)
+            {
+                Debug.LogError(
+                    JitterPhysicsPackage.LogPrefix
+                    + $"No scenes found under '{ScenesFolder}'. Run tools/author-demo-scenes.py first.");
+                return false;
+            }
+
+            int baked = 0;
+            foreach (string scenePath in scenePaths)
+            {
+                if (BakeScene(scenePath))
+                {
+                    baked++;
+                }
+            }
+
+            Debug.Log(
+                JitterPhysicsPackage.LogPrefix
+                + $"Baked {baked} of {scenePaths.Length} demo scenes into {ServerArtifactsFolder}.");
+
+            return baked == scenePaths.Length;
+        }
+
+        private static bool BakeScene(string scenePath)
+        {
+            Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+            JitterPhysicsLevel level = FindLevel(scene);
+            if (level == null)
+            {
+                Debug.LogWarning(
+                    JitterPhysicsPackage.LogPrefix + $"'{scenePath}' has no JitterPhysicsLevel; skipped.");
+                return false;
+            }
+
+            JitterPhysicsBakeResult result = JitterPhysicsBakeCommand.Execute(level);
+            LogIssues(result.Issues);
+
+            if (!result.Succeeded)
+            {
+                Debug.LogError(
+                    JitterPhysicsPackage.LogPrefix + $"Baking '{scenePath}' failed; nothing was written.", level);
+                return false;
+            }
+
+            var asset = AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(result.Output.AssetPath);
+            if (asset == null)
+            {
+                Debug.LogError(
+                    JitterPhysicsPackage.LogPrefix
+                    + $"The bake reported '{result.Output.AssetPath}', but it did not import.");
+                return false;
+            }
+
+            Debug.Log(
+                JitterPhysicsPackage.LogPrefix
+                + $"Baked '{result.Output.Manifest.LevelId}': {result.Output.Manifest.BodyCount} bodies, "
+                + $"{result.Output.Manifest.ShapeCount} shapes, hash {result.Output.ArtifactHash}");
+
+            return Export(asset, result.Output.Manifest.LevelId);
+        }
+
+        private static JitterPhysicsLevel FindLevel(Scene scene)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                JitterPhysicsLevel level = root.GetComponentInChildren<JitterPhysicsLevel>(true);
+                if (level != null)
+                {
+                    return level;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -101,17 +214,17 @@ namespace DataSakura.JitterPhysics.Demo.Editor
                 return false;
             }
 
-            return Export(asset);
+            return Export(asset, asset.LevelId);
         }
 
-        private static bool Export(JitterPhysicsArtifactAsset asset)
+        private static bool Export(JitterPhysicsArtifactAsset asset, string levelId)
         {
             string targetFolder = Path.Combine(RepositoryRoot(), ServerArtifactsFolder);
 
-            // Stale deliveries are removed first: the server picks a manifest out of this
-            // folder, and two manifests of the same level would make "which world is it
-            // running" depend on directory order.
-            RemovePreviousDelivery(targetFolder);
+            // Stale deliveries of this level are removed first: the server hosts one manifest per
+            // level, and two of the same level would make "which world is it running" depend on
+            // directory order.
+            RemovePreviousDelivery(targetFolder, levelId);
 
             JitterPhysicsExportResult export = JitterPhysicsArtifactExporter.ExportBinary(asset, targetFolder);
             LogIssues(export.Issues);
@@ -130,14 +243,14 @@ namespace DataSakura.JitterPhysics.Demo.Editor
             return true;
         }
 
-        private static void RemovePreviousDelivery(string targetFolder)
+        private static void RemovePreviousDelivery(string targetFolder, string levelId)
         {
             if (!Directory.Exists(targetFolder))
             {
                 return;
             }
 
-            string prefix = JitterPhysicsDemoScene.LevelId + ".";
+            string prefix = levelId + ".";
             foreach (string path in Directory.GetFiles(targetFolder))
             {
                 string name = Path.GetFileName(path);
@@ -178,4 +291,9 @@ namespace DataSakura.JitterPhysics.Demo.Editor
         }
     }
 }
+
+
+
+
+
 

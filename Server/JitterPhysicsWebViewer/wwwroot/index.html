@@ -16,6 +16,9 @@
     #hud dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 0; }
     #hud dt { color: #8b949e; }
     #hud dd { margin: 0; overflow-wrap: anywhere; }
+    #levelPicker { width: 100%; margin-bottom: 10px; font: inherit; color: #c9d1d9;
+                   background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 6px; }
+    select#levelPicker option { background: #161b22; }
     #actions { position: fixed; bottom: 12px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
     button { font: inherit; color: #c9d1d9; background: #21262d; border: 1px solid #30363d;
              border-radius: 6px; padding: 6px 12px; cursor: pointer; }
@@ -29,6 +32,7 @@
 
   <div id="hud">
     <h1>Baked static world</h1>
+    <select id="levelPicker" title="Each option is a separately baked level hosted by this server"></select>
     <dl id="facts"></dl>
   </div>
 
@@ -229,35 +233,78 @@
     }
 
     async function main() {
-      const [level, status] = await Promise.all([
-        fetch('/api/level').then((r) => r.json()),
-        fetch('/api/status').then((r) => r.json()),
-      ]);
+      const levels = await fetch('/api/levels').then((r) => r.json());
+      if (!levels.length) {
+        throw new Error('The server is hosting no levels.');
+      }
 
-      buildLevel(level);
-      renderFacts(status, null);
+      const picker = document.getElementById('levelPicker');
+      picker.innerHTML = levels
+        .map((level) => `<option value="${level.levelId}">${level.levelId} — ${level.bodyCount} bodies</option>`)
+        .join('');
+
+      // One static root and one set of dynamic meshes belong to whichever level is on screen.
+      // Switching disposes both, because the worlds are independent and a body from the tower
+      // has no meaning in the bowl.
+      let currentId = null;
+      let currentStatus = null;
+      let staticRoot = null;
+
+      function clearCurrent() {
+        if (staticRoot) {
+          scene.remove(staticRoot);
+          staticRoot.traverse((object) => {
+            if (object.geometry) object.geometry.dispose();
+          });
+          staticRoot = null;
+        }
+        for (const [id, mesh] of dynamicMeshes) {
+          scene.remove(mesh);
+          mesh.geometry.dispose();
+          dynamicMeshes.delete(id);
+        }
+      }
+
+      async function loadLevel(id) {
+        clearCurrent();
+        const [level, status] = await Promise.all([
+          fetch(`/api/level/${id}`).then((r) => r.json()),
+          fetch(`/api/status/${id}`).then((r) => r.json()),
+        ]);
+        currentId = id;
+        currentStatus = status;
+        staticRoot = buildLevel(level);
+        renderFacts(status, null);
+      }
+
+      picker.addEventListener('change', () => loadLevel(picker.value));
+
+      await loadLevel(levels[0].levelId);
       resize();
-
       addEventListener('resize', resize);
 
       for (const button of document.querySelectorAll('[data-spawn]')) {
         button.addEventListener('click', () => {
-          fetch(`/api/spawn?type=${button.dataset.spawn}&count=10`, { method: 'POST' });
+          if (currentId) {
+            fetch(`/api/spawn/${currentId}?type=${button.dataset.spawn}&count=10`, { method: 'POST' });
+          }
         });
       }
 
       document.querySelector('[data-reset]').addEventListener('click', () => {
-        fetch('/api/reset', { method: 'POST' });
+        if (currentId) {
+          fetch(`/api/reset/${currentId}`, { method: 'POST' });
+        }
       });
 
       // Polling rather than a socket: the page only needs the latest frame, and a dropped
-      // poll costs one frame instead of a reconnect.
-      let latest = null;
+      // poll costs one frame instead of a reconnect. The poll follows the selected level.
       const poll = async () => {
+        if (!currentId) return;
         try {
-          latest = await fetch('/api/state').then((r) => r.json());
+          const latest = await fetch(`/api/state/${currentId}`).then((r) => r.json());
           syncDynamic(latest);
-          renderFacts(status, latest);
+          renderFacts(currentStatus, latest);
         } catch (error) {
           // A missed frame is not worth interrupting the render loop for.
         }
@@ -280,4 +327,7 @@
   </script>
 </body>
 </html>
+
+
+
 

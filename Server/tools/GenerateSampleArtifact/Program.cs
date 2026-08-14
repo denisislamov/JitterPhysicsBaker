@@ -33,14 +33,43 @@ namespace DataSakura.JitterPhysics.Tools.SampleArtifact
             JitterLock jitterLock = JitterLock.Load(
                 Path.Combine(AppContext.BaseDirectory, "jitter2.lock.json"));
 
-            PhysicsArtifact artifact = BuildArtifact(jitterLock.RuntimeCompatibilityId);
+            // The arena carries the mesh shape, so it stays a hand-built definition here. The other
+            // levels are read from the same JSON the scene author uses, so a scene and its seed
+            // cannot drift.
+            var levels = new List<DemoLevels.Level>
+            {
+                new DemoLevels.Level(LevelId, BuildArtifact(jitterLock.RuntimeCompatibilityId)),
+            };
+
+            string definition = DemoLevels.FindDefinitionFile();
+            if (definition != null)
+            {
+                levels.AddRange(DemoLevels.Load(definition, jitterLock.RuntimeCompatibilityId));
+            }
+            else
+            {
+                Console.Error.WriteLine("warning: demo-levels.json not found; only the arena was written.");
+            }
+
+            foreach (DemoLevels.Level level in levels)
+            {
+                Write(level.LevelId, level.Artifact, outputFolder);
+            }
+
+            Console.WriteLine($"Wrote {levels.Count} level(s) into {outputFolder}");
+            Console.WriteLine("  runtime id " + jitterLock.RuntimeCompatibilityId);
+            return 0;
+        }
+
+        private static void Write(string levelId, PhysicsArtifact artifact, string outputFolder)
+        {
             PhysicsArtifactPayload payload = PhysicsArtifactWriter.WriteWithManifest(
                 artifact, JitterPhysicsPackage.PackageVersion);
 
-            RemovePreviousDelivery(outputFolder);
+            RemovePreviousDelivery(outputFolder, levelId);
 
-            string payloadName = JitterPhysicsArtifactNaming.BinaryFileName(LevelId, payload.ArtifactHash);
-            string manifestName = JitterPhysicsArtifactNaming.ManifestFileName(LevelId, payload.ArtifactHash);
+            string payloadName = JitterPhysicsArtifactNaming.BinaryFileName(levelId, payload.ArtifactHash);
+            string manifestName = JitterPhysicsArtifactNaming.ManifestFileName(levelId, payload.ArtifactHash);
 
             File.WriteAllBytes(Path.Combine(outputFolder, payloadName), payload.Bytes);
             File.WriteAllText(
@@ -48,12 +77,8 @@ namespace DataSakura.JitterPhysics.Tools.SampleArtifact
                 PhysicsArtifactManifestCodec.Write(payload.Manifest));
 
             Console.WriteLine(
-                $"Wrote {payload.Bytes.Length} bytes: {artifact.Bodies.Count} bodies, "
-                + $"{artifact.ShapeCount} shapes, {artifact.TriangleCount} triangles.");
-            Console.WriteLine("  " + Path.Combine(outputFolder, manifestName));
-            Console.WriteLine("  hash " + payload.ArtifactHash);
-            Console.WriteLine("  runtime id " + jitterLock.RuntimeCompatibilityId);
-            return 0;
+                $"  {levelId}: {payload.Bytes.Length} bytes, {artifact.Bodies.Count} bodies, "
+                + $"{artifact.ShapeCount} shapes, {artifact.TriangleCount} triangles, hash {payload.ArtifactHash[..12]}");
         }
 
         private static PhysicsArtifact BuildArtifact(string runtimeCompatibilityId)
@@ -216,9 +241,9 @@ namespace DataSakura.JitterPhysics.Tools.SampleArtifact
             indices = triangleList.ToArray();
         }
 
-        private static void RemovePreviousDelivery(string folder)
+        private static void RemovePreviousDelivery(string folder, string levelId)
         {
-            string prefix = LevelId + ".";
+            string prefix = levelId + ".";
             foreach (string path in Directory.GetFiles(folder))
             {
                 string name = Path.GetFileName(path);
@@ -252,5 +277,7 @@ namespace DataSakura.JitterPhysics.Tools.SampleArtifact
         }
     }
 }
+
+
 
 

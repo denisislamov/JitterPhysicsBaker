@@ -1,50 +1,67 @@
 # Jitter Physics Web Viewer
 
 A standalone .NET dedicated-server example for the
-`com.datasakura.jitter-physics-baker` package. It loads a baked level artifact, rebuilds
-the static world with the package's shared loader, steps it on a fixed timestep, and
-renders the result — static geometry plus falling dynamic bodies — in a browser.
+`com.datasakura.jitter-physics-baker` package. It loads baked level artifacts, rebuilds each
+static world with the package's shared loader, steps them on a fixed timestep, and renders
+the result — static geometry plus falling dynamic bodies — in a browser. A dropdown switches
+between levels.
 
 Nothing here references Unity. The project compiles the package's portable sources
-(`Runtime/Contracts`, `Runtime/ArtifactCodec`, `JitterIntegration~/Runtime`) and the locked
-Jitter2 snapshot **by reference**, which is the whole point: it proves the same code the
-Unity client bakes against also builds and runs a server with no engine present.
+(`Runtime/Contracts`, `Runtime/ArtifactCodec`, `JitterIntegration~/Runtime`) and references the
+built Jitter2 assembly, which is the whole point: it proves the same code the Unity client
+bakes against also builds and runs a server with no engine present.
+
+## The demo levels
+
+Five levels ship as **committed Unity scenes** under
+`Assets/JitterPhysicsBaker/Demo/Scenes/` — you open, edit and bake them like any scene:
+
+| Scene | Level id | What it shows |
+| --- | --- | --- |
+| `JitterDemoArena.unity` | `demo_arena` | Every collider type, including a mesh hill |
+| `DemoTower.unity` | `demo_tower` | A staggered box tower dropped balls can topple |
+| `DemoRamps.unity` | `demo_ramps` | A descending run of ramps a ball rolls down |
+| `DemoBowl.unity` | `demo_bowl` | An octagonal bowl balls settle into |
+| `DemoPillars.unity` | `demo_pillars` | A walled field of capsule pillars and crates |
+
+The four box/sphere/capsule scenes and their seed artifacts come from one definition,
+`Server/demo-levels.json`, so a scene and the artifact the server shows for it cannot describe
+different geometry. `tools/author-demo-scenes.py` writes the committed `.unity` files from that
+definition; the arena is authored separately because it carries a mesh collider.
 
 ## Layout
 
 ```
 Server/
 ├── JitterPhysicsWebViewer/        the web server (ASP.NET Core minimal API + three.js page)
-│   ├── Program.cs                 startup order: load → verify → build world → serve
+│   ├── Program.cs                 hosts every level: load → verify → build world → serve
+│   ├── HostedLevel.cs             one level's world, view and tick loop
 │   ├── JitterLock.cs              derives the runtime compatibility id from jitter2.lock.json
 │   ├── PhysicsSimulation.cs       the fixed-step tick loop and body spawning
 │   ├── LevelView.cs               projects the decoded artifact into render data
-│   └── wwwroot/index.html         the viewer
+│   └── wwwroot/index.html         the viewer, with a level picker
 ├── tools/GenerateSampleArtifact/  headless seed generator (no Unity needed)
+├── demo-levels.json               the level definitions (scenes + seeds share them)
 └── artifacts/                     delivered artifacts (git-ignored, regenerated on demand)
 ```
 
 ## Running it
 
-### 1. Get an artifact into `Server/artifacts/`
+### 1. Get artifacts into `Server/artifacts/`
 
 **From Unity (the source of truth):**
 
-`Tools > DataSakura > Jitter Physics > Demo > Create Demo Scene And Bake` builds the demo
-scene, bakes it and exports the exact bytes here. Or, with the editor closed:
+`Tools > DataSakura > Jitter Physics > Demo > Bake All Demo Scenes` opens each committed
+scene, bakes it and exports the exact bytes here — one artifact per level.
 
-```sh
-tools/bake-demo-scene.sh
-```
-
-**Without Unity (a seed, for a clean checkout or CI):**
+**Without Unity (seeds, for a clean checkout or CI):**
 
 ```sh
 dotnet run --project Server/tools/GenerateSampleArtifact
 ```
 
-This writes the same demo arena using the package's own writer. It is a stand-in until a
-Unity bake replaces it; both produce a file the loader accepts.
+This writes all five levels from `demo-levels.json` using the package's own writer. Seeds are
+a stand-in until a Unity bake replaces them; both produce files the loader accepts.
 
 ### 2. Run the server
 
@@ -52,12 +69,13 @@ Unity bake replaces it; both produce a file the loader accepts.
 dotnet run --project Server/JitterPhysicsWebViewer
 ```
 
-Then open the URL it prints (default `http://localhost:5000`). Drop spheres and boxes with
-the buttons and watch them settle on the baked geometry; resting bodies grey out as Jitter
-deactivates them.
+Then open the URL it prints (default `http://localhost:5000`). Pick a level from the dropdown,
+drop spheres and boxes with the buttons and watch them settle on the baked geometry; resting
+bodies grey out as Jitter deactivates them.
 
-The server refuses to serve a level it could not load, and prints a one-line self-check on
-startup that a deployment smoke test can grep for:
+Every level is loaded, verified and built before the port opens. If any one fails, the server
+refuses to start rather than quietly host a subset. It prints a one-line self-check per level
+that a deployment smoke test can grep for:
 
 ```
 [JitterPhysics] physics self-check OK level=demo_arena artifact=8e5fa6f77ee3 topology=08669a69170a bodies=14 shapes=527 triangles=512 tickRate=60 elapsedMs=15.1
@@ -79,11 +97,12 @@ delivered" into a startup failure instead of a match on the wrong map.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/status` | Self-check, identity hashes, counts, runtime id. |
-| `GET /api/level` | The static level, once, for the page to build meshes from. |
-| `GET /api/state` | The current dynamic bodies; polled each frame. |
-| `POST /api/spawn?type=sphere\|box&count=N` | Drop bodies. |
-| `POST /api/reset` | Remove all dynamic bodies; the static level is untouched. |
+| `GET /api/levels` | The catalogue the level picker is built from. |
+| `GET /api/status/{id}` | Self-check, identity hashes, counts, runtime id for one level. |
+| `GET /api/level/{id}` | The static level, once, for the page to build meshes from. |
+| `GET /api/state/{id}` | That level's current dynamic bodies; polled each frame. |
+| `POST /api/spawn/{id}?type=sphere\|box&count=N` | Drop bodies into one level. |
+| `POST /api/reset/{id}` | Remove that level's dynamic bodies; the static level is untouched. |
 
 ## Why a seed generator exists
 
@@ -92,4 +111,6 @@ different compiler and runtime. The generator lets this project — and CI — b
 full load → world-build → step → render path with no editor in the loop. The authoritative
 artifact still comes from the Unity bake; the two share the codec, so an identical scene
 produces identical bytes.
+
+
 
