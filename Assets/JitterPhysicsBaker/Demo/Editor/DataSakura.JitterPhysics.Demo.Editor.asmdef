@@ -1,0 +1,23 @@
+{
+  "name": "DataSakura.JitterPhysics.Demo.Editor",
+  "rootNamespace": "DataSakura.JitterPhysics.Demo.Editor",
+  "references": [
+    "DataSakura.JitterPhysics.Contracts",
+    "DataSakura.JitterPhysics.ArtifactCodec",
+    "DataSakura.JitterPhysics.UnityArtifact",
+    "DataSakura.JitterPhysics.Authoring",
+    "DataSakura.JitterPhysics.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
+

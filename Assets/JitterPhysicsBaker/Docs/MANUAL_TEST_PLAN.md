@@ -47,22 +47,30 @@ ArtifactCodec, UnityArtifact, Authoring, Editor и `not present` для `Jitter2
 
 ## 2. Установка (installer и receipt)
 
-### MT-03. Установка fallback Jitter2
+### MT-03. Установка fallback Jitter2 заблокирована (текущий релиз)
 
 1. В Setup нажать `Install Jitter2`.
 
-Ожидаемо: предупреждение о том, что снапшот — непатченный upstream; файлы появились в
-`Assets/DataSakura/ThirdParty/Jitter2/` вместе с `Jitter2.Core.asmdef` и `csc.rsp`
-(`-langversion:latest`); создан `Assets/DataSakura/JitterPhysics/InstallationReceipt.json`;
-после компиляции About показывает `Jitter2.Core: compiled`.
+Ожидаемо: кнопка **недоступна**, над ней предупреждение с причиной; если вызвать установку
+из кода — типизированная ошибка и **ни одного** записанного файла: ни
+`Assets/DataSakura/ThirdParty/Jitter2/`, ни компонента `jitter2` в receipt.
 
-Замечание про `csc.rsp`: upstream Jitter2 использует синтаксис C# 10+ (file-scoped
-namespaces, коллекционные выражения `[...]`), а Unity по умолчанию компилирует asmdef-сборку
-более старой версией языка. Файл `csc.rsp` поднимает версию языка только для этой папки. Если
-после этого остаются ошибки компиляции (например, недоступные `System.Runtime.Intrinsics`),
-это по-прежнему **ожидаемый** результат текущего релиза — зафиксируйте `SKIP` с текстом
-ошибки. К MT-04 переходить в любом случае; к MT-05/MT-27 — только если `Jitter2.Core`
-собрался.
+Почему так (проверено в редакторе Unity 6000.3.19f1, 2026-08-13): снапшот — непатченный
+upstream Jitter2 2.8.9, и Unity не может его скомпилировать по двум независимым причинам.
+Первая — синтаксис: все 96 файлов используют file-scoped namespaces (C# 10) и коллекционные
+выражения `[...]` (C# 12), а Unity компилирует игровые сборки как C# 9 и **игнорирует**
+`-langversion` из `csc.rsp` рядом с asmdef (попытка обойти это была сделана и не сработала).
+Вторая — BCL: `Precision.cs`, `TreeBox.cs`, `VertexSupportMap.cs` и `Contact.cs` используют
+`System.Runtime.Intrinsics.Vector128`, которого нет в reference-сборках .NET Standard 2.1,
+поставляемых Unity для скриптов (он есть только во внутренних сборках тулчейна редактора).
+
+Последствие фактической установки в тот прогон: проект переставал компилироваться целиком,
+включая Editor-сборку пакета, поэтому окно Setup было недоступно и откат пришлось делать
+удалением файлов вручную. Именно поэтому установка теперь fail-fast.
+
+Блокировка снимется автоматически, когда `compileProfile` в `jitter2.lock.json` перестанет
+объявлять `intrinsicsProfile: hardware` и `polyfillProfile: none`. До этого момента для
+MT-05/MT-27 нужен свой Unity-совместимый `Jitter2.Core` в проекте.
 
 ### MT-04. Внешний Jitter2 не трогают
 
@@ -355,6 +363,7 @@ MT-26 verify проекции               :
 MT-27 построение мира               : 
 MT-28 паритет топологии             : 
 ```
+
 
 
 

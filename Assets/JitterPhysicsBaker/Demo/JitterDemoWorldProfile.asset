@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91e1b57e1ab9a4dffa43e80f28aefd32, type: 3}
+  m_Name: JitterDemoWorldProfile
+  m_EditorClassIdentifier: DataSakura.JitterPhysics.Authoring::DataSakura.JitterPhysics.Authoring.JitterPhysicsWorldProfile
+  gravity: {x: 0, y: -9.81, z: 0}
+  tickRate: 60
+  substepCount: 1
+  solverIterations: 6
+  relaxationIterations: 4
+  allowDeactivation: 1

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jitter Physics Baker — baked level viewer</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+           background: #0d1117; color: #c9d1d9; overflow: hidden; }
+    #view { position: fixed; inset: 0; }
+    #hud { position: fixed; top: 12px; left: 12px; max-width: 380px; padding: 12px 14px;
+           background: rgba(13, 17, 23, 0.86); border: 1px solid #30363d; border-radius: 8px; }
+    #hud h1 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: #58a6ff; }
+    #hud dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 0; }
+    #hud dt { color: #8b949e; }
+    #hud dd { margin: 0; overflow-wrap: anywhere; }
+    #actions { position: fixed; bottom: 12px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button { font: inherit; color: #c9d1d9; background: #21262d; border: 1px solid #30363d;
+             border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+    button:hover { background: #30363d; }
+    #error { position: fixed; inset: 0; display: none; place-content: center; padding: 40px;
+             background: #0d1117; color: #f85149; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="view"></div>
+
+  <div id="hud">
+    <h1>Baked static world</h1>
+    <dl id="facts"></dl>
+  </div>
+
+  <div id="actions">
+    <button data-spawn="sphere">Drop 10 spheres</button>
+    <button data-spawn="box">Drop 10 boxes</button>
+    <button data-reset>Clear dynamic bodies</button>
+  </div>
+
+  <pre id="error"></pre>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // Unity is left handed, three.js is right handed. Mirroring Z keeps the level from
+    // being rendered as its own mirror image; the rotation is mirrored with it, otherwise
+    // the ramp would lean the wrong way while everything else looked correct.
+    const toScenePosition = (p) => new THREE.Vector3(p[0], p[1], -p[2]);
+    const toSceneQuaternion = (q) => new THREE.Quaternion(-q[0], -q[1], q[2], q[3]);
+
+    const palette = [0x58a6ff, 0x3fb950, 0xd29922, 0xf85149, 0xa371f7, 0x39c5cf];
+
+    const view = document.getElementById('view');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    view.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0d1117);
+    scene.fog = new THREE.Fog(0x0d1117, 70, 190);
+
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 500);
+    camera.position.set(34, 26, 40);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 2, 0);
+    controls.enableDamping = true;
+
+    scene.add(new THREE.HemisphereLight(0xbcd4ff, 0x1b2430, 1.1));
+    const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+    sun.position.set(28, 44, 18);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -50;
+    sun.shadow.camera.right = 50;
+    sun.shadow.camera.top = 50;
+    sun.shadow.camera.bottom = -50;
+    sun.shadow.camera.far = 160;
+    scene.add(sun);
+
+    const staticMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8b949e, roughness: 0.85, metalness: 0.05, side: THREE.DoubleSide,
+    });
+
+    const dynamicMaterials = palette.map((color) =>
+      new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.1 }));
+
+    const sleepingMaterial = new THREE.MeshStandardMaterial({
+      color: 0x484f58, roughness: 0.7, metalness: 0.05,
+    });
+
+    function shapeGeometry(shape) {
+      switch (shape.type) {
+        case 'box':
+          return new THREE.BoxGeometry(shape.size[0], shape.size[1], shape.size[2]);
+        case 'sphere':
+          return new THREE.SphereGeometry(shape.radius, 24, 16);
+        case 'capsule':
+          return new THREE.CapsuleGeometry(shape.radius, shape.length, 8, 20);
+        case 'mesh': {
+          const geometry = new THREE.BufferGeometry();
+          const vertices = new Float32Array(shape.vertices.length);
+          for (let i = 0; i < shape.vertices.length; i += 3) {
+            vertices[i] = shape.vertices[i];
+            vertices[i + 1] = shape.vertices[i + 1];
+            vertices[i + 2] = -shape.vertices[i + 2];
+          }
+          geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+          geometry.setIndex(Array.from(shape.indices));
+          geometry.computeVertexNormals();
+          return geometry;
+        }
+        default:
+          return null;
+      }
+    }
+
+    function buildLevel(level) {
+      const root = new THREE.Group();
+
+      for (const body of level.bodies) {
+        const group = new THREE.Group();
+        group.position.copy(toScenePosition(body.position));
+        group.quaternion.copy(toSceneQuaternion(body.orientation));
+
+        for (const shape of body.shapes) {
+          const geometry = shapeGeometry(shape);
+          if (!geometry) continue;
+
+          const mesh = new THREE.Mesh(geometry, staticMaterial);
+          mesh.position.copy(toScenePosition(shape.localPosition));
+          mesh.quaternion.copy(toSceneQuaternion(shape.localRotation));
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          group.add(mesh);
+
+          const edges = new THREE.LineSegments(
+            new THREE.EdgesGeometry(geometry, 30),
+            new THREE.LineBasicMaterial({ color: 0x30363d }));
+          edges.position.copy(mesh.position);
+          edges.quaternion.copy(mesh.quaternion);
+          group.add(edges);
+        }
+
+        root.add(group);
+      }
+
+      scene.add(root);
+      return root;
+    }
+
+    const dynamicMeshes = new Map();
+
+    function syncDynamic(state) {
+      const seen = new Set();
+
+      for (const body of state.bodies) {
+        seen.add(body.id);
+        let mesh = dynamicMeshes.get(body.id);
+
+        if (!mesh) {
+          const geometry = body.type === 'box'
+            ? new THREE.BoxGeometry(body.size[0], body.size[1], body.size[2])
+            : new THREE.SphereGeometry(body.radius, 20, 14);
+          mesh = new THREE.Mesh(geometry, dynamicMaterials[body.tint % dynamicMaterials.length]);
+          mesh.castShadow = true;
+          mesh.userData.awakeMaterial = mesh.material;
+          scene.add(mesh);
+          dynamicMeshes.set(body.id, mesh);
+        }
+
+        mesh.position.copy(toScenePosition(body.position));
+        mesh.quaternion.copy(toSceneQuaternion(body.orientation));
+
+        // Sleeping bodies are greyed out: Jitter deactivates what has come to rest, and
+        // seeing that happen is the difference between "the level loaded" and "the level
+        // actually holds things up".
+        mesh.material = body.active ? mesh.userData.awakeMaterial : sleepingMaterial;
+      }
+
+      for (const [id, mesh] of dynamicMeshes) {
+        if (seen.has(id)) continue;
+        scene.remove(mesh);
+        mesh.geometry.dispose();
+        dynamicMeshes.delete(id);
+      }
+    }
+
+    function renderFacts(status, state) {
+      const short = (hash) => (hash ? hash.slice(0, 12) : '—');
+      const rows = {
+        level: status.levelId,
+        artifact: short(status.artifactHash),
+        topology: short(status.topologyFingerprint),
+        bodies: status.bodyCount,
+        shapes: status.shapeCount,
+        triangles: status.triangleCount,
+        'tick rate': status.tickRate + ' Hz',
+        'world build': status.elapsedMilliseconds.toFixed(1) + ' ms',
+        'runtime id': short(status.runtimeCompatibilityId),
+        schema: 'v' + status.artifactSchemaVersion,
+        tick: state ? state.tick : '—',
+        dynamic: state ? state.bodies.length : '—',
+      };
+
+      document.getElementById('facts').innerHTML = Object.entries(rows)
+        .map(([key, value]) => `<dt>${key}</dt><dd>${value}</dd>`)
+        .join('');
+    }
+
+    function resize() {
+      const width = view.clientWidth;
+      const height = view.clientHeight;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+
+    async function main() {
+      const [level, status] = await Promise.all([
+        fetch('/api/level').then((r) => r.json()),
+        fetch('/api/status').then((r) => r.json()),
+      ]);
+
+      buildLevel(level);
+      renderFacts(status, null);
+      resize();
+
+      addEventListener('resize', resize);
+
+      for (const button of document.querySelectorAll('[data-spawn]')) {
+        button.addEventListener('click', () => {
+          fetch(`/api/spawn?type=${button.dataset.spawn}&count=10`, { method: 'POST' });
+        });
+      }
+
+      document.querySelector('[data-reset]').addEventListener('click', () => {
+        fetch('/api/reset', { method: 'POST' });
+      });
+
+      // Polling rather than a socket: the page only needs the latest frame, and a dropped
+      // poll costs one frame instead of a reconnect.
+      let latest = null;
+      const poll = async () => {
+        try {
+          latest = await fetch('/api/state').then((r) => r.json());
+          syncDynamic(latest);
+          renderFacts(status, latest);
+        } catch (error) {
+          // A missed frame is not worth interrupting the render loop for.
+        }
+      };
+
+      setInterval(poll, 40);
+      poll();
+
+      renderer.setAnimationLoop(() => {
+        controls.update();
+        renderer.render(scene, camera);
+      });
+    }
+
+    main().catch((error) => {
+      const element = document.getElementById('error');
+      element.style.display = 'grid';
+      element.textContent = 'Failed to load the level:\n\n' + error;
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,9 @@
+# Build output — never committed. The projects compile the package sources by reference,
+# so a clean checkout rebuilds everything from Packages/ and Server/.
+bin/
+obj/
+
+# Delivered artifacts are produced by the Unity bake (or the seed generator) and are not
+# source. They are regenerated on demand into this folder.
+artifacts/
+
