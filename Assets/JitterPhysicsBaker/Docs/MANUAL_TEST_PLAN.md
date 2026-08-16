@@ -329,6 +329,33 @@ dotnet test --filter FullyQualifiedName~TopologyFingerprint
 Ожидаемо: строки совпадают символ в символ. Расхождение означает, что клиент и сервер
 строят разную статическую геометрию — это блокер релиза, а не косметика.
 
+## 9. Samples в Package Manager
+
+### MT-29. Стандартный Import устанавливает примеры
+
+Предусловие: установлены `Jitter2.Core` и integration (MT-05). Стандартная кнопка Unity не
+умеет проверять наличие проектной assembly до копирования sample.
+
+1. Открыть `Window > Package Manager`, выбрать `DataSakura Jitter Physics Baker`.
+2. Открыть вкладку `Samples`.
+3. У `Physics Baking Demos` нажать `Import`.
+
+Ожидаемо: пример появляется в `Assets/Samples/DataSakura Jitter Physics Baker/0.0.2/Physics
+Baking Demos`; runtime и Editor asmdef компилируются без ошибок; меню `Tools > DataSakura >
+Jitter Physics > Samples` содержит команды сборки обеих сцен. Сам импорт не создаёт сцену,
+не запускает bake и не пишет артефакты — мутация начинается только после явного выбора
+команды меню.
+
+При `Active Input Handling = Input System Package` собрать и запустить обе сцены. В Bouncing
+Ball нажать `Space` и проверить увеличение счётчика шаров; в FPS Shooter проверить мышь,
+прыжок и движение. Ожидаемо: управление работает, в Console нет
+`InvalidOperationException` от legacy `UnityEngine.Input`.
+
+4. Удалить импортированную папку примера через Project window.
+
+Ожидаемо: package и установленная integration остаются на месте; меню samples исчезает
+после перекомпиляции.
+
 ### MT-29. Физика demo-сцен управляется через UI и остаётся опциональной
 
 1. Удалить package-owned integration через Setup, открыть любую сцену из
@@ -400,4 +427,3 @@ MT-28 паритет топологии             :
 MT-29 demo UI и optional Jitter      :
 MT-30 Scene View bake overlay        :
 ```
-

@@ -1239,9 +1239,9 @@ Acceptance criteria:
 
 Зависимости: JP-T08.2.
 
-Статус: **Частично** — устанавливаемые bouncing-ball, FPS и artifact-verification samples
-реализованы; основной project demo прогнан, но optional Samples import/uninstall и их
-отдельный PlayMode smoke не выполнялись.
+Статус: **Частично** — bouncing-ball, FPS и artifact-verification samples реализованы и
+объявлены в `package.json` для стандартного импорта через Package Manager; основной project
+demo прогнан, но ручной import/uninstall и отдельный PlayMode smoke ещё не выполнялись.
 
 Subtasks:
 
