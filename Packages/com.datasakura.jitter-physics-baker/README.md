@@ -17,12 +17,12 @@ path: adding the package, providing Jitter2, marking up a level, baking it, load
 Unity, and running the same bytes on a dedicated server.
 
 After installing Jitter2 and the integration adapter, import the three runnable demos from
-the package's **Samples** tab in Package Manager, or use the guarded installer in the
-**Setup** tab; see `Samples~/Demos/README.md`.
+the package's **Samples** tab in Package Manager; see `Samples~/Demos/README.md`. Setup never
+creates a second sample copy under `Assets/DataSakura`.
 
 ## Status
 
-Early development (`0.0.2`). The assembly graph, the artifact contracts and the editor
+Early development (`0.0.3`). The assembly graph, the artifact contracts and the editor
 bootstrap are being built stage by stage; see `CHANGELOG.md` for what already exists.
 
 ## Requirements
@@ -113,7 +113,9 @@ it. See `Server~/README.md`.
   or the Jitter adapter, install and verify the server runtime sources, validate the
   installation, and remove what the package owns. Every action is explicit, an external
   Jitter2 is never touched, and a file modified after installation stops an update instead of
-  being overwritten.
+  being overwritten. Integration and its receipt live in
+  `Assets/DataSakura/JitterPhysicsBaker`; an explicit Setup action safely migrates the legacy
+  `Assets/DataSakura/JitterPhysics` layout when it contains only unmodified receipt-owned files.
 
 ## License
 

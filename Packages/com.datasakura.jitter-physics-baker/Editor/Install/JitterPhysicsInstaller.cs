@@ -51,10 +51,13 @@ namespace DataSakura.JitterPhysics.Editor.Install
         public const string DefaultJitterFolder = "Assets/DataSakura/ThirdParty/Jitter2";
 
         /// <summary>Where the Jitter-dependent adapter goes.</summary>
-        public const string DefaultIntegrationFolder = "Assets/DataSakura/JitterPhysics/Integration";
+        public const string DefaultIntegrationFolder = "Assets/DataSakura/JitterPhysicsBaker/Integration";
 
-        /// <summary>Where the runnable samples go.</summary>
-        public const string DefaultSamplesFolder = "Assets/DataSakura/JitterPhysics/Samples";
+        /// <summary>Legacy destination used before samples became native UPM imports.</summary>
+        public const string LegacySamplesFolder = "Assets/DataSakura/JitterPhysics/Samples";
+
+        /// <summary>The pre-0.0.3 integration root, retained only for safe migration.</summary>
+        public const string LegacyIntegrationFolder = "Assets/DataSakura/JitterPhysics/Integration";
 
         private const string JitterAsmdefName = "Jitter2.Core.asmdef";
         private const string IntegrationAsmdefName = "DataSakura.JitterPhysics.JitterIntegration.asmdef";
@@ -352,90 +355,18 @@ namespace DataSakura.JitterPhysics.Editor.Install
             return Encoding.UTF8.GetBytes(trimmed);
         }
 
-        /// <summary>
-        /// Installs the runnable samples: two scenes built from code, a bouncing-ball drop, a
-        /// first-person shooter and a runtime artifact check.
-        /// </summary>
-        /// <remarks>
-        /// Refused without the adapter, because the sample assembly references it by name and
-        /// Unity would answer with a missing-assembly error that says nothing about the cause.
-        /// </remarks>
-        /// <param name="targetFolder">Where to put them; <see cref="DefaultSamplesFolder"/> by default.</param>
+        /// <summary>Reports how runnable samples are imported by current package versions.</summary>
+        /// <remarks>This compatibility API no longer writes a second copy under <c>Assets/DataSakura</c>.</remarks>
+        /// <param name="targetFolder">Ignored. Retained to avoid breaking callers compiled against 0.0.2.</param>
+        [Obsolete("Use the Package Manager Samples tab to import Physics Baking Demos.")]
         public static JitterPhysicsInstallResult InstallSamples(string targetFolder = null)
         {
             var issues = new JitterPhysicsIssueLog();
-            targetFolder = Normalize(targetFolder ?? DefaultSamplesFolder);
-
-            if (RefuseInPlayMode(issues))
-            {
-                return new JitterPhysicsInstallResult(null, issues);
-            }
-
-            string packageRoot = JitterPhysicsCompatibilityReport.ResolvePackageRootPath();
-            if (string.IsNullOrEmpty(packageRoot))
-            {
-                issues.Error("The package root could not be resolved, so there is nothing to copy from.");
-                return new JitterPhysicsInstallResult(null, issues);
-            }
-
-            JitterPhysicsInstallReceipt receipt = LoadReceipt(issues);
-            if (issues.HasErrors)
-            {
-                return new JitterPhysicsInstallResult(null, issues);
-            }
-
-            if (receipt.Component(JitterPhysicsComponentIds.Integration) == null)
-            {
-                issues.Error(
-                    "The samples run against the Jitter integration adapter, which this project "
-                    + "does not have. Install Jitter2 and the integration first.");
-                return new JitterPhysicsInstallResult(null, issues);
-            }
-
-            string samplesRoot = Path.Combine(packageRoot, "Samples~");
-            string sourceFolder = Path.Combine(samplesRoot, "Demos");
-            string templateFolder = Path.Combine(samplesRoot, "UnityAssemblyTemplate");
-
-            string runtimeTemplate = Path.Combine(
-                templateFolder, "DataSakura.JitterPhysics.Samples.asmdef.template.json");
-            string editorTemplate = Path.Combine(
-                templateFolder, "DataSakura.JitterPhysics.Samples.Editor.asmdef.template.json");
-
-            if (!Directory.Exists(sourceFolder) || !File.Exists(runtimeTemplate) || !File.Exists(editorTemplate))
-            {
-                issues.Error("The samples are missing from the package.");
-                return new JitterPhysicsInstallResult(null, issues);
-            }
-
-            // Two assemblies rather than one: the scene builders use UnityEditor, and an editor
-            // type in a runtime assembly fails the player build rather than the import, which is
-            // the worst moment to find out.
-            var extraFiles = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>(
-                    "Runtime/DataSakura.JitterPhysics.Samples.asmdef", runtimeTemplate),
-                new KeyValuePair<string, string>(
-                    "Editor/DataSakura.JitterPhysics.Samples.Editor.asmdef", editorTemplate),
-            };
-
-            string readme = Path.Combine(sourceFolder, "README.md");
-            if (File.Exists(readme))
-            {
-                extraFiles.Add(new KeyValuePair<string, string>("README.md", readme));
-            }
-
-            return Install(
-                JitterPhysicsComponentIds.Samples,
-                sourceFolder,
-                targetFolder,
-                null,
-                null,
-                JitterPhysicsPackage.PackageVersion,
-                receipt,
-                issues,
-                "*.cs",
-                null,
-                extraFiles);
+            issues.Error(
+                "Physics Baking Demos are a native UPM sample. Open this package in Window > "
+                + "Package Manager, select Samples, and import Physics Baking Demos. Setup only "
+                + "installs Jitter2 prerequisites and the integration adapter.");
+            return new JitterPhysicsInstallResult(null, issues);
         }
 
         /// <summary>
@@ -829,6 +760,214 @@ namespace DataSakura.JitterPhysics.Editor.Install
             return receipt;
         }
 
+        /// <summary>
+        /// Moves only receipt-owned integration files from the pre-0.0.3 product root and removes
+        /// the old Setup-installed sample copy. User-authored and locally modified files stay put.
+        /// </summary>
+        public static JitterPhysicsInstallResult MigrateLegacyLayout()
+        {
+            var issues = new JitterPhysicsIssueLog();
+            var changed = new List<string>();
+
+            if (RefuseInPlayMode(issues))
+            {
+                return new JitterPhysicsInstallResult(null, issues);
+            }
+
+            if (!File.Exists(JitterPhysicsInstallReceipt.LegacyPath))
+            {
+                issues.Warning("No pre-0.0.3 Jitter Physics Baker installation was found.");
+                return new JitterPhysicsInstallResult(changed, issues);
+            }
+
+            JitterPhysicsInstallReceipt legacy = JitterPhysicsInstallReceipt.Load(
+                JitterPhysicsInstallReceipt.LegacyPath, out string error);
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                issues.Error(error + " The legacy layout cannot be migrated safely.");
+                return new JitterPhysicsInstallResult(null, issues);
+            }
+
+            JitterPhysicsInstalledComponent integration = legacy.Component(
+                JitterPhysicsComponentIds.Integration);
+            JitterPhysicsInstalledComponent samples = legacy.Component(JitterPhysicsComponentIds.Samples);
+            bool migrateIntegration = integration != null
+                && string.Equals(integration.Root, LegacyIntegrationFolder, StringComparison.Ordinal);
+            bool removeLegacySamples = samples != null
+                && string.Equals(samples.Root, LegacySamplesFolder, StringComparison.Ordinal);
+
+            if (migrateIntegration)
+            {
+                VerifyUnmodified(integration, issues);
+                CheckMigrationDestinations(integration, DefaultIntegrationFolder, issues);
+                CheckNoUnrecordedFiles(integration, issues);
+            }
+
+            if (removeLegacySamples)
+            {
+                VerifyUnmodified(samples, issues);
+                CheckNoUnrecordedFiles(samples, issues);
+            }
+
+            if (samples != null && !removeLegacySamples)
+            {
+                issues.Warning(
+                    $"The obsolete samples component uses custom root '{samples.Root}', so it was "
+                    + "kept. Remove it explicitly after importing the native UPM sample.");
+            }
+
+            if (issues.HasErrors)
+            {
+                issues.Error(
+                    "No legacy files were moved or removed. Resolve the reported conflicts, then "
+                    + "run Setup again.");
+                return new JitterPhysicsInstallResult(null, issues);
+            }
+
+            var migrated = new List<JitterPhysicsInstalledComponent>();
+            for (int i = 0; i < legacy.Components.Count; i++)
+            {
+                JitterPhysicsInstalledComponent component = legacy.Components[i];
+                if (string.Equals(component.Id, JitterPhysicsComponentIds.Samples, StringComparison.Ordinal)
+                    && removeLegacySamples)
+                {
+                    if (!RemoveRecordedFiles(component))
+                    {
+                        issues.Error(
+                            $"Unity refused to remove the verified legacy sample folder "
+                            + $"'{component.Root}'. The receipt was not migrated.");
+                        return new JitterPhysicsInstallResult(changed, issues);
+                    }
+
+                    changed.Add(component.Root);
+                    continue;
+                }
+
+                if (string.Equals(component.Id, JitterPhysicsComponentIds.Integration, StringComparison.Ordinal)
+                    && migrateIntegration)
+                {
+                    string moveError = MoveRecordedFiles(component, DefaultIntegrationFolder);
+                    if (!string.IsNullOrEmpty(moveError))
+                    {
+                        issues.Error(
+                            $"Could not migrate '{component.Root}' to '{DefaultIntegrationFolder}': "
+                            + moveError);
+                        return new JitterPhysicsInstallResult(null, issues);
+                    }
+
+                    changed.Add(DefaultIntegrationFolder);
+                    component = new JitterPhysicsInstalledComponent(
+                        component.Id,
+                        component.Ownership,
+                        DefaultIntegrationFolder,
+                        component.PackageVersion,
+                        component.SourceHash,
+                        component.Files);
+                }
+
+                migrated.Add(component);
+            }
+
+            var receipt = new JitterPhysicsInstallReceipt(JitterPhysicsPackage.PackageVersion, migrated);
+            receipt.Save(JitterPhysicsInstallReceipt.DefaultPath);
+            changed.Add(JitterPhysicsInstallReceipt.DefaultPath);
+            if (!AssetDatabase.DeleteAsset(JitterPhysicsInstallReceipt.LegacyPath))
+            {
+                issues.Warning(
+                    $"The migrated receipt was written, but Unity could not remove legacy receipt "
+                    + $"'{JitterPhysicsInstallReceipt.LegacyPath}'. Remove that stale file after "
+                    + "confirming the new installation validates.");
+            }
+
+            DeleteEmptyFolders(LegacyIntegrationFolder);
+            if (removeLegacySamples)
+            {
+                DeleteEmptyFolders(samples.Root);
+            }
+
+            AssetDatabase.Refresh();
+            issues.Warning(removeLegacySamples
+                ? "Migrated the package-owned installation to Assets/DataSakura/JitterPhysicsBaker. "
+                    + "The legacy Setup-installed sample copy was removed; import Physics Baking "
+                    + "Demos from the Package Manager Samples tab."
+                : "Migrated the package-owned installation receipt to "
+                    + "Assets/DataSakura/JitterPhysicsBaker.");
+            return new JitterPhysicsInstallResult(changed, issues);
+        }
+
+        private static void CheckMigrationDestinations(
+            JitterPhysicsInstalledComponent component,
+            string destinationRoot,
+            JitterPhysicsIssueLog issues)
+        {
+            if (Directory.Exists(destinationRoot) || File.Exists(destinationRoot))
+            {
+                issues.Error(
+                    $"Legacy layout migration would overwrite '{destinationRoot}'. Move or remove "
+                    + "that conflicting folder explicitly.");
+            }
+        }
+
+        private static void CheckNoUnrecordedFiles(
+            JitterPhysicsInstalledComponent component,
+            JitterPhysicsIssueLog issues)
+        {
+            if (!Directory.Exists(component.Root))
+            {
+                return;
+            }
+
+            var recorded = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < component.Files.Count; i++)
+            {
+                recorded.Add(component.Files[i].RelativePath.Replace('\\', '/'));
+            }
+
+            foreach (string file in Directory.GetFiles(component.Root, "*", SearchOption.AllDirectories))
+            {
+                if (file.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string relative = file.Substring(component.Root.Length)
+                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    .Replace('\\', '/');
+                if (!recorded.Contains(relative))
+                {
+                    issues.Error(
+                        $"Legacy folder '{component.Root}' contains unrecorded file '{relative}'. "
+                        + "It may be user-authored, so the package will not move or remove the folder.");
+                }
+            }
+        }
+
+        private static string MoveRecordedFiles(
+            JitterPhysicsInstalledComponent component,
+            string destinationRoot)
+        {
+            if (!Directory.Exists(component.Root))
+            {
+                return null;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationRoot));
+            AssetDatabase.Refresh();
+            string moveError = AssetDatabase.MoveAsset(component.Root, destinationRoot);
+            return moveError;
+        }
+
+        private static bool RemoveRecordedFiles(JitterPhysicsInstalledComponent component)
+        {
+            if (Directory.Exists(component.Root))
+            {
+                return AssetDatabase.DeleteAsset(component.Root);
+            }
+
+            return true;
+        }
+
         private static bool RefuseInPlayMode(JitterPhysicsIssueLog issues)
         {
             if (!EditorApplication.isPlayingOrWillChangePlaymode)
@@ -927,13 +1066,6 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
-
-
-
-
-
-
 
 
 

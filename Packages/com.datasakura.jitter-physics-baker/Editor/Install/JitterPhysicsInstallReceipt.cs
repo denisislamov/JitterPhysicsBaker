@@ -30,7 +30,7 @@ namespace DataSakura.JitterPhysics.Editor.Install
         /// <summary>The server runtime source projection.</summary>
         public const string ServerRuntime = "server-runtime";
 
-        /// <summary>The runnable samples.</summary>
+        /// <summary>The legacy Setup-installed samples, retained only for upgrade receipts.</summary>
         public const string Samples = "samples";
     }
 
@@ -104,7 +104,10 @@ namespace DataSakura.JitterPhysics.Editor.Install
     public sealed class JitterPhysicsInstallReceipt
     {
         /// <summary>Where the receipt lives unless a caller says otherwise.</summary>
-        public const string DefaultPath = "Assets/DataSakura/JitterPhysics/InstallationReceipt.json";
+        public const string DefaultPath = "Assets/DataSakura/JitterPhysicsBaker/InstallationReceipt.json";
+
+        /// <summary>Receipt path used by package versions before 0.0.3.</summary>
+        public const string LegacyPath = "Assets/DataSakura/JitterPhysics/InstallationReceipt.json";
 
         /// <summary>Format version of the receipt itself.</summary>
         public const int SchemaVersion = 1;
@@ -304,5 +307,4 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
 

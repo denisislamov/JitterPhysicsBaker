@@ -32,7 +32,7 @@ counts, tick rate and elapsed time.
 ## Installation
 
 `Tools > DataSakura > Jitter Physics > Setup` copies `Runtime/` into
-`Assets/DataSakura/JitterPhysics/Integration/` together with the assembly definition from
+`Assets/DataSakura/JitterPhysicsBaker/Integration/` together with the assembly definition from
 the template, and records what it wrote in the installation receipt.
 
 The assembly is consumer-owned once installed: the installer only ever updates files that
@@ -54,5 +54,4 @@ nothing forces the dependency in the other direction.
 The sources are compiled and tested by `Server~/Tests` under .NET, against the dormant
 snapshot in `Jitter2~/`. Unity compiles the same files after installation, so the client
 and the server share one implementation rather than two that agree today.
-
 

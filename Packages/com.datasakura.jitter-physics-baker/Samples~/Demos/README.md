@@ -5,14 +5,15 @@ artifact the way a dedicated server would before accepting connections.
 
 Install Jitter2 and the integration adapter first. Then select the package in
 **Window > Package Manager**, open **Samples**, and import **Physics Baking Demos**. The
-same files can also be installed through `Install/update samples` in
-**Tools > DataSakura > Jitter Physics > Setup**; that path checks the prerequisite and
-tracks the copied files in the package installation receipt.
+sample is imported through Unity's native UPM workflow to
+`Assets/Samples/DataSakura Jitter Physics Baker/<package-version>/Physics Baking Demos`.
+Setup installs prerequisites and integration only and never creates a duplicate under
+`Assets/DataSakura`.
 
 The sample assembly references `DataSakura.JitterPhysics.JitterIntegration` by name. Unity's
 standard Package Manager import cannot disable its button while that project-owned adapter
-is missing, so importing out of order produces a missing-assembly error. The Setup installer
-is the guarded alternative when the project has not completed integration setup yet.
+is missing, so importing out of order produces a missing-assembly error. Complete Setup
+before pressing Import.
 
 The controls work with either **Input Manager (Old)** or **Input System Package** as the
 project's active input backend. The samples do not add an Input System package dependency.

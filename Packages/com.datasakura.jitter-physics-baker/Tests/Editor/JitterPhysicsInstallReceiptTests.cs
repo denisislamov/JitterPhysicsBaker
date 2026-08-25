@@ -21,7 +21,7 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 .With(new JitterPhysicsInstalledComponent(
                     JitterPhysicsComponentIds.Integration,
                     JitterPhysicsOwnership.Package,
-                    "Assets/DataSakura/JitterPhysics/Integration",
+                    "Assets/DataSakura/JitterPhysicsBaker/Integration",
                     JitterPhysicsPackage.PackageVersion,
                     "sha256:abc",
                     new List<JitterPhysicsInstalledFile>
@@ -43,7 +43,7 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 JitterPhysicsInstalledComponent component = loaded.Component(JitterPhysicsComponentIds.Integration);
                 Assert.That(component, Is.Not.Null);
                 Assert.That(component.Ownership, Is.EqualTo(JitterPhysicsOwnership.Package));
-                Assert.That(component.Root, Is.EqualTo("Assets/DataSakura/JitterPhysics/Integration"));
+                Assert.That(component.Root, Is.EqualTo("Assets/DataSakura/JitterPhysicsBaker/Integration"));
                 Assert.That(component.SourceHash, Is.EqualTo("sha256:abc"));
                 Assert.That(component.Files.Count, Is.EqualTo(2));
                 Assert.That(loaded.ToJson(), Is.EqualTo(receipt.ToJson()));
@@ -98,6 +98,37 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         }
 
         [Test]
+        public void UnifiedAndLegacyInstallerPathsRemainExplicitAndDistinct()
+        {
+            Assert.That(
+                JitterPhysicsInstallReceipt.DefaultPath,
+                Is.EqualTo("Assets/DataSakura/JitterPhysicsBaker/InstallationReceipt.json"));
+            Assert.That(
+                JitterPhysicsInstallReceipt.LegacyPath,
+                Is.EqualTo("Assets/DataSakura/JitterPhysics/InstallationReceipt.json"));
+            Assert.That(
+                JitterPhysicsInstaller.DefaultIntegrationFolder,
+                Is.EqualTo("Assets/DataSakura/JitterPhysicsBaker/Integration"));
+            Assert.That(
+                JitterPhysicsInstaller.LegacyIntegrationFolder,
+                Is.EqualTo("Assets/DataSakura/JitterPhysics/Integration"));
+        }
+
+        [Test]
+        public void CompatibilitySampleInstallerDoesNotCreateADuplicateCopy()
+        {
+#pragma warning disable CS0618
+            JitterPhysicsInstallResult result = JitterPhysicsInstaller.InstallSamples();
+#pragma warning restore CS0618
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Files, Is.Empty);
+            Assert.That(
+                result.Issues.Issues[0].Message,
+                Does.Contain("native UPM sample"));
+        }
+
+        [Test]
         public void VerifyingAProjectionThatIsNotThereIsAnError()
         {
             JitterPhysicsInstallResult result = JitterPhysicsServerProjection.Verify(
@@ -127,4 +158,3 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         }
     }
 }
-

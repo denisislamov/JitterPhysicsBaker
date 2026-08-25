@@ -12,17 +12,17 @@ namespace DataSakura.JitterPhysics.UnityArtifact
         public const string DefaultGeneratedFolder = "Assets/Generated/JitterPhysics";
 
         /// <summary>Folder the installer owns; a receipt next to it records what it wrote.</summary>
-        public const string DefaultInstallFolder = "Assets/DataSakura/JitterPhysics";
+        public const string DefaultInstallFolder = "Assets/DataSakura/JitterPhysicsBaker";
 
         /// <summary>Default destination of the fallback Jitter2 copy for projects without one.</summary>
         public const string DefaultJitterFolder = "Assets/DataSakura/ThirdParty/Jitter2";
 
         /// <summary>Default destination of the installed Jitter integration assembly.</summary>
-        public const string DefaultIntegrationFolder = "Assets/DataSakura/JitterPhysics/Integration";
+        public const string DefaultIntegrationFolder = "Assets/DataSakura/JitterPhysicsBaker/Integration";
 
         /// <summary>Installation receipt used by update and uninstall.</summary>
         public const string InstallationReceiptPath =
-            "Assets/DataSakura/JitterPhysics/InstallationReceipt.json";
+            "Assets/DataSakura/JitterPhysicsBaker/InstallationReceipt.json";
 
         /// <summary>Asset path of the artifact ScriptableObject for a level.</summary>
         public static string ArtifactAssetPath(string generatedFolder, string levelId)

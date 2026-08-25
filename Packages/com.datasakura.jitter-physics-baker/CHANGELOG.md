@@ -6,6 +6,25 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-08-25
+
+### Changed
+- **Package-owned project files now use one product root.** Integration and the deterministic
+  installation receipt live under `Assets/DataSakura/JitterPhysicsBaker`; the fallback Jitter2
+  location remains `Assets/DataSakura/ThirdParty/Jitter2`, so an existing project-owned runtime
+  is still preferred and never duplicated.
+- **Samples use only Unity's native UPM import.** Setup opens the Package Manager sample page
+  instead of copying a second assembly and scene source tree to `Assets/DataSakura`. Unity owns
+  the standard `Assets/Samples/DataSakura Jitter Physics Baker/<version>/Physics Baking Demos`
+  destination.
+
+### Added
+- **Safe upgrade of the pre-0.0.3 layout.** The explicit migration action detects the
+  legacy receipt, refuses migration if a recorded file changed, a destination conflicts, or an
+  unrecorded file may be user-authored, then moves the complete integration folder with Unity's
+  asset API so GUIDs remain stable. The old package-owned Setup sample copy is removed only after
+  the same checks; rerunning the operation is idempotent.
+
 ## [0.0.2] - 2026-08-16
 
 ### Changed
@@ -237,5 +256,6 @@ All notable changes to this package are documented here. The format is based on
   mode. What no test can cover — dialogs, windows, installing into a project, exporting — is
   written down step by step in the development project's manual test plan.
 
-[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.3
 [0.0.2]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.2

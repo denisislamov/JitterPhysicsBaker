@@ -71,6 +71,7 @@ namespace DataSakura.JitterPhysics.Editor.Tests
 
             Assert.That(manifest.samples, Is.Not.Null);
             Assert.That(manifest.samples.Length, Is.EqualTo(1));
+            Assert.That(manifest.displayName, Is.EqualTo("DataSakura Jitter Physics Baker"));
             Assert.That(manifest.samples[0].displayName, Is.EqualTo("Physics Baking Demos"));
             Assert.That(manifest.samples[0].path, Is.EqualTo("Samples~/Demos"));
             Assert.That(
@@ -78,16 +79,12 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 Is.True,
                 "The Package Manager sample path must resolve inside the published package.");
 
-            AssertSampleAssemblyMatchesInstallerTemplate(
-                package.resolvedPath,
-                "DataSakura.JitterPhysics.Samples.asmdef",
-                "DataSakura.JitterPhysics.Samples.asmdef.template.json",
-                "Runtime");
-            AssertSampleAssemblyMatchesInstallerTemplate(
-                package.resolvedPath,
-                "DataSakura.JitterPhysics.Samples.Editor.asmdef",
-                "DataSakura.JitterPhysics.Samples.Editor.asmdef.template.json",
-                "Editor");
+            Assert.That(File.Exists(Path.Combine(
+                package.resolvedPath, manifest.samples[0].path, "Runtime",
+                "DataSakura.JitterPhysics.Samples.asmdef")), Is.True);
+            Assert.That(File.Exists(Path.Combine(
+                package.resolvedPath, manifest.samples[0].path, "Editor",
+                "DataSakura.JitterPhysics.Samples.Editor.asmdef")), Is.True);
         }
 
         [Test]
@@ -233,28 +230,10 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 .Any(segment => segment.EndsWith("~", StringComparison.Ordinal));
         }
 
-        private static void AssertSampleAssemblyMatchesInstallerTemplate(
-            string packageRoot,
-            string assemblyFile,
-            string templateFile,
-            string assemblyFolder)
-        {
-            string sampleAssembly = Path.Combine(
-                packageRoot, "Samples~", "Demos", assemblyFolder, assemblyFile);
-            string installerTemplate = Path.Combine(
-                packageRoot, "Samples~", "UnityAssemblyTemplate", templateFile);
-
-            Assert.That(File.Exists(sampleAssembly), Is.True);
-            Assert.That(File.Exists(installerTemplate), Is.True);
-            Assert.That(
-                File.ReadAllText(sampleAssembly).Replace("\r\n", "\n"),
-                Is.EqualTo(File.ReadAllText(installerTemplate).Replace("\r\n", "\n")),
-                "Package Manager import and the guarded installer must create the same assembly.");
-        }
-
         [Serializable]
         private sealed class PackageManifest
         {
+            public string displayName;
             public PackageSample[] samples;
         }
 

@@ -15,7 +15,7 @@ later if you ignore it, the rule is stated where the step is, not in a footnote.
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.2"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.3"
   }
 }
 ```
@@ -233,8 +233,10 @@ select **DataSakura Jitter Physics Baker**, open **Samples**, and import
 **Physics Baking Demos**. Then use **Tools > DataSakura > Jitter Physics > Samples > Build
 and bake: Bouncing Ball**.
 
-You can alternatively use **Setup > Open installation details > Install/update samples**.
-That installer checks the prerequisite and tracks the copied files in the package receipt.
+Unity imports the sample to
+`Assets/Samples/DataSakura Jitter Physics Baker/<package-version>/Physics Baking Demos`.
+Setup installs prerequisites and integration only; it deliberately does not create another
+sample copy under `Assets/DataSakura`.
 
 | Sample | Shows |
 | --- | --- |

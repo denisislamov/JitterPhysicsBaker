@@ -197,20 +197,28 @@ namespace DataSakura.JitterPhysics.Editor
                     }
                 }
 
-                // Last, and after the integration button, because that is the order the samples
-                // depend on: they reference the adapter by name and cannot compile without it.
-                using (new EditorGUI.DisabledScope(
-                    report.Status == JitterPhysicsCompatibilityStatus.Missing))
+                using (new EditorGUI.DisabledScope(false))
                 {
-                    if (GUILayout.Button("Install/update samples"))
+                    if (GUILayout.Button("Open Package Manager samples"))
                     {
-                        Run(Install.JitterPhysicsInstaller.InstallSamples());
+                        UnityEditor.PackageManager.UI.Window.Open(JitterPhysicsPackage.PackageName);
                     }
                 }
             }
 
+            EditorGUILayout.HelpBox(
+                "Samples use Unity's native Package Manager import and are placed under "
+                + "Assets/Samples/DataSakura Jitter Physics Baker/<version>/Physics Baking Demos. "
+                + "Setup does not create a second copy under Assets/DataSakura.",
+                MessageType.Info);
+
             using (new EditorGUILayout.HorizontalScope())
             {
+                if (GUILayout.Button("Migrate pre-0.0.3 layout"))
+                {
+                    Run(Install.JitterPhysicsInstaller.MigrateLegacyLayout());
+                }
+
                 if (GUILayout.Button("Install server runtime sources..."))
                 {
                     string folder = EditorUtility.SaveFolderPanel(
@@ -315,8 +323,6 @@ namespace DataSakura.JitterPhysics.Editor
         }
     }
 }
-
-
 
 
 
