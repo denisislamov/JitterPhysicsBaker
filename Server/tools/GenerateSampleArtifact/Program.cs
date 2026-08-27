@@ -66,13 +66,12 @@ namespace DataSakura.JitterPhysics.Tools.SampleArtifact
             PhysicsArtifactPayload payload = PhysicsArtifactWriter.WriteWithManifest(
                 artifact, JitterPhysicsPackage.PackageVersion);
 
-            RemovePreviousDelivery(outputFolder, levelId);
+            string payloadName = JitterPhysicsArtifactNaming.BinaryFileName(levelId);
+            string manifestName = JitterPhysicsArtifactNaming.ManifestFileName(levelId);
 
-            string payloadName = JitterPhysicsArtifactNaming.BinaryFileName(levelId, payload.ArtifactHash);
-            string manifestName = JitterPhysicsArtifactNaming.ManifestFileName(levelId, payload.ArtifactHash);
-
-            File.WriteAllBytes(Path.Combine(outputFolder, payloadName), payload.Bytes);
-            File.WriteAllText(
+            PhysicsArtifactPairWriter.Write(
+                Path.Combine(outputFolder, payloadName),
+                payload.Bytes,
                 Path.Combine(outputFolder, manifestName),
                 PhysicsArtifactManifestCodec.Write(payload.Manifest));
 
@@ -241,21 +240,6 @@ namespace DataSakura.JitterPhysics.Tools.SampleArtifact
             indices = triangleList.ToArray();
         }
 
-        private static void RemovePreviousDelivery(string folder, string levelId)
-        {
-            string prefix = levelId + ".";
-            foreach (string path in Directory.GetFiles(folder))
-            {
-                string name = Path.GetFileName(path);
-                if (name.StartsWith(prefix, StringComparison.Ordinal)
-                    && (name.EndsWith(JitterPhysicsArtifactNaming.BinaryExtension, StringComparison.Ordinal)
-                        || name.EndsWith(JitterPhysicsArtifactNaming.ManifestExtension, StringComparison.Ordinal)))
-                {
-                    File.Delete(path);
-                }
-            }
-        }
-
         private static PhysicsVector3 V(float x, float y, float z) => new PhysicsVector3(x, y, z);
 
         /// <summary>Small quaternion helpers so the seed does not depend on UnityEngine.</summary>
@@ -277,7 +261,4 @@ namespace DataSakura.JitterPhysics.Tools.SampleArtifact
         }
     }
 }
-
-
-
 

@@ -77,11 +77,11 @@ namespace DataSakura.JitterPhysics.Editor.Tests
 
             byte[] onDisk = File.ReadAllBytes(result.Output.PayloadPath);
 
-            // Content addressing is only worth anything if the file really is its own name.
+            // The stable name is for humans; the full content identity remains verified metadata.
             Assert.That(JitterPhysicsHash.Sha256Hex(onDisk), Is.EqualTo(result.Output.ArtifactHash));
             Assert.That(
                 result.Output.PayloadPath,
-                Does.Contain(JitterPhysicsArtifactNaming.ShortHash(result.Output.ArtifactHash)));
+                Does.EndWith("test_level.physics.bytes"));
         }
 
         [Test]
@@ -155,6 +155,58 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         }
 
         [Test]
+        public void LegacyMigrationPreservesGuidsPayloadBytesAndIsRepeatSafe()
+        {
+            JitterPhysicsLevel level = CreateLevelWithGround();
+            JitterPhysicsBakeResult baked = JitterPhysicsBaker.Bake(level, RuntimeId);
+            Assert.That(baked.Succeeded, Is.True, baked.Issues.Format());
+
+            string legacyAsset = JitterPhysicsArtifactPaths.LegacyArtifactAssetPath(
+                TestFolder, level.LevelId);
+            string legacyPayload = JitterPhysicsArtifactPaths.LegacyBinaryAssetPath(
+                TestFolder, level.LevelId, baked.Output.ArtifactHash);
+            string legacyManifest = JitterPhysicsArtifactPaths.LegacyManifestAssetPath(
+                TestFolder, level.LevelId, baked.Output.ArtifactHash);
+            string assetGuid = AssetDatabase.AssetPathToGUID(baked.Output.AssetPath);
+            string payloadGuid = AssetDatabase.AssetPathToGUID(baked.Output.PayloadPath);
+            string manifestGuid = AssetDatabase.AssetPathToGUID(baked.Output.ManifestPath);
+            byte[] payloadBytes = File.ReadAllBytes(baked.Output.PayloadPath);
+
+            PhysicsArtifactManifest current = baked.Output.Manifest;
+            var oldManifest = new PhysicsArtifactManifest(
+                current.SchemaVersion,
+                current.RuntimeCompatibilityId,
+                current.GeneratorVersion,
+                current.LevelId,
+                current.ArtifactHash,
+                current.BodyCount,
+                current.ShapeCount,
+                current.VertexCount,
+                current.TriangleCount,
+                current.TickRate,
+                JitterPhysicsArtifactNaming.LegacyBinaryFileName(current.LevelId, current.ArtifactHash));
+            File.WriteAllText(baked.Output.ManifestPath, PhysicsArtifactManifestCodec.Write(oldManifest));
+            Assert.That(AssetDatabase.MoveAsset(baked.Output.PayloadPath, legacyPayload), Is.Empty);
+            Assert.That(AssetDatabase.MoveAsset(baked.Output.ManifestPath, legacyManifest), Is.Empty);
+            Assert.That(AssetDatabase.MoveAsset(baked.Output.AssetPath, legacyAsset), Is.Empty);
+
+            JitterPhysicsIssueLog first = JitterPhysicsArtifactMigration.Migrate(
+                TestFolder, level.LevelId, baked.Output.ArtifactHash);
+            JitterPhysicsIssueLog second = JitterPhysicsArtifactMigration.Migrate(
+                TestFolder, level.LevelId, baked.Output.ArtifactHash);
+
+            Assert.That(first.HasErrors, Is.False, first.Format());
+            Assert.That(second.HasErrors, Is.False, second.Format());
+            Assert.That(AssetDatabase.AssetPathToGUID(baked.Output.AssetPath), Is.EqualTo(assetGuid));
+            Assert.That(AssetDatabase.AssetPathToGUID(baked.Output.PayloadPath), Is.EqualTo(payloadGuid));
+            Assert.That(AssetDatabase.AssetPathToGUID(baked.Output.ManifestPath), Is.EqualTo(manifestGuid));
+            Assert.That(File.ReadAllBytes(baked.Output.PayloadPath), Is.EqualTo(payloadBytes));
+
+            var migrated = AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(baked.Output.AssetPath);
+            Assert.That(AssetDatabase.GetAssetPath(migrated.Payload), Is.EqualTo(baked.Output.PayloadPath));
+        }
+
+        [Test]
         public void FailedBakeLeavesThePreviousArtifactInPlace()
         {
             JitterPhysicsLevel level = CreateLevelWithGround();
@@ -194,7 +246,7 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         }
 
         [Test]
-        public void ChangedGeometryProducesANewContentAddressedFile()
+        public void ChangedGeometrySafelyReplacesTheStableNamedPair()
         {
             JitterPhysicsLevel level = CreateLevelWithGround();
 
@@ -208,7 +260,7 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             Assert.That(second.Succeeded, Is.True, second.Issues.Format());
 
             Assert.That(second.Output.ArtifactHash, Is.Not.EqualTo(first.Output.ArtifactHash));
-            Assert.That(second.Output.PayloadPath, Is.Not.EqualTo(first.Output.PayloadPath));
+            Assert.That(second.Output.PayloadPath, Is.EqualTo(first.Output.PayloadPath));
 
             // The asset always points at the current payload.
             var asset = AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(second.Output.AssetPath);
@@ -248,4 +300,3 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         }
     }
 }
-

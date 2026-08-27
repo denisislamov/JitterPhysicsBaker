@@ -97,7 +97,24 @@ namespace DataSakura.JitterPhysics.Contracts
                 artifact.VertexCount,
                 artifact.TriangleCount,
                 artifact.WorldSettings.TickRate,
-                JitterPhysicsArtifactNaming.BinaryFileName(artifact.LevelId, artifactHash));
+                JitterPhysicsArtifactNaming.BinaryFileName(artifact.LevelId));
+        }
+
+        /// <summary>Returns an equivalent manifest that names the current canonical payload.</summary>
+        public PhysicsArtifactManifest WithCurrentFileName()
+        {
+            return new PhysicsArtifactManifest(
+                SchemaVersion,
+                RuntimeCompatibilityId,
+                GeneratorVersion,
+                LevelId,
+                ArtifactHash,
+                BodyCount,
+                ShapeCount,
+                VertexCount,
+                TriangleCount,
+                TickRate,
+                JitterPhysicsArtifactNaming.BinaryFileName(LevelId));
         }
     }
 }

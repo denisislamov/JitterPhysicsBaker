@@ -170,7 +170,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
 
             string manifestPath = Path.Combine(
                 _directory,
-                JitterPhysicsArtifactNaming.ManifestFileName("arena", baked.ArtifactHash));
+                JitterPhysicsArtifactNaming.ManifestFileName("arena"));
 
             File.WriteAllText(
                 manifestPath,

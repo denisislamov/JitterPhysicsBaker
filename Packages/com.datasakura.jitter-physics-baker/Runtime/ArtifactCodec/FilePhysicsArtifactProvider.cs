@@ -12,7 +12,7 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
     /// with the build, mount a volume, pull it from an artifact registry — the package does not
     /// care which, and deliberately knows nothing about any particular game's deploy layout.
     /// It is given one path, usually from a command line such as
-    /// <c>--physics-manifest /srv/levels/arena.9f2c1b40e7ad.manifest.json</c>, and everything
+    /// <c>--physics-manifest /srv/levels/arena.physics.manifest.json</c>, and everything
     /// else follows from the manifest.
     /// </para>
     /// <para>
@@ -266,4 +266,3 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
         }
     }
 }
-

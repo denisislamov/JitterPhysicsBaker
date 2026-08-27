@@ -197,16 +197,16 @@ install/migration/projection/remove выполняются только свое
 
 1. Вернуть корректную сцену, открыть `Bake`, нажать `Build for Client`.
 
-Ожидаемо: в `Result` — level id, число тел/шейпов/треугольников, размер, время, полный
-хэш и путь; в `Assets/Generated/JitterPhysics/` появились три файла:
-`<levelId>.<hash12>.jphys.bytes`, `<levelId>.<hash12>.manifest.json`,
-`<levelId>.artifact.asset`.
+Ожидаемо: в `Build summary` без ручного ввода hash видны level, `Ready`, размер,
+body/shape counts и переходы к трём файлам. Полный hash, runtime/schema, triangles и пути
+находятся в `Details`/`Copy Diagnostics`. В `Assets/Generated/JitterPhysics/` появились:
+`<levelId>.physics.bytes`, `<levelId>.physics.manifest.json`, `<levelId>.physics.asset`.
 
 ### MT-12. Повторный bake байт-в-байт
 
 1. Ничего не меняя, нажать `Build for Client` ещё раз.
 
-Ожидаемо: тот же хэш; новых файлов не появилось (артефакт адресуется содержимым).
+Ожидаемо: тот же хэш; новых файлов не появилось, стабильная именованная пара заменена безопасно.
 
 ### MT-13. Порядок и имена не влияют на результат
 
@@ -219,7 +219,7 @@ install/migration/projection/remove выполняются только свое
 
 1. Сдвинуть один коллайдер на 0.5 по X; перезапечь.
 
-Ожидаемо: хэш изменился, старый файл остался, новый добавился.
+Ожидаемо: хэш изменился, те же три пути содержат новый согласованный bake.
 
 ### MT-15. Play Mode запрещён
 
@@ -244,7 +244,7 @@ install/migration/projection/remove выполняются только свое
 
 ### MT-18. Порча payload ловится
 
-1. Открыть `.jphys.bytes` в hex-редакторе, изменить один байт, сохранить, `Verify`.
+1. Открыть `.physics.bytes` в hex-редакторе, изменить один байт, сохранить, `Verify`.
 
 Ожидаемо: ошибка `HashMismatch` (или `BadMagic`), артефакт не считается валидным.
 Затем перезапечь уровень, чтобы восстановить файл.
@@ -253,8 +253,17 @@ install/migration/projection/remove выполняются только свое
 
 1. В `Bake` нажать `Export to Folder`, выбрать пустую папку вне проекта.
 
-Ожидаемо: в папке два файла с каноничными именами; SHA-256 payload совпадает с хэшем в
-окне (`shasum -a 256 <file>`).
+Ожидаемо: в папке `<levelId>.physics.bytes` и `<levelId>.physics.manifest.json`; полный
+SHA-256 доступен в `Details`/`Copy Diagnostics`, но обычный export не требует вводить его.
+
+### MT-19a. Миграция legacy-файлов
+
+1. На уровне с `<levelId>.artifact.asset` и hash-addressed pair открыть `Bake`.
+2. Нажать `Migrate Legacy Bake Files`, затем повторить действие ещё раз.
+
+Ожидаемо: первая миграция переносит все три файла через Unity AssetDatabase, сохраняет GUID
+asset/payload/manifest и точные payload bytes; повторная миграция безопасна. При неполной,
+corrupt или конфликтующей паре миграция отклонена, последняя рабочая пара остаётся на месте.
 
 ### MT-20. Экспорт embedded provider
 

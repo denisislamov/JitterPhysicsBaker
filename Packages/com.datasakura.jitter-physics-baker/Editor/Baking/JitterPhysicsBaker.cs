@@ -101,6 +101,19 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                 return new JitterPhysicsBakeResult(null, playModeIssues);
             }
 
+            if (level != null
+                && level.HasCanonicalLevelId
+                && JitterPhysicsArtifactMigration.IsRequired(
+                    level.GeneratedFolder, level.LevelId, level.LastArtifactHash))
+            {
+                var migrationIssues = new JitterPhysicsIssueLog();
+                migrationIssues.Error(
+                    "This level still uses legacy bake file names. Run 'Migrate Legacy Bake Files' "
+                    + "from the Bake tab before baking so Unity references and payload bytes are preserved.",
+                    level);
+                return new JitterPhysicsBakeResult(null, migrationIssues);
+            }
+
             JitterPhysicsBuildResult build = JitterPhysicsArtifactBuilder.Build(level, runtimeCompatibilityId);
             if (!build.Succeeded)
             {
@@ -158,10 +171,8 @@ namespace DataSakura.JitterPhysics.Editor.Baking
 
             EnsureFolder(folder);
 
-            string payloadPath = JitterPhysicsArtifactPaths.BinaryAssetPath(
-                folder, artifact.LevelId, payload.ArtifactHash);
-            string manifestPath = JitterPhysicsArtifactPaths.ManifestAssetPath(
-                folder, artifact.LevelId, payload.ArtifactHash);
+            string payloadPath = JitterPhysicsArtifactPaths.BinaryAssetPath(folder, artifact.LevelId);
+            string manifestPath = JitterPhysicsArtifactPaths.ManifestAssetPath(folder, artifact.LevelId);
             string assetPath = JitterPhysicsArtifactPaths.ArtifactAssetPath(folder, artifact.LevelId);
 
             string staging = FileUtil.GetUniqueTempPathInProject();
@@ -180,10 +191,11 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                     return null;
                 }
 
-                // Replace, not append: the payload is content-addressed, so an identical bake
-                // targets the same file and rewriting it is a no-op by construction.
-                ReplaceFile(stagedPayload, payloadPath);
-                ReplaceFile(stagedManifest, manifestPath);
+                PhysicsArtifactPairWriter.Write(
+                    ToAbsolutePath(payloadPath),
+                    File.ReadAllBytes(stagedPayload),
+                    ToAbsolutePath(manifestPath),
+                    File.ReadAllText(stagedManifest));
             }
             finally
             {
@@ -274,18 +286,6 @@ namespace DataSakura.JitterPhysics.Editor.Baking
             }
         }
 
-        private static void ReplaceFile(string stagedPath, string assetPath)
-        {
-            string absolute = ToAbsolutePath(assetPath);
-
-            if (File.Exists(absolute))
-            {
-                File.Delete(absolute);
-            }
-
-            File.Move(ToAbsolutePath(stagedPath), absolute);
-        }
-
         private static string ToAbsolutePath(string projectRelativePath)
         {
             if (Path.IsPathRooted(projectRelativePath))
@@ -321,4 +321,3 @@ namespace DataSakura.JitterPhysics.Editor.Baking
         }
     }
 }
-

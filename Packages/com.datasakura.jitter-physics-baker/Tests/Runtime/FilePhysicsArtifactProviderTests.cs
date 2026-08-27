@@ -225,8 +225,54 @@ namespace DataSakura.JitterPhysics.Tests
                 baked.Manifest.RuntimeCompatibilityId);
 
             Assert.That(stored.Succeeded, Is.False);
-            Assert.That(stored.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.InvalidValue));
+            Assert.That(stored.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.ManifestMismatch));
             Assert.That(Directory.GetFiles(_directory), Is.Empty);
+        }
+
+        [Test]
+        public void UploadStoreAcceptsExactLegacyManifestAndPublishesCurrentNames()
+        {
+            PhysicsArtifactPayload baked = Bake();
+            var legacy = new PhysicsArtifactManifest(
+                baked.Manifest.SchemaVersion,
+                baked.Manifest.RuntimeCompatibilityId,
+                baked.Manifest.GeneratorVersion,
+                baked.Manifest.LevelId,
+                baked.Manifest.ArtifactHash,
+                baked.Manifest.BodyCount,
+                baked.Manifest.ShapeCount,
+                baked.Manifest.VertexCount,
+                baked.Manifest.TriangleCount,
+                baked.Manifest.TickRate,
+                JitterPhysicsArtifactNaming.LegacyBinaryFileName(
+                    baked.Manifest.LevelId, baked.Manifest.ArtifactHash));
+
+            PhysicsArtifactUploadResult stored = PhysicsArtifactUploadStore.Store(
+                baked.Bytes,
+                PhysicsArtifactManifestCodec.Write(legacy),
+                _directory,
+                baked.Manifest.RuntimeCompatibilityId);
+
+            Assert.That(stored.Succeeded, Is.True, stored.Error.ToString());
+            Assert.That(Path.GetFileName(stored.PayloadPath), Is.EqualTo("arena.physics.bytes"));
+            Assert.That(Path.GetFileName(stored.ManifestPath), Is.EqualTo("arena.physics.manifest.json"));
+            Assert.That(stored.Manifest.FileName, Is.EqualTo("arena.physics.bytes"));
+        }
+
+        [Test]
+        public void PairWriterRestoresPreviousPayloadWhenManifestReplacementFails()
+        {
+            string payloadPath = Path.Combine(_directory, "arena.physics.bytes");
+            string manifestPath = Path.Combine(_directory, "manifest-target");
+            byte[] previous = new byte[] { 1, 2, 3 };
+            File.WriteAllBytes(payloadPath, previous);
+            Directory.CreateDirectory(manifestPath);
+
+            Assert.Throws<IOException>(() => PhysicsArtifactPairWriter.Write(
+                payloadPath, new byte[] { 4, 5, 6 }, manifestPath, "{}"));
+
+            Assert.That(File.ReadAllBytes(payloadPath), Is.EqualTo(previous));
+            Assert.That(Directory.Exists(manifestPath), Is.True);
         }
 
         private string WriteBoth(PhysicsArtifactPayload baked, string manifestJson = null)
@@ -235,7 +281,7 @@ namespace DataSakura.JitterPhysics.Tests
 
             string manifestPath = Path.Combine(
                 _directory,
-                JitterPhysicsArtifactNaming.ManifestFileName(baked.Manifest.LevelId, baked.ArtifactHash));
+                JitterPhysicsArtifactNaming.ManifestFileName(baked.Manifest.LevelId));
 
             File.WriteAllText(
                 manifestPath,
@@ -288,4 +334,3 @@ namespace DataSakura.JitterPhysics.Tests
         }
     }
 }
-

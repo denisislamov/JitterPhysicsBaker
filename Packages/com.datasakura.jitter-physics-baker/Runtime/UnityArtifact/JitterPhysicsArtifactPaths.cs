@@ -27,23 +27,41 @@ namespace DataSakura.JitterPhysics.UnityArtifact
         /// <summary>Asset path of the artifact ScriptableObject for a level.</summary>
         public static string ArtifactAssetPath(string generatedFolder, string levelId)
         {
+            return Combine(generatedFolder, levelId + ".physics.asset");
+        }
+
+        /// <summary>Asset path of the current binary payload for a level.</summary>
+        public static string BinaryAssetPath(string generatedFolder, string levelId)
+        {
+            return Combine(
+                generatedFolder,
+                JitterPhysicsArtifactNaming.BinaryFileName(levelId));
+        }
+
+        /// <summary>Asset path of the current manifest for a level.</summary>
+        public static string ManifestAssetPath(string generatedFolder, string levelId)
+        {
+            return Combine(
+                generatedFolder,
+                JitterPhysicsArtifactNaming.ManifestFileName(levelId));
+        }
+
+        /// <summary>Legacy ScriptableObject path used before the JP-04 migration.</summary>
+        public static string LegacyArtifactAssetPath(string generatedFolder, string levelId)
+        {
             return Combine(generatedFolder, levelId + ".artifact.asset");
         }
 
-        /// <summary>Asset path of the binary payload for a level and hash.</summary>
-        public static string BinaryAssetPath(string generatedFolder, string levelId, string artifactHash)
+        /// <summary>Legacy hash-addressed payload path.</summary>
+        public static string LegacyBinaryAssetPath(string generatedFolder, string levelId, string artifactHash)
         {
-            return Combine(
-                generatedFolder,
-                JitterPhysicsArtifactNaming.BinaryFileName(levelId, artifactHash));
+            return Combine(generatedFolder, JitterPhysicsArtifactNaming.LegacyBinaryFileName(levelId, artifactHash));
         }
 
-        /// <summary>Asset path of the manifest for a level and hash.</summary>
-        public static string ManifestAssetPath(string generatedFolder, string levelId, string artifactHash)
+        /// <summary>Legacy hash-addressed manifest path.</summary>
+        public static string LegacyManifestAssetPath(string generatedFolder, string levelId, string artifactHash)
         {
-            return Combine(
-                generatedFolder,
-                JitterPhysicsArtifactNaming.ManifestFileName(levelId, artifactHash));
+            return Combine(generatedFolder, JitterPhysicsArtifactNaming.LegacyManifestFileName(levelId, artifactHash));
         }
 
         private static string Combine(string folder, string fileName)

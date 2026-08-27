@@ -6,6 +6,22 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-08-27
+
+### Added
+- Added a compact Build summary with level/status/size/body/shape information, direct asset,
+  binary and manifest selection, and technical values behind Details / Copy Diagnostics.
+- Added an explicit, repeat-safe legacy bake migration that moves all three Unity assets with
+  their `.meta` files and verifies GUID and payload-byte preservation.
+
+### Changed
+- Current artifacts use `<levelId>.physics.bytes`, `<levelId>.physics.manifest.json` and
+  `<levelId>.physics.asset`. Readers accept exact legacy hash-addressed names, while writer,
+  binary export, embedded export and server upload normalize to current names without weakening
+  payload hash, schema, compatibility or manifest validation.
+- Payload/manifest publication now stages both files and rolls the whole pair back when either
+  replacement fails, preserving the last working delivery.
+
 ## [0.0.9] - 2026-08-27
 
 ### Changed

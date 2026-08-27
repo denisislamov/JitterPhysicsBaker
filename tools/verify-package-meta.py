@@ -14,7 +14,7 @@ Git LFS support:
    importer settings.
 
 2. Git LFS pointers - an LFS-tracked binary arrives as a ~130-byte text stub
-   instead of the real content. For a baked `.jphys.bytes` fixture that means a
+   instead of the real content. For a baked `.physics.bytes` fixture that means a
    hash mismatch at load time; for a managed plugin it means CS0246.
 
 Run from the repository root:
@@ -112,5 +112,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
 

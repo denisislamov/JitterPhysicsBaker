@@ -82,7 +82,7 @@ Pathfinding у custom-navigation — stateless запрос, поэтому та
 | --- | --- | --- |
 | Authoring | `NavigationLevel`, sources, profiles | `JitterPhysicsLevel`, `JitterStaticBodySource`, `JitterPhysicsWorldProfile` |
 | Bake | editor-only, deterministic, SHA-256 | так же |
-| Артефакт | navmesh binary + manifest + asset | `.jphys.bytes` + manifest + asset |
+| Артефакт | navmesh binary + manifest + asset | `.physics.bytes` + manifest + asset |
 | Loader | strict, fail-fast | так же, один для клиента/сервера |
 | 3rd-party ядро | DotRecast precompiled DLL | Jitter2 потребителя + dormant snapshot `Jitter2~/` |
 | Server delivery | HTTP upload / export folder | source projection в match server (§10) |
@@ -260,14 +260,19 @@ runtimeCompatibilityId = SHA-256(artifactSchemaVersion + sourceContentHash + pre
 ### 9.4 Artifact v1
 
 ```text
-<levelId>.<hash12>.jphys.bytes
-<levelId>.<hash12>.manifest.json
-<levelId>.artifact.asset          # ScriptableObject + TextAsset; runtime повторно проверяет hash
+<levelId>.physics.bytes
+<levelId>.physics.manifest.json
+<levelId>.physics.asset           # ScriptableObject + TextAsset; runtime повторно проверяет hash
 ```
 
 Default client folder: `Assets/Generated/JitterPhysics/`.
 
 Manifest (минимум): `schemaVersion "1"`, `runtimeCompatibilityId`, `generatorVersion`, `levelId`, `artifactHash` (64 lower hex), `bodyCount/shapeCount/vertexCount/triangleCount`, `tickRate`, `fileName`. Nondeterministic-поля (createdAt и т.п.) не участвуют в identity.
+
+Reader принимает также точные legacy-имена `<levelId>.<hash12>.jphys.bytes` и
+`<levelId>.<hash12>.manifest.json`, но writer/export/server publication всегда нормализуют пару к
+текущим именам. Полный SHA-256 остаётся обязательным в manifest и проверяется по payload: из
+имени файла валидация не переносится и не ослабляется.
 
 Binary: fixed magic; schema version; little-endian; IEEE-754 float32; runtimeCompatibilityId; levelId; world settings; ordered body records (sourceId, position/orientation, friction/restitution, shape count); ordered shape records (stable key, тип, local pose, payload: Box=size, Sphere=radius, Capsule=radius+length, Mesh=vertices+indices); length-prefixed bounded UTF-8 strings; explicit counts. Layout фиксируется golden-bytes-тестом; изменение после merge = bump schema version.
 
@@ -301,7 +306,7 @@ PhysicsWorldBuildResult build = JitterPhysicsWorldBuilder.Apply(world, artifact)
 - `Install Server Runtime Sources...` экспортирует versioned generated projection в `EFT.Server/EFT.Runtime/JitterPhysics/`; SDK-style csproj компилирует `.cs` своей папки автоматически.
 - Exported-файлы — generated/managed: receipt с версией и хэшами, ручные правки запрещены, EFT CI валидирует projection против установленного UPM-пакета.
 - Для EFT POC Editor action `Export Embedded Server Artifact` превращает **точные уже испечённые bytes** и canonical manifest в generated `.g.cs` provider внутри `EFT.Server/EFT.Runtime/JitterPhysics/Generated/`. Provider разбивает payload на безопасные chunks, восстанавливает exact bytes один раз при startup и повторно проверяет SHA-256. Благодаря SDK default compile glob не меняются ни `EFT.Runtime.csproj`, ни `Jitter2.Unity.csproj`, ни Dockerfile.
-- Для других проектов и больших production-карт package также предоставляет `FilePhysicsArtifactProvider`: consumer сам доставляет immutable `.jphys.bytes`/manifest через publish content, mount или artifact registry. Добавление `Content`-rule/volume относится к deploy-интеграции конкретного consumer-а и не требуется EFT POC.
+- Для других проектов и больших production-карт package также предоставляет `FilePhysicsArtifactProvider`: consumer сам доставляет проверяемую пару `.physics.bytes`/manifest через publish content, mount или artifact registry. Добавление `Content`-rule/volume относится к deploy-интеграции конкретного consumer-а и не требуется EFT POC.
 - Порядок старта сервера: resolve configured provider (`embedded` либо CLI `--physics-manifest <path>`) → получить exact bytes/manifest → проверка schema/ID/hash/counts/tick rate → построение мира → self-check лог (levelId, short hash, counts, elapsed) → только затем Netick connection approval. Smoke-check Docker обязан искать self-check строку.
 
 Embedded provider допустим для POC и малых fixtures; для него задаётся жёсткий size cap. Он не считается production delivery strategy для большой карты, но сохраняет тот же artifact format и exact binary identity.

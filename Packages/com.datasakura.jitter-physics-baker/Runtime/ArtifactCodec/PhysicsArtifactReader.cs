@@ -328,6 +328,15 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
                 return Mismatch($"level id '{manifest.LevelId}' vs '{artifact.LevelId}'", artifact, actualHash);
             }
 
+            if (!JitterPhysicsArtifactNaming.IsSupportedBinaryFileName(
+                    manifest.LevelId, actualHash, manifest.FileName))
+            {
+                return Mismatch(
+                    $"payload file name '{manifest.FileName}' is neither the current nor exact legacy name",
+                    artifact,
+                    actualHash);
+            }
+
             if (!JitterPhysicsHash.HexEquals(manifest.RuntimeCompatibilityId, artifact.RuntimeCompatibilityId))
             {
                 return Mismatch(

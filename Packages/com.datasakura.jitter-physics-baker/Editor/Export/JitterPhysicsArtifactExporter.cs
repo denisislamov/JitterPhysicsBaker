@@ -93,16 +93,15 @@ namespace DataSakura.JitterPhysics.Editor.Export
 
             string payloadPath = Path.Combine(
                 targetFolder,
-                JitterPhysicsArtifactNaming.BinaryFileName(manifest.LevelId, manifest.ArtifactHash));
+                JitterPhysicsArtifactNaming.BinaryFileName(manifest.LevelId));
 
             string manifestPath = Path.Combine(
                 targetFolder,
-                JitterPhysicsArtifactNaming.ManifestFileName(manifest.LevelId, manifest.ArtifactHash));
+                JitterPhysicsArtifactNaming.ManifestFileName(manifest.LevelId));
 
             try
             {
-                WriteAtomic(payloadPath, payload);
-                WriteAtomic(manifestPath, delivery.ManifestJson);
+                PhysicsArtifactPairWriter.Write(payloadPath, payload, manifestPath, delivery.ManifestJson);
             }
             catch (Exception exception)
             {
@@ -229,11 +228,7 @@ namespace DataSakura.JitterPhysics.Editor.Export
 
             string payloadPath = AssetDatabase.GetAssetPath(asset.Payload);
             string folder = Path.GetDirectoryName(payloadPath);
-            string manifestPath = string.IsNullOrEmpty(folder)
-                ? null
-                : Path.Combine(
-                    folder,
-                    JitterPhysicsArtifactNaming.ManifestFileName(asset.LevelId, asset.ArtifactHash));
+            string manifestPath = FindManifestPath(folder, asset.LevelId, asset.ArtifactHash);
 
             if (manifestPath == null || !File.Exists(manifestPath))
             {
@@ -264,7 +259,25 @@ namespace DataSakura.JitterPhysics.Editor.Export
                 return false;
             }
 
+            // Export and upload always publish current names, while the read above deliberately
+            // remains compatible with exact legacy pairs during migration.
+            manifest = manifest.WithCurrentFileName();
+            manifestJson = PhysicsArtifactManifestCodec.Write(manifest);
+
             return true;
+        }
+
+        private static string FindManifestPath(string folder, string levelId, string artifactHash)
+        {
+            if (string.IsNullOrEmpty(folder)) return null;
+
+            string current = Path.Combine(folder, JitterPhysicsArtifactNaming.ManifestFileName(levelId));
+            if (File.Exists(current)) return current;
+
+            string legacy = Path.Combine(
+                folder,
+                JitterPhysicsArtifactNaming.LegacyManifestFileName(levelId, artifactHash));
+            return File.Exists(legacy) ? legacy : current;
         }
 
         private static bool TryPrepareFolder(string targetFolder, JitterPhysicsIssueLog issues)

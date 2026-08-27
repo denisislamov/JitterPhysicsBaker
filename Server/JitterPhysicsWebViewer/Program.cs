@@ -309,7 +309,7 @@ namespace DataSakura.JitterPhysics.WebViewer
                     "No artifact folder was found. Bake the demo levels in Unity "
                     + "(Tools > DataSakura > Jitter Physics > Demo > Bake All Demo Scenes) "
                     + "or seed them with Server/tools/GenerateSampleArtifact, or pass "
-                    + "--manifest <path to .manifest.json>.");
+                    + "--manifest <path to .physics.manifest.json>.");
             }
 
             string[] manifests = Directory

@@ -222,7 +222,7 @@ namespace DataSakura.JitterPhysics.Tests
                 payload.Bytes, payload.ArtifactHash, payload.Manifest);
 
             Assert.That(result.Succeeded, Is.True, result.Error.ToString());
-            Assert.That(payload.Manifest.FileName, Does.EndWith(".jphys.bytes"));
+            Assert.That(payload.Manifest.FileName, Is.EqualTo("l.physics.bytes"));
         }
 
         [Test]
@@ -378,4 +378,3 @@ namespace DataSakura.JitterPhysics.Tests
         }
     }
 }
-

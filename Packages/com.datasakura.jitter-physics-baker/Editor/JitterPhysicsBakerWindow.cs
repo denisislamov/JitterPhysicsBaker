@@ -70,6 +70,10 @@ namespace DataSakura.JitterPhysics.Editor
         private DateTime validationTime;
         private bool validationStale;
         private string bakeSummary;
+        private JitterPhysicsBakeOutput lastBakeOutput;
+        private DateTime? lastBakeUtc;
+        private long lastBakeMilliseconds;
+        private bool bakeDetailsExpanded;
         private bool lastActionFailed;
         private bool uploadInProgress;
         [SerializeField]
@@ -529,6 +533,9 @@ namespace DataSakura.JitterPhysics.Editor
         {
             JitterPhysicsArtifactAsset current = CurrentArtifact();
             JitterPhysicsCompatibilityReport report = JitterPhysicsCompatibilityReport.Create();
+            bool legacyMigrationRequired = level.HasCanonicalLevelId
+                                           && JitterPhysicsArtifactMigration.IsRequired(
+                                               level.GeneratedFolder, level.LevelId, level.LastArtifactHash);
 
             EditorGUILayout.LabelField("Build pipeline", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
@@ -553,7 +560,8 @@ namespace DataSakura.JitterPhysics.Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUI.DisabledScope(
-                    !report.CanBake || EditorApplication.isPlayingOrWillChangePlaymode || uploadInProgress))
+                    !report.CanBake || legacyMigrationRequired
+                    || EditorApplication.isPlayingOrWillChangePlaymode || uploadInProgress))
                 {
                     if (GUILayout.Button("Build for Client", GUILayout.Height(30f)))
                     {
@@ -575,16 +583,20 @@ namespace DataSakura.JitterPhysics.Editor
                 }
             }
 
-            using (new EditorGUILayout.HorizontalScope())
+            if (legacyMigrationRequired)
             {
-                EditorGUILayout.LabelField("Client artifact", GUILayout.Width(150f));
-                EditorGUILayout.LabelField(
-                    current == null
-                        ? "Not baked"
-                        : $"{current.LevelId} · {current.ShortHash} · {current.BodyCount} bodies, "
-                          + $"{current.ShapeCount} shapes",
-                    EditorStyles.wordWrappedLabel);
+                EditorGUILayout.HelpBox(
+                    "This level has legacy hash-addressed bake files. Migrate them explicitly before "
+                    + "the next bake; Unity GUIDs and payload bytes will be verified.",
+                    MessageType.Warning);
+                if (GUILayout.Button("Migrate Legacy Bake Files"))
+                {
+                    MigrateLegacyArtifact(current);
+                    current = CurrentArtifact();
+                }
             }
+
+            DrawBuildSummary(current);
 
             EditorGUILayout.Space(8f);
             EditorGUILayout.LabelField("Danger zone", EditorStyles.boldLabel);
@@ -613,8 +625,111 @@ namespace DataSakura.JitterPhysics.Editor
                 return null;
             }
 
-            return AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(
-                JitterPhysicsArtifactPaths.ArtifactAssetPath(level.GeneratedFolder, level.LevelId));
+            string currentPath = JitterPhysicsArtifactPaths.ArtifactAssetPath(level.GeneratedFolder, level.LevelId);
+            var current = AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(currentPath);
+            return current != null
+                ? current
+                : AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(
+                    JitterPhysicsArtifactPaths.LegacyArtifactAssetPath(level.GeneratedFolder, level.LevelId));
+        }
+
+        private void DrawBuildSummary(JitterPhysicsArtifactAsset asset)
+        {
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("Build summary", EditorStyles.boldLabel);
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                if (asset == null)
+                {
+                    DrawSummaryRow("Status", "Not baked");
+                    return;
+                }
+
+                int size = asset.HasPayload ? asset.GetPayloadBytes().Length : 0;
+                DrawSummaryRow("Level", asset.LevelId);
+                DrawSummaryRow("Status", asset.HasPayload ? "Ready" : "Payload missing");
+                DrawSummaryRow("Size", EditorUtility.FormatBytes(size));
+                DrawSummaryRow("Contents", $"{asset.BodyCount} bodies · {asset.ShapeCount} shapes");
+                if (lastBakeUtc.HasValue && lastBakeOutput != null
+                    && JitterPhysicsHash.HexEquals(lastBakeOutput.ArtifactHash, asset.ArtifactHash))
+                {
+                    DrawSummaryRow("Label", level != null ? level.gameObject.name : asset.name);
+                    DrawSummaryRow("Built (UTC)", lastBakeUtc.Value.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"));
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    DrawAssetButton("Asset", AssetDatabase.GetAssetPath(asset));
+                    DrawAssetButton("Binary", asset.Payload != null ? AssetDatabase.GetAssetPath(asset.Payload) : null);
+                    string payloadPath = asset.Payload != null ? AssetDatabase.GetAssetPath(asset.Payload) : null;
+                    string folder = string.IsNullOrEmpty(payloadPath) ? null : Path.GetDirectoryName(payloadPath);
+                    string manifestPath = string.IsNullOrEmpty(folder)
+                        ? null
+                        : Path.Combine(folder, JitterPhysicsArtifactNaming.ManifestFileName(asset.LevelId))
+                            .Replace('\\', '/');
+                    if (!string.IsNullOrEmpty(manifestPath) && !File.Exists(manifestPath))
+                    {
+                        manifestPath = Path.Combine(
+                                folder,
+                                JitterPhysicsArtifactNaming.LegacyManifestFileName(asset.LevelId, asset.ArtifactHash))
+                            .Replace('\\', '/');
+                    }
+                    DrawAssetButton("Manifest", manifestPath);
+                }
+
+                bakeDetailsExpanded = EditorGUILayout.Foldout(bakeDetailsExpanded, "Details", true);
+                if (bakeDetailsExpanded)
+                {
+                    EditorGUILayout.SelectableLabel(
+                        BuildDiagnostics(asset), EditorStyles.textArea, GUILayout.MinHeight(118f));
+                    if (GUILayout.Button("Copy Diagnostics"))
+                    {
+                        EditorGUIUtility.systemCopyBuffer = BuildDiagnostics(asset);
+                    }
+                }
+            }
+        }
+
+        private static void DrawAssetButton(string label, string path)
+        {
+            using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(path) || !File.Exists(path)))
+            {
+                if (GUILayout.Button(label))
+                {
+                    UnityEngine.Object target = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                    Selection.activeObject = target;
+                    if (target != null) EditorGUIUtility.PingObject(target);
+                }
+            }
+        }
+
+        private string BuildDiagnostics(JitterPhysicsArtifactAsset asset)
+        {
+            string payloadPath = asset.Payload != null ? AssetDatabase.GetAssetPath(asset.Payload) : "<missing>";
+            return $"levelId: {asset.LevelId}\nstatus: {(asset.HasPayload ? "ready" : "payload missing")}\n"
+                   + $"schema: {asset.SchemaVersion}\ngenerator: {asset.GeneratorVersion}\n"
+                   + $"hash: {asset.ArtifactHash}\nruntime: {asset.RuntimeCompatibilityId}\n"
+                   + $"bodies: {asset.BodyCount}\nshapes: {asset.ShapeCount}\nvertices: {asset.VertexCount}\n"
+                   + $"triangles: {asset.TriangleCount}\ntickRate: {asset.TickRate}\npayload: {payloadPath}\n"
+                   + (lastBakeUtc.HasValue ? $"lastBuildUtc: {lastBakeUtc.Value:O}\ndurationMs: {lastBakeMilliseconds}" : string.Empty);
+        }
+
+        private void MigrateLegacyArtifact(JitterPhysicsArtifactAsset asset)
+        {
+            if (asset == null)
+            {
+                lastActionFailed = true;
+                bakeSummary = "Legacy migration requires a complete artifact asset.";
+                return;
+            }
+
+            issues = JitterPhysicsArtifactMigration.Migrate(
+                level.GeneratedFolder, level.LevelId, asset.ArtifactHash);
+            lastActionFailed = issues.HasErrors;
+            bakeSummary = issues.HasErrors
+                ? "Legacy migration was refused or rolled back."
+                : "Legacy bake files migrated; GUIDs and payload bytes were preserved.";
+            RefreshArtifacts();
         }
 
         private void ExportToFolder(JitterPhysicsArtifactAsset asset)
@@ -719,13 +834,10 @@ namespace DataSakura.JitterPhysics.Editor
             }
 
             JitterPhysicsBakeOutput output = result.Output;
-            bakeSummary =
-                $"Baked '{output.Manifest.LevelId}'\n"
-                + $"bodies {output.Manifest.BodyCount}, shapes {output.Manifest.ShapeCount}, "
-                + $"triangles {output.Manifest.TriangleCount}\n"
-                + $"{output.PayloadSize} bytes in {stopwatch.ElapsedMilliseconds} ms\n"
-                + $"hash {output.ArtifactHash}\n"
-                + output.AssetPath;
+            lastBakeOutput = output;
+            lastBakeUtc = DateTime.UtcNow;
+            lastBakeMilliseconds = stopwatch.ElapsedMilliseconds;
+            bakeSummary = $"Build completed for '{output.Manifest.LevelId}'.";
 
             RefreshArtifacts();
         }
@@ -1104,8 +1216,16 @@ namespace DataSakura.JitterPhysics.Editor
                 {
                     manifestPath = Path.Combine(
                         folder,
-                        JitterPhysicsArtifactNaming.ManifestFileName(asset.LevelId, asset.ArtifactHash))
+                        JitterPhysicsArtifactNaming.ManifestFileName(asset.LevelId))
                         .Replace('\\', '/');
+                    if (!File.Exists(manifestPath))
+                    {
+                        manifestPath = Path.Combine(
+                                folder,
+                                JitterPhysicsArtifactNaming.LegacyManifestFileName(
+                                    asset.LevelId, asset.ArtifactHash))
+                            .Replace('\\', '/');
+                    }
                 }
             }
 

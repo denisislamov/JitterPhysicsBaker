@@ -1,7 +1,7 @@
 # DataSakura Jitter Physics Baker
 
 Deterministic, editor-time baking of a level's **static** collision geometry into a
-versioned, content-addressed binary artifact, plus one shared loader that rebuilds the
+versioned, content-verified binary artifact, plus one shared loader that rebuilds the
 exact same static topology in a [Jitter2](https://github.com/notgiven688/jitterphysics2)
 `World` on the Unity client and on a .NET dedicated server.
 

@@ -40,16 +40,26 @@ namespace DataSakura.JitterPhysics.Tests
         }
 
         [Test]
-        public void ArtifactFileNamesEmbedLevelAndShortHash()
+        public void CurrentArtifactFileNamesAreHumanReadableAndLegacyNamesRemainExact()
         {
             string hash = JitterPhysicsHash.Sha256HexUtf8("payload");
 
             Assert.That(
-                JitterPhysicsArtifactNaming.BinaryFileName("shooter", hash),
+                JitterPhysicsArtifactNaming.BinaryFileName("shooter"),
+                Is.EqualTo("shooter.physics.bytes"));
+            Assert.That(
+                JitterPhysicsArtifactNaming.ManifestFileName("shooter"),
+                Is.EqualTo("shooter.physics.manifest.json"));
+            Assert.That(
+                JitterPhysicsArtifactNaming.LegacyBinaryFileName("shooter", hash),
                 Is.EqualTo("shooter." + hash.Substring(0, 12) + ".jphys.bytes"));
             Assert.That(
-                JitterPhysicsArtifactNaming.ManifestFileName("shooter", hash),
+                JitterPhysicsArtifactNaming.LegacyManifestFileName("shooter", hash),
                 Is.EqualTo("shooter." + hash.Substring(0, 12) + ".manifest.json"));
+            Assert.That(
+                JitterPhysicsArtifactNaming.IsSupportedBinaryFileName(
+                    "shooter", hash, JitterPhysicsArtifactNaming.LegacyBinaryFileName("shooter", hash)),
+                Is.True);
         }
 
         [Test]
@@ -58,7 +68,7 @@ namespace DataSakura.JitterPhysics.Tests
             string hash = JitterPhysicsHash.Sha256HexUtf8("payload");
 
             Assert.Throws<ArgumentException>(
-                () => JitterPhysicsArtifactNaming.BinaryFileName("Shooter Arena", hash));
+                () => JitterPhysicsArtifactNaming.BinaryFileName("Shooter Arena"));
         }
 
         [Test]

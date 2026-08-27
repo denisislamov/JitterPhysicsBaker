@@ -15,7 +15,7 @@ later if you ignore it, the rule is stated where the step is, not in a footnote.
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.9"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.10"
   }
 }
 ```
@@ -162,12 +162,12 @@ Three files are produced:
 
 | File | Purpose |
 | --- | --- |
-| `<level>.<hash>.jphys.bytes` | The artifact |
-| `<level>.<hash>.manifest.json` | Counts, hashes, tick rate |
-| `<level>.<hash>.asset` | The Unity asset your scenes reference |
+| `<level>.physics.bytes` | The exact deterministic artifact payload |
+| `<level>.physics.manifest.json` | Counts, full payload hash, compatibility and tick rate |
+| `<level>.physics.asset` | Stable Unity reference to the payload and its summary |
 
-The hash is in the file name because artifacts are content-addressed: two different bakes can
-sit side by side without one silently shadowing the other.
+The full hash remains in the manifest and is verified against the payload. Publishing a changed
+bake replaces the stable-name binary/manifest pair together, with rollback on failure.
 
 ### Determinism
 

@@ -38,7 +38,7 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
 
     /// <summary>
     /// Validates an artifact received from an untrusted delivery channel and stores its payload
-    /// and manifest under content-addressed canonical names.
+    /// and manifest under stable, human-readable canonical names.
     /// </summary>
     public static class PhysicsArtifactUploadStore
     {
@@ -78,15 +78,17 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
                 return new PhysicsArtifactUploadResult(null, null, null, compatibility);
             }
 
-            string canonicalPayload = JitterPhysicsArtifactNaming.BinaryFileName(
-                manifest.LevelId, manifest.ArtifactHash);
-            if (!string.Equals(manifest.FileName, canonicalPayload, StringComparison.Ordinal))
+            if (!JitterPhysicsArtifactNaming.IsSupportedBinaryFileName(
+                    manifest.LevelId, manifest.ArtifactHash, manifest.FileName))
             {
                 return Failure(
                     PhysicsArtifactErrorCode.InvalidValue,
                     $"Manifest payload name '{manifest.FileName}' is not canonical.",
                     manifest);
             }
+
+            manifest = manifest.WithCurrentFileName();
+            string canonicalPayload = manifest.FileName;
 
             if (string.IsNullOrEmpty(targetFolder))
             {
@@ -96,35 +98,13 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
             string payloadPath = Path.Combine(targetFolder, canonicalPayload);
             string manifestPath = Path.Combine(
                 targetFolder,
-                JitterPhysicsArtifactNaming.ManifestFileName(manifest.LevelId, manifest.ArtifactHash));
+                JitterPhysicsArtifactNaming.ManifestFileName(manifest.LevelId));
             string canonicalManifest = PhysicsArtifactManifestCodec.Write(manifest);
 
             try
             {
                 Directory.CreateDirectory(targetFolder);
-                if (!MatchesExisting(payloadPath, payload) || !MatchesExisting(manifestPath, canonicalManifest))
-                {
-                    return Failure(
-                        PhysicsArtifactErrorCode.HashMismatch,
-                        "A file already exists at the content-addressed destination with different bytes.",
-                        manifest);
-                }
-
-                bool payloadExisted = File.Exists(payloadPath);
-                WriteIfMissing(payloadPath, payload);
-                try
-                {
-                    WriteIfMissing(manifestPath, canonicalManifest);
-                }
-                catch
-                {
-                    if (!payloadExisted && File.Exists(payloadPath) && !File.Exists(manifestPath))
-                    {
-                        File.Delete(payloadPath);
-                    }
-
-                    throw;
-                }
+                PhysicsArtifactPairWriter.Write(payloadPath, payload, manifestPath, canonicalManifest);
             }
             catch (Exception exception)
             {
@@ -135,58 +115,6 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
             }
 
             return new PhysicsArtifactUploadResult(manifest, payloadPath, manifestPath, default);
-        }
-
-        private static bool MatchesExisting(string path, byte[] expected)
-        {
-            return !File.Exists(path) || BytesEqual(File.ReadAllBytes(path), expected);
-        }
-
-        private static bool MatchesExisting(string path, string expected)
-        {
-            return !File.Exists(path)
-                   || string.Equals(File.ReadAllText(path), expected, StringComparison.Ordinal);
-        }
-
-        private static void WriteIfMissing(string path, byte[] content)
-        {
-            if (File.Exists(path)) return;
-            string temporary = path + ".upload-" + Guid.NewGuid().ToString("N") + ".tmp";
-            try
-            {
-                File.WriteAllBytes(temporary, content);
-                File.Move(temporary, path);
-            }
-            finally
-            {
-                if (File.Exists(temporary)) File.Delete(temporary);
-            }
-        }
-
-        private static void WriteIfMissing(string path, string content)
-        {
-            if (File.Exists(path)) return;
-            string temporary = path + ".upload-" + Guid.NewGuid().ToString("N") + ".tmp";
-            try
-            {
-                File.WriteAllText(temporary, content, new UTF8Encoding(false));
-                File.Move(temporary, path);
-            }
-            finally
-            {
-                if (File.Exists(temporary)) File.Delete(temporary);
-            }
-        }
-
-        private static bool BytesEqual(byte[] left, byte[] right)
-        {
-            if (left.Length != right.Length) return false;
-            for (int i = 0; i < left.Length; i++)
-            {
-                if (left[i] != right[i]) return false;
-            }
-
-            return true;
         }
 
         private static PhysicsArtifactUploadResult Failure(
