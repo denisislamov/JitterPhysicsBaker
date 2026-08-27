@@ -20,7 +20,7 @@ project's active input backend. The samples do not add an Input System package d
 
 ## Building a sample
 
-After installing, use **Tools > DataSakura > Jitter Physics > Samples**:
+After installing, use **Assets > DataSakura > Jitter Physics > Samples**:
 
 | Menu entry | What it does |
 | --- | --- |

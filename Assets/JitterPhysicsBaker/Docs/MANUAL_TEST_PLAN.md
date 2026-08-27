@@ -123,7 +123,7 @@ MT-05/MT-27 нужен свой Unity-совместимый `Jitter2.Core` в �
 
 ### MT-09. Окно Baker видит уровень
 
-1. `Tools > DataSakura > Jitter Physics > Open`, раздел `Overview`.
+1. `Tools > DataSakura > Jitter Physics Baker Window`, раздел `Overview`.
 2. Выбрать уровень в поле `Jitter Physics Level`.
 
 Ожидаемо: показаны level id, geometry root, профиль, число помеченных источников и папка
@@ -131,8 +131,9 @@ MT-05/MT-27 нужен свой Unity-совместимый `Jitter2.Core` в �
 
 ### MT-09A. Меню, узкое окно и Inspector
 
-1. Проверить, что обычные операции находятся в одном окне, а в `Tools > DataSakura >
-   Jitter Physics` не осталось отдельных Bake/Validate/Export/Setup/Install/About команд.
+1. Проверить, что в `Tools > DataSakura` есть ровно один пункт пакета —
+   `Jitter Physics Baker Window` — и он сразу открывает окно. Вложенного подменю
+   `Jitter Physics` и отдельных Bake/Validate/Export/Setup/Install/About/Samples команд нет.
 2. Расширить окно: видны `Overview / Geometry / Bake / Settings / Diagnostics`.
 3. Сузить окно: те же пять разделов остаются горизонтальными вкладками, как в окне
    Custom Navigation; заголовок вкладки редактора — `DS Jitter Physics`.
@@ -402,8 +403,9 @@ dotnet test --filter FullyQualifiedName~TopologyFingerprint
 3. У `Physics Baking Demos` нажать `Import`.
 
 Ожидаемо: пример появляется в `Assets/Samples/DataSakura Jitter Physics Baker/<version>/Physics
-Baking Demos`; runtime и Editor asmdef компилируются без ошибок; меню `Tools > DataSakura >
-Jitter Physics > Demo` содержит команды сборки обеих сцен. Сам импорт не создаёт сцену,
+Baking Demos`; runtime и Editor asmdef компилируются без ошибок; меню `Assets > DataSakura >
+Jitter Physics > Samples` содержит команды сборки обеих сцен и не добавляет пунктов в `Tools`.
+Сам импорт не создаёт сцену,
 не запускает bake и не пишет артефакты — мутация начинается только после явного выбора
 команды меню.
 

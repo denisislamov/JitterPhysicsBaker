@@ -37,7 +37,7 @@ namespace DataSakura.JitterPhysics.Editor
     /// </summary>
     public sealed class JitterPhysicsBakerWindow : EditorWindow
     {
-        internal const string MenuPath = "Tools/DataSakura/Jitter Physics";
+        internal const string MenuPath = "Tools/DataSakura/Jitter Physics Baker Window";
         internal const string WindowTitle = "DS Jitter Physics";
 
         private enum Tab

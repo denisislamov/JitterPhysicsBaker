@@ -31,7 +31,7 @@ counts, tick rate and elapsed time.
 
 ## Installation
 
-Use `Tools > DataSakura > Jitter Physics`, then
+Use `Tools > DataSakura > Jitter Physics Baker Window`, then
 `Settings > Open installation details`; the explicit install action copies `Runtime/` into
 `Assets/DataSakura/JitterPhysicsBaker/Integration/` together with the assembly definition from
 the template, and records what it wrote in the installation receipt.

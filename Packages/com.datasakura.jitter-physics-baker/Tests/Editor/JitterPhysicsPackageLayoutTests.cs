@@ -195,7 +195,7 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 BindingFlags.Public | BindingFlags.Static);
             Assert.That(open, Is.Not.Null);
             MenuItem menu = open.GetCustomAttributes(typeof(MenuItem), false).Cast<MenuItem>().Single();
-            Assert.That(menu.menuItem, Is.EqualTo("Tools/DataSakura/Jitter Physics"));
+            Assert.That(menu.menuItem, Is.EqualTo("Tools/DataSakura/Jitter Physics Baker Window"));
             FieldInfo titleField = typeof(JitterPhysicsBakerWindow).GetField(
                 "WindowTitle",
                 BindingFlags.NonPublic | BindingFlags.Static);
@@ -208,11 +208,11 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
                 .SelectMany(method => method.GetCustomAttributes(typeof(MenuItem), false).Cast<MenuItem>())
                 .Where(item => item.menuItem.StartsWith(
-                    "Tools/DataSakura/Jitter Physics",
+                    "Tools/DataSakura/",
                     StringComparison.Ordinal))
                 .ToArray();
             Assert.That(toolsEntries.Select(item => item.menuItem),
-                Is.EqualTo(new[] { "Tools/DataSakura/Jitter Physics" }),
+                Is.EqualTo(new[] { "Tools/DataSakura/Jitter Physics Baker Window" }),
                 "The authoring window must be the package's only Tools entry.");
         }
 

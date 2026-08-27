@@ -12,7 +12,7 @@ This package redistributes the following third-party components.
 - License: MIT (full text in `Jitter2~/LICENSE.md`)
 
 The snapshot exists only so that a project without Jitter2 can install a working
-copy explicitly (`Tools > DataSakura > Jitter Physics`, then `Settings`) and so that CI can
+copy explicitly (`Tools > DataSakura > Jitter Physics Baker Window`, then `Settings`) and so that CI can
 compile the exact sources the package was validated against. When a consumer
 already has a compatible `Jitter2.Core` assembly, the package references it by
 assembly name and never copies or modifies it.

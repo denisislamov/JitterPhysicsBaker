@@ -18,6 +18,9 @@ All notable changes to this package are documented here. The format is based on
   the selected level with Undo and prefab-override support.
 
 ### Changed
+- Replaced the nested `Tools > DataSakura > Jitter Physics` submenu with the single leaf
+  `Tools > DataSakura > Jitter Physics Baker Window`. Sample utilities remain under `Assets`
+  and do not add package-owned `Tools` entries.
 - Moved compatibility, installation and maintenance behind Settings/Advanced. Validation
   remains read-only and every install, migration, projection or ownership-aware removal still
   requires its existing explicit command.

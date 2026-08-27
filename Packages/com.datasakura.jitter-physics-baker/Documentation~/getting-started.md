@@ -15,7 +15,7 @@ later if you ignore it, the rule is stated where the step is, not in a footnote.
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.6"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.7"
   }
 }
 ```
@@ -33,7 +33,7 @@ deciding which Jitter2 the project will use.
 
 ## 2. Provide Jitter2
 
-Open **Tools > DataSakura > Jitter Physics**, then select **Settings**. Its summary
+Open **Tools > DataSakura > Jitter Physics Baker Window**, then select **Settings**. Its summary
 tells you what the project currently has; use **Open
 installation details** for the explicit install/update actions.
 
@@ -148,7 +148,7 @@ It is stored outside scenes and project defaults and never contributes to artifa
 
 ## 5. Bake
 
-Open **Tools > DataSakura > Jitter Physics**, select the level, then select **Bake**.
+Open **Tools > DataSakura > Jitter Physics Baker Window**, select the level, then select **Bake**.
 
 - **Validate** reports problems without writing anything. Every issue can select the object
   that caused it.
@@ -243,7 +243,7 @@ Rules that are not style preferences:
 
 After Jitter2 and the integration adapter are installed, open **Window > Package Manager**,
 select **DataSakura Jitter Physics Baker**, open **Samples**, and import
-**Physics Baking Demos**. Then use **Tools > DataSakura > Jitter Physics > Samples > Build
+**Physics Baking Demos**. Then use **Assets > DataSakura > Jitter Physics > Samples > Build
 and bake: Bouncing Ball**.
 
 Unity imports the sample to

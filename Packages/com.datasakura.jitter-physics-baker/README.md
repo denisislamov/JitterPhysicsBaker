@@ -82,7 +82,7 @@ it. See `Server~/README.md`.
 
 ## Editor entry points
 
-- `Tools > DataSakura > Jitter Physics` — the single authoring surface, titled
+- `Tools > DataSakura > Jitter Physics Baker Window` — the single authoring surface, titled
   **DS Jitter Physics** when docked. Its
   workflow matches the other DataSakura authoring packages: **Overview** explains the level
   and shows the cached readiness result, **Geometry** owns explicit static-body markup,
