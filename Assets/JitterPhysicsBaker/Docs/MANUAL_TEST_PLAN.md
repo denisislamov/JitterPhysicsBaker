@@ -144,6 +144,38 @@ MT-05/MT-27 нужен свой Unity-совместимый `Jitter2.Core` в �
 Ожидаемо: открытие и Repaint ничего не создают и не меняют; Undo/Redo и prefab overrides
 работают через serialized properties; layout читаем в обеих темах.
 
+### MT-09B. Project defaults и личный Scene Preview
+
+1. Открыть `Project Settings > DataSakura > Jitter Physics`, ничего не нажимать.
+2. Проверить git status и assets, затем нажать `Create Defaults`.
+3. Открыть `Preferences > DataSakura > Jitter Physics > Scene Preview`, изменить toggle,
+   выполнить `Reset to Defaults`.
+
+Ожидаемо: шаг (1) ничего не создаёт; шаг (2) создаёт один shared world profile и project
+settings только явной командой; Preview хранится лично в EditorPrefs, не меняет сцену,
+профиль, payload или hash. Пути providers уникальны и не пересекаются.
+
+### MT-09C. Shared profile и Local Copy
+
+1. Назначить один профиль двум уровням: показано предупреждение, что `Edit` изменит оба.
+2. На первом уровне нажать `Make Local Copy`; изменить gravity/tick rate в копии.
+3. Проверить второй уровень, Undo/Redo и повторить на prefab instance.
+4. Перезагрузить сцену/домен.
+
+Ожидаемо: до копирования оба уровня читают один asset; после — изменён только первый,
+второй сохранил shared profile и значения. Все исходные значения попали в копию; назначение
+поддерживает Undo и является prefab property override; ссылки и значения переживают reload.
+
+### MT-09D. Settings/Advanced не мутирует установку
+
+1. Открыть Settings при отсутствующем Jitter2, развернуть `Advanced installation and maintenance`.
+2. Открыть installation details и нажать только `Validate installation`.
+3. Проверить git status; отдельно проверить confirmation у remove и выбрать Cancel.
+
+Ожидаемо: import, открытие Settings/Advanced и Validate не ставят и не удаляют файлы;
+install/migration/projection/remove выполняются только своей явной кнопкой, ownership-aware
+поведение и сохранность изменённых чужих файлов не изменились.
+
 ### MT-10. Валидация актionable
 
 Проверить по одному, возвращая сцену в рабочее состояние после каждого пункта:

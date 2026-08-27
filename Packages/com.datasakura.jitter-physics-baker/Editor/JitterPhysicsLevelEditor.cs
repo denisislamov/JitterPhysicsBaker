@@ -1,6 +1,7 @@
 using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Editor.Baking;
+using DataSakura.JitterPhysics.Editor.ProfileEditing;
 using UnityEditor;
 using UnityEngine;
 
@@ -43,6 +44,11 @@ namespace DataSakura.JitterPhysics.Editor
             DrawBakeStatus();
 
             serializedObject.ApplyModifiedProperties();
+
+            if (!serializedObject.isEditingMultipleObjects)
+            {
+                JitterPhysicsWorldProfileActions.Draw((JitterPhysicsLevel)target);
+            }
 
             EditorGUILayout.Space(6f);
             DrawActions();

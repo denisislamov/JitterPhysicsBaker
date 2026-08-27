@@ -6,9 +6,11 @@ using DataSakura.JitterPhysics.ArtifactCodec;
 using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Editor.Baking;
+using DataSakura.JitterPhysics.Editor.ProfileEditing;
 using DataSakura.JitterPhysics.Editor.Bootstrap;
 using DataSakura.JitterPhysics.Editor.Diagnostics;
 using DataSakura.JitterPhysics.Editor.Export;
+using DataSakura.JitterPhysics.Editor.Settings;
 using DataSakura.JitterPhysics.UnityArtifact;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -70,6 +72,8 @@ namespace DataSakura.JitterPhysics.Editor
         private string bakeSummary;
         private bool lastActionFailed;
         private bool uploadInProgress;
+        [SerializeField]
+        private bool settingsAdvanced;
 
         private JitterPhysicsArtifactAsset[] artifacts = Array.Empty<JitterPhysicsArtifactAsset>();
         private int selectedArtifact = -1;
@@ -279,7 +283,7 @@ namespace DataSakura.JitterPhysics.Editor
                 + "static-body sources, shared world settings and the artifact output.",
                 MessageType.Info);
 
-            if (GUILayout.Button("Create Jitter Physics Level Setup", GUILayout.Height(34f)))
+            if (GUILayout.Button("Create Level", GUILayout.Height(34f)))
             {
                 CreateLevelSetup();
             }
@@ -377,6 +381,8 @@ namespace DataSakura.JitterPhysics.Editor
                 MarkSceneChanged();
                 MarkValidationStale();
             }
+
+            JitterPhysicsWorldProfileActions.Draw(level);
 
             if (!level.HasCanonicalLevelId)
             {
@@ -765,8 +771,23 @@ namespace DataSakura.JitterPhysics.Editor
         {
             DrawWorldSettings();
             EditorGUILayout.Space(10f);
+            DrawSettingsLinks();
+            EditorGUILayout.Space(10f);
             DrawServerSettings();
             EditorGUILayout.Space(10f);
+
+            settingsAdvanced = EditorGUILayout.Foldout(
+                settingsAdvanced,
+                "Advanced installation and maintenance",
+                true);
+            if (!settingsAdvanced)
+            {
+                EditorGUILayout.HelpBox(
+                    "Compatibility, installation, migration and removal are available here only "
+                    + "after Advanced is opened. No maintenance runs while this section is closed.",
+                    MessageType.None);
+                return;
+            }
 
             JitterPhysicsCompatibilityReport report = JitterPhysicsCompatibilityReport.Create();
 
@@ -843,6 +864,8 @@ namespace DataSakura.JitterPhysics.Editor
                 return;
             }
 
+            JitterPhysicsWorldProfileActions.Draw(level);
+
             EditorGUI.BeginChangeCheck();
             UnityEditor.Editor profileEditor = UnityEditor.Editor.CreateEditor(level.WorldProfile);
             if (profileEditor != null)
@@ -854,6 +877,27 @@ namespace DataSakura.JitterPhysics.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 MarkValidationStale();
+            }
+        }
+
+        private static void DrawSettingsLinks()
+        {
+            EditorGUILayout.LabelField("Defaults and preview", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Project defaults are shared and versioned with the project. Scene Preview is a "
+                + "personal editor preference and never changes bake identity.",
+                MessageType.None);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Open Project Settings"))
+                {
+                    SettingsService.OpenProjectSettings(JitterPhysicsProjectSettings.ProviderPath);
+                }
+
+                if (GUILayout.Button("Open Scene Preview Preferences"))
+                {
+                    SettingsService.OpenUserPreferences(JitterPhysicsSettingsProviders.PreferencesPath);
+                }
             }
         }
 
@@ -1287,9 +1331,6 @@ namespace DataSakura.JitterPhysics.Editor
 
         private void CreateLevelSetup()
         {
-            const string settingsFolder = "Assets/JitterPhysics/Generated/Settings";
-            EnsureAssetFolder(settingsFolder);
-
             Scene scene = SceneManager.GetActiveScene();
             string sceneName = string.IsNullOrWhiteSpace(scene.name) ? "UnsavedScene" : scene.name;
             string sceneKey = JitterPhysicsIdUtility.Sanitize(sceneName, "level");
@@ -1299,15 +1340,14 @@ namespace DataSakura.JitterPhysics.Editor
             JitterPhysicsLevel createdLevel = Undo.AddComponent<JitterPhysicsLevel>(root);
             createdLevel.EnsureLevelId();
 
-            string profilePath = AssetDatabase.GenerateUniqueAssetPath(
-                $"{settingsFolder}/{sceneKey}_WorldProfile.asset");
-            var profile = CreateInstance<JitterPhysicsWorldProfile>();
-            profile.name = Path.GetFileNameWithoutExtension(profilePath);
-            AssetDatabase.CreateAsset(profile, profilePath);
+            JitterPhysicsProjectSettings projectSettings = JitterPhysicsProjectSettings.instance;
+            JitterPhysicsWorldProfile profile = projectSettings.DefaultWorldProfile
+                                                ?? projectSettings.CreateDefaults(false);
 
             var serialized = new SerializedObject(createdLevel);
             serialized.Update();
             serialized.FindProperty("worldProfile").objectReferenceValue = profile;
+            serialized.FindProperty("generatedFolder").stringValue = projectSettings.GeneratedFolder;
             serialized.ApplyModifiedProperties();
 
             EditorUtility.SetDirty(createdLevel);
@@ -1316,22 +1356,6 @@ namespace DataSakura.JitterPhysics.Editor
             Selection.activeGameObject = root;
             MarkSceneChanged();
             ClearValidation();
-        }
-
-        private static void EnsureAssetFolder(string folderPath)
-        {
-            string[] parts = folderPath.Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                }
-
-                current = next;
-            }
         }
 
         private void TrySelectLevelFromContext()

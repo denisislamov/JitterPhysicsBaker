@@ -133,13 +133,26 @@ Profile**.
 These travel inside the artifact. That is deliberate: a server that inherited a different tick
 rate from its own configuration would diverge from client prediction by construction.
 
+Use `Project Settings > DataSakura > Jitter Physics` to select the shared default profile and
+the folders used by new levels. Opening Project Settings creates nothing; press **Create
+Defaults** (or explicitly create a level) to create the first profile. In the level Inspector
+or authoring window:
+
+- **Edit** selects the current asset and warns when loaded levels share it;
+- **New** creates and assigns a profile starting from the project default;
+- **Make Local Copy** copies every value and reassigns only this level, with Undo and prefab
+  overrides preserved.
+
+Personal overlay state is under `Preferences > DataSakura > Jitter Physics > Scene Preview`.
+It is stored outside scenes and project defaults and never contributes to artifact identity.
+
 ## 5. Bake
 
 Open **Tools > DataSakura > Jitter Physics**, select the level, then select **Bake**.
 
 - **Validate** reports problems without writing anything. Every issue can select the object
   that caused it.
-- **Validate + Bake** writes the artifact.
+- **Build for Client** validates and writes the artifact.
 
 A bake either completes or changes nothing. A partially converted level is never written,
 because missing geometry shows up as a hole in a wall at runtime rather than as a message at

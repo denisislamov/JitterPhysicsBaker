@@ -6,6 +6,20 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- Added native `Project Settings > DataSakura > Jitter Physics` project defaults and
+  `Preferences > DataSakura > Jitter Physics > Scene Preview` personal display settings.
+  Opening either provider is read-only; defaults are created only by `Create Defaults` or
+  the explicit `Create Level` workflow.
+- Added `Edit`, `New` and `Make Local Copy` actions for level world profiles. Shared usage is
+  explained before editing, and a local copy preserves every world value while changing only
+  the selected level with Undo and prefab-override support.
+
+### Changed
+- Moved compatibility, installation and maintenance behind Settings/Advanced. Validation
+  remains read-only and every install, migration, projection or ownership-aware removal still
+  requires its existing explicit command.
+
 ## [0.0.6] - 2026-08-27
 
 ### Added

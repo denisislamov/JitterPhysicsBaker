@@ -86,8 +86,8 @@ it. See `Server~/README.md`.
   **DS Jitter Physics** when docked. Its
   workflow matches the other DataSakura authoring packages: **Overview** explains the level
   and shows the cached readiness result, **Geometry** owns explicit static-body markup,
-  **Bake** owns the shared world profile and deterministic build, **Settings** explains
-  Jitter2 compatibility and opens explicit installation actions, and **Diagnostics** verifies,
+  **Bake** owns deterministic build and delivery, **Settings** owns shared world-profile UX,
+  project/default links and server delivery, while **Diagnostics** verifies,
   exports and diagnoses the exact bytes. The five sections remain a horizontal toolbar at
   narrow widths, matching DS Navigation. Opening or repainting any section performs no
   project mutation.
@@ -95,11 +95,15 @@ it. See `Server~/README.md`.
   Bake Status and explicit **Validate / Bake / Open** actions. Output details are under
   **Advanced**. The commands call the same public `JitterPhysicsBakeCommand` entry points as
   automation; removing their old Tools shortcuts does not create a second bake pipeline.
+- `Project Settings > DataSakura > Jitter Physics` selects the one shared default world
+  profile and the authoring/generated folders. `Preferences > DataSakura > Jitter Physics >
+  Scene Preview` stores only personal display state. A level exposes **Edit / New / Make Local
+  Copy**; the last action preserves values but reassigns only that level.
 - **Diagnostics > Show baked geometry overlay** toggles a read-only
   Scene View comparison. Green is the exact last baked snapshot; red is current geometry
   that is new or changed. Removed geometry remains as a green ghost until the next bake, and
   unmarked colliders under the geometry root are red because they cannot enter the artifact.
-- **Settings > Open installation details** installs the fallback Jitter2 copy or the Jitter
+- **Settings > Advanced installation and maintenance > Open installation details** installs the fallback Jitter2 copy or the Jitter
   adapter and validates the installation. Its **Advanced** foldout owns migration, server
   projection and removal. Every action is explicit, an external Jitter2 is never touched,
   and a file modified after installation stops an update instead of

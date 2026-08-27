@@ -22,7 +22,7 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
     [InitializeOnLoad]
     internal static class JitterPhysicsBakeGeometryOverlay
     {
-        private const string PreferenceKey =
+        internal const string PreferenceKey =
             "DataSakura.JitterPhysics.Editor.ShowBakedGeometryOverlay";
 
         private static readonly Color BakedColor = new Color(0.25f, 1f, 0.42f, 0.82f);
@@ -46,6 +46,13 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
         {
             enabled = value;
             EditorPrefs.SetBool(PreferenceKey, enabled);
+            SceneView.RepaintAll();
+        }
+
+        internal static void ResetPreference()
+        {
+            EditorPrefs.DeleteKey(PreferenceKey);
+            enabled = false;
             SceneView.RepaintAll();
         }
 
