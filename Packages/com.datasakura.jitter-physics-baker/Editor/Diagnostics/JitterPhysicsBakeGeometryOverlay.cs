@@ -27,6 +27,8 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
         internal static readonly Color BakedColor = Hex(0xBD984F, 0.96f);
         internal static readonly Color RuntimeColor = Hex(0xD5B975, 1f);
         internal static readonly Color ChangedColor = Hex(0xA87945, 1f);
+        internal static readonly Color MovedColor = Hex(0xA66B5B, 1f);
+        internal static readonly Color RemovedColor = Hex(0x8F4F4A, 1f);
         internal static readonly Color ErrorColor = Hex(0x684779, 1f);
         internal static readonly Color ErrorBackdropColor = Hex(0xF0DEB8, 0.92f);
 
@@ -461,7 +463,7 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
             Matrix4x4 previous = Handles.matrix;
             Handles.matrix = Matrix4x4.TRS(ToVector(body.Position), ToQuaternion(body.Orientation), Vector3.one)
                 * Matrix4x4.TRS(ToVector(shape.LocalPosition), ToQuaternion(shape.LocalRotation), Vector3.one);
-            Color color = StyleColor(style);
+            Color color = StyleColor(style, record.Change);
             float width = style == PreviewStyle.Runtime ? 3f : 2f;
             bool dotted = style == PreviewStyle.Sources;
             bool fill = style == PreviewStyle.Baked || style == PreviewStyle.Runtime;
@@ -662,8 +664,15 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
             RuntimeScratch.Clear();
             ArtifactCache.Clear();
         }
-        private static Color StyleColor(PreviewStyle style) => style==PreviewStyle.Sources?SourcesColor:
-            style==PreviewStyle.Baked?BakedColor:style==PreviewStyle.Runtime?RuntimeColor:ChangedColor;
+        private static Color StyleColor(PreviewStyle style, ChangeKind change)
+        {
+            if (style == PreviewStyle.Sources) return SourcesColor;
+            if (style == PreviewStyle.Baked) return BakedColor;
+            if (style == PreviewStyle.Runtime) return RuntimeColor;
+            if (change == ChangeKind.Moved) return MovedColor;
+            if (change == ChangeKind.Removed) return RemovedColor;
+            return ChangedColor;
+        }
         private static Color Hex(int rgb,float alpha)=>new Color(((rgb>>16)&255)/255f,((rgb>>8)&255)/255f,(rgb&255)/255f,alpha);
         private static Vector3 ToVector(PhysicsVector3 value)=>new Vector3(value.X,value.Y,value.Z);
         private static Quaternion ToQuaternion(PhysicsQuaternion value)=>new Quaternion(value.X,value.Y,value.Z,value.W);

@@ -6,6 +6,13 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-08-27
+
+### Changed
+- Gave `Moved` and `Removed` preview records dedicated muted red-family colors: terracotta for
+  moved current geometry and deeper brick red for geometry retained only by the previous bake.
+  Hatching and text labels remain, so the states do not depend on color perception alone.
+
 ## [0.0.8] - 2026-08-27
 
 ### Added

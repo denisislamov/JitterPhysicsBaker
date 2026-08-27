@@ -115,6 +115,8 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             AssertColor(JitterPhysicsBakeGeometryOverlay.BakedColor, "BD984F");
             AssertColor(JitterPhysicsBakeGeometryOverlay.RuntimeColor, "D5B975");
             AssertColor(JitterPhysicsBakeGeometryOverlay.ChangedColor, "A87945");
+            AssertColor(JitterPhysicsBakeGeometryOverlay.MovedColor, "A66B5B");
+            AssertColor(JitterPhysicsBakeGeometryOverlay.RemovedColor, "8F4F4A");
             AssertColor(JitterPhysicsBakeGeometryOverlay.ErrorColor, "684779");
             AssertColor(JitterPhysicsBakeGeometryOverlay.ErrorBackdropColor, "F0DEB8");
         }

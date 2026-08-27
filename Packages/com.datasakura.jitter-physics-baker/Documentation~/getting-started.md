@@ -15,7 +15,7 @@ later if you ignore it, the rule is stated where the step is, not in a footnote.
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.8"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.9"
   }
 }
 ```
@@ -188,7 +188,8 @@ scope. Personal choices can be reset from the overlay's **Settings** page.
 
 The legend reports source, baked, changed/moved/removed and runtime shape counts. Dashed sand
 is current source geometry, filled ochre is the immutable bake, thick marked light ochre is
-geometry supplied by an active runtime, tobacco hatching is a current difference and a plum
+geometry supplied by an active runtime, tobacco hatching is an added or reshaped source,
+muted terracotta marks moved geometry, muted brick red marks removed bake records, and a plum
 double outline is an invalid source. If no active runtime implements
 `IJitterPhysicsRuntimePreviewSource`, Runtime says `No runtime data`; it never substitutes
 Unity Colliders. The overlay is read-only: enabling it never validates, repairs ids or writes an

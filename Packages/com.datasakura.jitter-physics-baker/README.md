@@ -102,8 +102,9 @@ it. See `Server~/README.md`.
 - The native Scene View **Jitter Physics** overlay provides read-only Sources, Baked and
   Runtime layers, level scope, Visible/X-Ray occlusion, Settings and Frame Level. Sources use
   dashed sand lines, the exact last bake uses an ochre outline/fill, runtime uses a thicker
-  marked outline, and current differences use tobacco hatching with Changed/Moved/Removed
-  labels. Runtime reports `No runtime data` unless an active world supplies exact records
+  marked outline, current additions/reshapes use tobacco hatching, Moved uses muted terracotta,
+  and Removed uses muted brick red. Labels preserve Changed/Moved/Removed semantics without
+  relying on color alone. Runtime reports `No runtime data` unless an active world supplies exact records
   through `IJitterPhysicsRuntimePreviewSource`. Opening or repainting the overlay never bakes,
   hashes or creates a runtime world. The previous baked snapshot remains visible when current
   geometry is moved or removed.
