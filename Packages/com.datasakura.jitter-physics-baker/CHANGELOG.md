@@ -6,6 +6,8 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-08-28
+
 ### Added
 - Added an editor-only consumer API with explicit standalone or external Level ID ownership,
   separate Validate/Bake calls and a verified read-only result summary containing paths, full
