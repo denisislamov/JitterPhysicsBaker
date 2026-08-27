@@ -7,9 +7,12 @@
 - Исходный commit: `7591ba1 feat(package): unify project-owned folders`.
 - Ветка: `feat/d.islamov/jitter_physics_baker_ux`.
 - Задачи: `JP-01.1`, `JP-01.2`, `JP-01.3`.
-- Package version: `0.0.4`; подготовлена к release, публикация фиксируется ниже после push.
+- Package version: `0.0.4`; опубликована в standalone package repository.
 - Artifact schema: `1`, не изменена.
-- Итоговая revision отсутствует: изменения пока не закоммичены.
+- Source revision: `f0bd412f93870ebf307782dcc6d67f128169fdb9`.
+- Standalone package revision и tag `v0.0.4`:
+  `7a9e2177f7aeb01c616e72aa68dc5987d16a9a55`.
+- Install URL: `https://github.com/denisislamov/jitter-physics-baker.git#v0.0.4`.
 
 Пользовательские изменения `Assets/TutorialInfo/Icons/URP.png` и
 `JITTER_PHYSICS_BAKER_JUNIOR_CODE_GUIDE.md(.meta)` не относятся к JP-01 и не изменялись.
@@ -103,9 +106,9 @@ JP-01 реализован и автоматизированная регрес�
 1. выполнить светлую тему и prefab override scenario в свободном Editor;
 2. выполнить успешный Validate/Bake/Verify/Binary Export/Embedded Export с одной совместимой
    project-owned `Jitter2.Core`;
-3. создать отдельный commit/revision и только после этого выполнять `NPI-01` в EFT;
-4. в NPI записать принятую пару Custom Navigation revision + Jitter revision и повторить
+3. в NPI записать принятую пару Custom Navigation revision + Jitter revision и повторить
    consumer import/compile/menu/old-profile/no-dirty проверки.
 
-Custom Navigation и EFT в этом срезе не изменялись. Push, package release и NPI update не
-выполнялись.
+Standalone package `main` и tag `v0.0.4` опубликованы и независимо сверены через remote refs.
+Source branch монорепозитория не отправлялась. Custom Navigation и EFT в этом срезе не
+изменялись; NPI update не выполнялся.
