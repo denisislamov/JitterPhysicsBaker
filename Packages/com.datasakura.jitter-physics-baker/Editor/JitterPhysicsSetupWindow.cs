@@ -25,8 +25,9 @@ namespace DataSakura.JitterPhysics.Editor
         private Vector2 scroll;
         private string installLog;
         private bool snapshotSupportsUnity;
+        [SerializeField]
+        private bool showAdvanced;
 
-        [MenuItem(MenuPath, false, 100)]
         private static void OpenFromMenu()
         {
             JitterPhysicsBakerWindow.OpenSetupTab();
@@ -212,8 +213,14 @@ namespace DataSakura.JitterPhysics.Editor
                 + "Setup does not create a second copy under Assets/DataSakura.",
                 MessageType.Info);
 
-            using (new EditorGUILayout.HorizontalScope())
+            showAdvanced = EditorGUILayout.Foldout(showAdvanced, "Advanced", true);
+            if (showAdvanced)
             {
+                EditorGUILayout.HelpBox(
+                    "Migration, server projection and removal are maintenance operations. "
+                    + "They run only when their button is pressed.",
+                    MessageType.None);
+
                 if (GUILayout.Button("Migrate pre-0.0.3 layout"))
                 {
                     Run(Install.JitterPhysicsInstaller.MigrateLegacyLayout());
@@ -230,6 +237,7 @@ namespace DataSakura.JitterPhysics.Editor
                     }
                 }
 
+                EditorGUILayout.Space(4f);
                 if (GUILayout.Button("Remove package-owned installation"))
                 {
                     if (EditorUtility.DisplayDialog(
@@ -323,8 +331,6 @@ namespace DataSakura.JitterPhysics.Editor
         }
     }
 }
-
-
 
 
 

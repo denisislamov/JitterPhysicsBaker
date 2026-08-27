@@ -1016,16 +1016,12 @@ namespace DataSakura.JitterPhysics.Editor.Install
     {
         private const string Root = Authoring.JitterPhysicsAuthoringConstants.EditorMenuRoot;
 
-        [MenuItem(Root + "Install/Install Jitter2 into Project", false, 120)]
         private static void InstallJitter() => Report(JitterPhysicsInstaller.InstallJitter());
 
-        [MenuItem(Root + "Install/Install or Update Jitter Integration", false, 121)]
         private static void InstallIntegration() => Report(JitterPhysicsInstaller.InstallIntegration());
 
-        [MenuItem(Root + "Install/Validate Installation", false, 122)]
         private static void Validate() => Report(JitterPhysicsInstaller.Validate());
 
-        [MenuItem(Root + "Install/Remove Package-Owned Installation", false, 140)]
         private static void Remove()
         {
             if (!EditorUtility.DisplayDialog(
@@ -1066,7 +1062,6 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
 
 
 

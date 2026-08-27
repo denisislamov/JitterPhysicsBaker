@@ -263,7 +263,6 @@ namespace DataSakura.JitterPhysics.Editor.Export
         private const string ExportEmbeddedPath =
             Authoring.JitterPhysicsAuthoringConstants.EditorMenuRoot + "Export Embedded Server Artifact...";
 
-        [MenuItem(ExportBinaryPath, false, 30)]
         private static void ExportBinary()
         {
             JitterPhysicsArtifactAsset asset = Selection.activeObject as JitterPhysicsArtifactAsset;
@@ -283,7 +282,6 @@ namespace DataSakura.JitterPhysics.Editor.Export
             Report(JitterPhysicsArtifactExporter.ExportBinary(asset, folder));
         }
 
-        [MenuItem(ExportEmbeddedPath, false, 31)]
         private static void ExportEmbedded()
         {
             JitterPhysicsArtifactAsset asset = Selection.activeObject as JitterPhysicsArtifactAsset;

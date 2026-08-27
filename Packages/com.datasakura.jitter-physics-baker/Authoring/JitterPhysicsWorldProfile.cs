@@ -20,7 +20,7 @@ namespace DataSakura.JitterPhysics.Authoring
     /// </summary>
     [CreateAssetMenu(
         fileName = "JitterPhysicsWorldProfile",
-        menuName = "Jitter Physics/World Profile",
+        menuName = JitterPhysicsAuthoringConstants.AssetMenuRoot + "World Profile",
         order = JitterPhysicsAuthoringConstants.LevelMenuOrder)]
     public sealed class JitterPhysicsWorldProfile : ScriptableObject
     {
@@ -112,4 +112,3 @@ namespace DataSakura.JitterPhysics.Authoring
         }
     }
 }
-

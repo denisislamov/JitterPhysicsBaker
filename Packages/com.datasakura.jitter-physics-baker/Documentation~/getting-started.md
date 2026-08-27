@@ -15,7 +15,7 @@ later if you ignore it, the rule is stated where the step is, not in a footnote.
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.3"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.4"
   }
 }
 ```
@@ -33,8 +33,8 @@ deciding which Jitter2 the project will use.
 
 ## 2. Provide Jitter2
 
-Open **Tools > DataSakura > Jitter Physics > Setup**. This routes to the **Setup** tab of the
-main authoring window. Its summary tells you what the project currently has; use **Open
+Open **Tools > DataSakura > Jitter Physics > Open**, then select **Settings**. Its summary
+tells you what the project currently has; use **Open
 installation details** for the explicit install/update actions.
 
 | Status | What it means | What to do |
@@ -135,7 +135,7 @@ rate from its own configuration would diverge from client prediction by construc
 
 ## 5. Bake
 
-**Tools > DataSakura > Jitter Physics > Baker**, tab **Level & Bake**.
+Open **Tools > DataSakura > Jitter Physics > Open**, select the level, then select **Bake**.
 
 - **Validate** reports problems without writing anything. Every issue can select the object
   that caused it.
@@ -254,7 +254,8 @@ dependency.
 
 The server never opens Unity, so it needs the sources and the bytes.
 
-**Sources.** In **Setup > Open installation details**, **Install server runtime sources...**
+**Sources.** In **Settings > Open installation details > Advanced**, choose
+**Install server runtime sources...** to
 projects `Contracts`,
 `ArtifactCodec` and the adapter into a folder inside your server project. They compile with a
 plain .NET SDK against your Jitter2 assembly. No `PackageCache` paths, no build-file edits:
@@ -263,7 +264,7 @@ the projection is ordinary source files in a folder an SDK-style project already
 **Bytes.** Two ways to deliver them:
 
 - a file, next to the server, loaded by `FilePhysicsArtifactProvider`;
-- embedded into the binary, exported from the **Artifacts** tab.
+- embedded into the binary, exported from **Diagnostics**.
 
 **Startup order.** Load the artifact, verify it, build the static world, and only then accept
 connections:
@@ -311,7 +312,7 @@ server built against different Jitter sources must not be able to claim compatib
 
 ## 10. Diagnose problems
 
-Baker window, **Tools** tab:
+Baker window, **Diagnostics** section:
 
 | Check | Catches |
 | --- | --- |

@@ -34,26 +34,24 @@ namespace DataSakura.JitterPhysics.Editor
     /// </summary>
     public sealed class JitterPhysicsBakerWindow : EditorWindow
     {
-        private const string MenuPath = JitterPhysicsAuthoringConstants.EditorMenuRoot + "Physics Baker";
+        private const string MenuPath = JitterPhysicsAuthoringConstants.EditorMenuRoot + "Open";
 
         private enum Tab
         {
             Overview = 0,
-            Sources,
+            Geometry,
             Bake,
-            Tools,
-            Setup,
-            Artifacts,
+            Settings,
+            Diagnostics,
         }
 
         private static readonly string[] TabNames =
         {
             "Overview",
-            "Sources",
+            "Geometry",
             "Bake",
-            "Tools",
-            "Setup",
-            "Artifacts",
+            "Settings",
+            "Diagnostics",
         };
 
         [SerializeField]
@@ -92,14 +90,14 @@ namespace DataSakura.JitterPhysics.Editor
         public static void OpenSetupTab()
         {
             Open();
-            GetWindow<JitterPhysicsBakerWindow>().tab = Tab.Setup;
+            GetWindow<JitterPhysicsBakerWindow>().tab = Tab.Settings;
         }
 
         /// <summary>Opens the main authoring window on the artifacts tab.</summary>
         public static void OpenArtifactsTab()
         {
             Open();
-            GetWindow<JitterPhysicsBakerWindow>().tab = Tab.Artifacts;
+            GetWindow<JitterPhysicsBakerWindow>().tab = Tab.Diagnostics;
         }
 
         private void OnEnable()
@@ -122,9 +120,8 @@ namespace DataSakura.JitterPhysics.Editor
             EditorGUILayout.Space(6f);
 
             bool levelRequired = tab == Tab.Overview
-                                 || tab == Tab.Sources
-                                 || tab == Tab.Bake
-                                 || tab == Tab.Tools;
+                                 || tab == Tab.Geometry
+                                 || tab == Tab.Bake;
             if (levelRequired)
             {
                 DrawLevelSelector();
@@ -140,7 +137,7 @@ namespace DataSakura.JitterPhysics.Editor
 
             switch (tab)
             {
-                case Tab.Sources:
+                case Tab.Geometry:
                     DrawSourcesTab();
                     break;
 
@@ -148,16 +145,12 @@ namespace DataSakura.JitterPhysics.Editor
                     DrawBakeTab();
                     break;
 
-                case Tab.Tools:
-                    DrawDiagnosticsTab();
-                    break;
-
-                case Tab.Setup:
+                case Tab.Settings:
                     DrawSetupTab();
                     break;
 
-                case Tab.Artifacts:
-                    DrawArtifactsTab();
+                case Tab.Diagnostics:
+                    DrawDiagnosticsSection();
                     break;
 
                 default:
@@ -397,7 +390,7 @@ namespace DataSakura.JitterPhysics.Editor
             if (level.WorldProfile == null)
             {
                 EditorGUILayout.HelpBox(
-                    "No world profile is assigned. Create one with Assets/Create/Jitter Physics/World "
+                    "No world profile is assigned. Create one with Assets/Create/DataSakura/Jitter Physics/World "
                     + "Profile, then assign it here. Baking stays blocked until the shared settings exist.",
                     MessageType.Warning);
             }
@@ -1015,7 +1008,14 @@ namespace DataSakura.JitterPhysics.Editor
 
         // ----------------------------------------------------------------- Diagnostics
 
-        private void DrawDiagnosticsTab()
+        private void DrawDiagnosticsSection()
+        {
+            DrawArtifactsTab();
+            EditorGUILayout.Space(12f);
+            DrawDiagnosticChecks();
+        }
+
+        private void DrawDiagnosticChecks()
         {
             EditorGUILayout.LabelField("Diagnostics", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
 using NUnit.Framework;
 using UnityEditor;
@@ -173,11 +174,10 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 Is.EqualTo(new[]
                 {
                     "Overview",
-                    "Sources",
+                    "Geometry",
                     "Bake",
-                    "Tools",
-                    "Setup",
-                    "Artifacts",
+                    "Settings",
+                    "Diagnostics",
                 }),
                 "The main workflow intentionally mirrors the other DataSakura authoring packages.");
 
@@ -189,6 +189,54 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 typeof(JitterPhysicsBakerWindow).GetMethod(nameof(JitterPhysicsBakerWindow.OpenArtifactsTab)),
                 Is.Not.Null,
                 "Artifact commands must be able to route into the shared main window.");
+        }
+
+        [Test]
+        public void AuthoringTypesUseTheSharedDataSakuraMenus()
+        {
+            Assert.That(
+                JitterPhysicsAuthoringConstants.ComponentMenuRoot,
+                Is.EqualTo("DataSakura/Jitter Physics/"));
+            Assert.That(
+                JitterPhysicsAuthoringConstants.AssetMenuRoot,
+                Is.EqualTo("DataSakura/Jitter Physics/"));
+            Assert.That(
+                JitterPhysicsAuthoringConstants.EditorMenuRoot,
+                Is.EqualTo("Tools/DataSakura/Jitter Physics/"));
+
+            var levelMenu = typeof(JitterPhysicsLevel).GetCustomAttribute<AddComponentMenu>();
+            var sourceMenu = typeof(JitterStaticBodySource).GetCustomAttribute<AddComponentMenu>();
+            var profileMenu = typeof(JitterPhysicsWorldProfile)
+                .GetCustomAttribute<CreateAssetMenuAttribute>();
+
+            Assert.That(levelMenu.componentMenu,
+                Is.EqualTo("DataSakura/Jitter Physics/Jitter Physics Level"));
+            Assert.That(sourceMenu.componentMenu,
+                Is.EqualTo("DataSakura/Jitter Physics/Jitter Static Body Source"));
+            Assert.That(profileMenu.menuName,
+                Is.EqualTo("DataSakura/Jitter Physics/World Profile"));
+        }
+
+        [Test]
+        public void LevelUsesTheCompactCustomInspectorWithoutMutatingOnCreation()
+        {
+            var gameObject = new GameObject("Inspector test level");
+            UnityEditor.Editor editor = null;
+            try
+            {
+                JitterPhysicsLevel level = gameObject.AddComponent<JitterPhysicsLevel>();
+                string before = EditorJsonUtility.ToJson(level);
+
+                editor = UnityEditor.Editor.CreateEditor(level);
+
+                Assert.That(editor.GetType().Name, Is.EqualTo("JitterPhysicsLevelEditor"));
+                Assert.That(EditorJsonUtility.ToJson(level), Is.EqualTo(before));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(editor);
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
         }
 
         private static PackageInfo FindPackage()

@@ -92,7 +92,6 @@ namespace DataSakura.JitterPhysics.Editor.Baking
         private const string ValidateMenuPath =
             JitterPhysicsAuthoringConstants.EditorMenuRoot + "Validate Selected Level";
 
-        [UnityEditor.MenuItem(BakeMenuPath, false, 10)]
         private static void BakeSelected()
         {
             JitterPhysicsLevel level = FindSelectedLevel();
@@ -122,7 +121,6 @@ namespace DataSakura.JitterPhysics.Editor.Baking
             }
         }
 
-        [UnityEditor.MenuItem(ValidateMenuPath, false, 11)]
         private static void ValidateSelected()
         {
             JitterPhysicsLevel level = FindSelectedLevel();

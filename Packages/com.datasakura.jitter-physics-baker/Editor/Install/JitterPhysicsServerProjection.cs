@@ -392,7 +392,6 @@ namespace DataSakura.JitterPhysics.Editor.Install
     {
         private const string Root = Authoring.JitterPhysicsAuthoringConstants.EditorMenuRoot;
 
-        [MenuItem(Root + "Install/Install Server Runtime Sources...", false, 123)]
         private static void Install()
         {
             string folder = EditorUtility.SaveFolderPanel(
@@ -406,7 +405,6 @@ namespace DataSakura.JitterPhysics.Editor.Install
             JitterPhysicsInstallMenu.Report(JitterPhysicsServerProjection.Install(folder));
         }
 
-        [MenuItem(Root + "Install/Verify Server Runtime Sources...", false, 124)]
         private static void Verify()
         {
             string folder = EditorUtility.OpenFolderPanel(
@@ -421,7 +419,6 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
 
 
 

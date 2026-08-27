@@ -6,6 +6,27 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-08-27
+
+### Changed
+- **The package now has one compact authoring entry point.** `Tools > DataSakura > Jitter
+  Physics > Open` leads to `Overview`, `Geometry`, `Bake`, `Settings` and `Diagnostics`;
+  narrow windows expose the same sections through a popup. Bake, validation, export,
+  compatibility and maintenance continue to call their existing programmatic entry points,
+  while their duplicate Tools commands are removed.
+- **Create Asset and Add Component use the shared DataSakura hierarchy.** World profiles,
+  levels and static-body sources are grouped under `DataSakura/Jitter Physics` without
+  changing serialized types, GUIDs or geometry collection rules.
+- **Installation maintenance is separated from ordinary baking.** Compatibility remains in
+  Settings; migration, server projection and receipt-owned removal are under an explicit
+  Advanced foldout. Removal still requires confirmation and preserves modified files.
+
+### Added
+- **A compact `JitterPhysicsLevel` Inspector.** It shows Level, Geometry Root, Settings and
+  cached Bake Status, provides explicit `Validate / Bake / Open` actions, keeps output details
+  under Advanced, supports narrow Inspectors, Undo and prefab overrides through Unity's
+  serialized-property flow, and performs no validation, bake or writes during repaint.
+
 ## [0.0.3] - 2026-08-25
 
 ### Changed
@@ -256,6 +277,7 @@ All notable changes to this package are documented here. The format is based on
   mode. What no test can cover — dialogs, windows, installing into a project, exporting — is
   written down step by step in the development project's manual test plan.
 
-[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.4
 [0.0.3]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.3
 [0.0.2]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.2

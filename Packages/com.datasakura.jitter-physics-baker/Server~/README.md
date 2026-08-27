@@ -8,7 +8,8 @@ the consumer's own Jitter2 copy.
 Planned contents:
 
 - `RuntimeSources/` — the projection recipe exported into a consumer server project by
-  `Tools > DataSakura > Jitter Physics > Setup > Install Server Runtime Sources...`.
+  `Tools > DataSakura > Jitter Physics > Open > Settings > Open installation details >
+  Advanced > Install server runtime sources...`.
 
 Current contents:
 

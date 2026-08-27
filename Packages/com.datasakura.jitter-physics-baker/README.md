@@ -22,7 +22,7 @@ creates a second sample copy under `Assets/DataSakura`.
 
 ## Status
 
-Early development (`0.0.3`). The assembly graph, the artifact contracts and the editor
+Early development (`0.0.4`). The assembly graph, the artifact contracts and the editor
 bootstrap are being built stage by stage; see `CHANGELOG.md` for what already exists.
 
 ## Requirements
@@ -82,39 +82,27 @@ it. See `Server~/README.md`.
 
 ## Editor entry points
 
-- `Tools > DataSakura > Jitter Physics > Physics Baker` — the single authoring surface. Its
+- `Tools > DataSakura > Jitter Physics > Open` — the single authoring surface. Its
   workflow matches the other DataSakura authoring packages: **Overview** explains the level
-  and shows the cached readiness result, **Sources** owns explicit static-body markup,
-  **Bake** owns the shared world profile and deterministic build, **Tools** contains manual
-  diagnostics, **Setup** explains Jitter2 compatibility and opens explicit installation
-  actions, and **Artifacts** verifies or exports the exact bytes. Opening or repainting any
-  tab performs no project mutation.
-- `Tools > DataSakura > Jitter Physics > Setup` — opens the **Setup** tab of the main window.
-  The compatibility summary shows which `Jitter2.Core` this project uses, whether its
-  canonical source hash matches `jitter2.lock.json`, the resulting `runtimeCompatibilityId`,
-  and why baking is blocked. The detailed view can copy or export the report as JSON for CI
-  and contains the explicit installation actions.
-- `Tools > DataSakura > Jitter Physics > About` — package, schema and assembly state,
-  including whether a `Jitter2.Core` is present and whether it is duplicated.
-- `Tools > DataSakura > Jitter Physics > Validate Selected Level` — runs the whole build
-  without writing anything, and logs every issue against the object that caused it. Safe to
-  run while the setup is still red: the authoring problems are worth seeing first.
-- `Tools > DataSakura > Jitter Physics > Bake Selected Level` — validates, builds and writes
-  the artifact for the selected `JitterPhysicsLevel`. The `runtimeCompatibilityId` is taken
-  from the compatibility report and cannot be supplied by a caller, so a red Setup window
-  blocks baking rather than being worked around. The write is staged and re-hashed from
-  disk before it replaces the previous artifact, a failed bake leaves that artifact intact,
-  and baking in Play Mode is refused.
+  and shows the cached readiness result, **Geometry** owns explicit static-body markup,
+  **Bake** owns the shared world profile and deterministic build, **Settings** explains
+  Jitter2 compatibility and opens explicit installation actions, and **Diagnostics** verifies,
+  exports and diagnoses the exact bytes. A narrow window uses the same five sections in a
+  popup. Opening or repainting any section performs no project mutation.
+- The compact `JitterPhysicsLevel` Inspector exposes Level, Geometry Root, Settings, cached
+  Bake Status and explicit **Validate / Bake / Open** actions. Output details are under
+  **Advanced**. The commands call the same public `JitterPhysicsBakeCommand` entry points as
+  automation; removing their old Tools shortcuts does not create a second bake pipeline.
 - `Tools > DataSakura > Jitter Physics > Show Baked Geometry Overlay` — toggles a read-only
   Scene View comparison. Green is the exact last baked snapshot; red is current geometry
   that is new or changed. Removed geometry remains as a green ghost until the next bake, and
   unmarked colliders under the geometry root are red because they cannot enter the artifact.
-- `Tools > DataSakura > Jitter Physics > Install > ...` — install the fallback Jitter2 copy
-  or the Jitter adapter, install and verify the server runtime sources, validate the
-  installation, and remove what the package owns. Every action is explicit, an external
-  Jitter2 is never touched, and a file modified after installation stops an update instead of
+- **Settings > Open installation details** installs the fallback Jitter2 copy or the Jitter
+  adapter and validates the installation. Its **Advanced** foldout owns migration, server
+  projection and removal. Every action is explicit, an external Jitter2 is never touched,
+  and a file modified after installation stops an update instead of
   being overwritten. Integration and its receipt live in
-  `Assets/DataSakura/JitterPhysicsBaker`; an explicit Setup action safely migrates the legacy
+  `Assets/DataSakura/JitterPhysicsBaker`; an explicit Advanced action safely migrates the legacy
   `Assets/DataSakura/JitterPhysics` layout when it contains only unmodified receipt-owned files.
 
 ## License

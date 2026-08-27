@@ -33,14 +33,15 @@ Play Mode.
 2. Дождаться окончания компиляции.
 
 Ожидаемо: в консоли **нет** ошибок компиляции; все пять сборок пакета собраны
-(`Tools > DataSakura > Jitter Physics > About` показывает `compiled` для Contracts,
-ArtifactCodec, UnityArtifact, Authoring, Editor и `not present` для `Jitter2.Core`).
+(`Tools > DataSakura > Jitter Physics > Open`, затем `Settings > About package` показывает
+`compiled` для Contracts, ArtifactCodec, UnityArtifact, Authoring, Editor и `not present`
+для `Jitter2.Core`).
 
 Это главный инвариант пакета: он импортируется в проект без физического движка.
 
 ### MT-02. Окно Setup читает и объясняет
 
-1. `Tools > DataSakura > Jitter Physics > Setup`.
+1. `Tools > DataSakura > Jitter Physics > Open`, затем `Settings > Open installation details`.
 
 Ожидаемо: `Status: Missing`, `Baking allowed: no`, сообщение объясняет, что делать;
 `Copy report JSON` кладёт в буфер валидный JSON; `Export report...` пишет файл.
@@ -115,18 +116,32 @@ MT-05/MT-27 нужен свой Unity-совместимый `Jitter2.Core` в �
 2. Проверить, что `levelId` заполнился канонично (по имени сцены).
 3. Создать несколько кубов/сфер/капсул под объектом `Geometry`, назначить `Geometry Root`.
 4. На корни статических тел добавить `Jitter Static Body Source`.
-5. Создать `JitterPhysicsWorldProfile` (`Assets > Create > ...`) и назначить в уровень.
+5. Создать `JitterPhysicsWorldProfile` (`Assets > Create > DataSakura > Jitter Physics > World Profile`) и назначить в уровень.
 
 Ожидаемо: компоненты добавляются без ошибок; `sourceId` у каждого источника заполнен и
 стабилен (не меняется при переименовании объекта).
 
 ### MT-09. Окно Baker видит уровень
 
-1. `Tools > DataSakura > Jitter Physics > Physics Baker`, вкладка `Level & Bake`.
-2. Нажать `Find in scene`.
+1. `Tools > DataSakura > Jitter Physics > Open`, раздел `Overview`.
+2. Выбрать уровень в поле `Jitter Physics Level`.
 
 Ожидаемо: показаны level id, geometry root, профиль, число помеченных источников и папка
 вывода. При отсутствии профиля или источников выводится предупреждение.
+
+### MT-09A. Меню, узкое окно и Inspector
+
+1. Проверить, что обычные операции находятся в одном окне, а в `Tools > DataSakura >
+   Jitter Physics` не осталось отдельных Bake/Validate/Export/Setup/Install/About команд.
+2. Расширить окно: видны `Overview / Geometry / Bake / Settings / Diagnostics`.
+3. Сузить окно: те же пять разделов выбираются через `Section` popup.
+4. Выбрать `JitterPhysicsLevel`: Inspector показывает Level, Geometry Root, Settings,
+   Bake Status, `Validate / Bake / Open` и `Advanced`.
+5. Открыть окно и Inspector, ничего не нажимать, затем проверить dirty state сцены и новые
+   assets; изменить поле и выполнить Undo/Redo.
+
+Ожидаемо: открытие и Repaint ничего не создают и не меняют; Undo/Redo и prefab overrides
+работают через serialized properties; layout читаем в обеих темах.
 
 ### MT-10. Валидация актionable
 
@@ -189,7 +204,7 @@ MT-05/MT-27 нужен свой Unity-совместимый `Jitter2.Core` в �
 
 ### MT-17. Инспекция и verify
 
-1. Вкладка `Artifacts`, выбрать артефакт, нажать `Verify`.
+1. Раздел `Diagnostics`, выбрать артефакт, нажать `Verify`.
 
 Ожидаемо: сообщение о том, что артефакт перехэшировался и декодировался, с числом тел.
 
@@ -247,7 +262,7 @@ MT-05/MT-27 нужен свой Unity-совместимый `Jitter2.Core` в �
 
 ### MT-25. Установка проекции
 
-1. `Setup > Install server runtime sources...`, выбрать пустую папку.
+1. `Settings > Open installation details > Advanced > Install server runtime sources...`, выбрать пустую папку.
 
 Ожидаемо: в папке подпапки `Contracts/`, `ArtifactCodec/`, `Integration/` и
 `JitterPhysics.projection.json` со списком файлов и хэшей. Ни один файл **не подключает**
@@ -264,7 +279,7 @@ grep -rn "using UnityEngine\|using UnityEditor" <папка проекции>   
 
 ### MT-26. Verify ловит расхождение
 
-1. `Install/Verify Server Runtime Sources...` на той же папке → ожидаемо: совпадает.
+1. Повторить `Install server runtime sources...` на той же папке → ожидаемо: совпадает.
 2. Изменить один `.cs` в папке проекции, повторить verify.
 
 Ожидаемо: ошибка с именем файла и объяснением, что сервер собрал бы другой loader.
@@ -340,9 +355,9 @@ dotnet test --filter FullyQualifiedName~TopologyFingerprint
 2. Открыть вкладку `Samples`.
 3. У `Physics Baking Demos` нажать `Import`.
 
-Ожидаемо: пример появляется в `Assets/Samples/DataSakura Jitter Physics Baker/0.0.2/Physics
+Ожидаемо: пример появляется в `Assets/Samples/DataSakura Jitter Physics Baker/<version>/Physics
 Baking Demos`; runtime и Editor asmdef компилируются без ошибок; меню `Tools > DataSakura >
-Jitter Physics > Samples` содержит команды сборки обеих сцен. Сам импорт не создаёт сцену,
+Jitter Physics > Demo` содержит команды сборки обеих сцен. Сам импорт не создаёт сцену,
 не запускает bake и не пишет артефакты — мутация начинается только после явного выбора
 команды меню.
 
@@ -405,6 +420,7 @@ MT-06 изменённый файл не переписан  :
 MT-07 щадящее удаление              : 
 MT-08 authoring-компоненты          : 
 MT-09 окно Baker видит уровень      : 
+MT-09A меню/окно/Inspector           :
 MT-10 валидация actionable          : 
 MT-11 успешный bake                 : 
 MT-12 повторный bake байт-в-байт    : 

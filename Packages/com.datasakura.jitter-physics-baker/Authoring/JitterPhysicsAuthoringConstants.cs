@@ -7,7 +7,10 @@ namespace DataSakura.JitterPhysics.Authoring
     public static class JitterPhysicsAuthoringConstants
     {
         /// <summary>Add Component menu group of the package.</summary>
-        public const string ComponentMenuRoot = "Jitter Physics/";
+        public const string ComponentMenuRoot = "DataSakura/Jitter Physics/";
+
+        /// <summary>Create Asset menu group of the package.</summary>
+        public const string AssetMenuRoot = "DataSakura/Jitter Physics/";
 
         /// <summary>Menu root of every editor command of the package.</summary>
         public const string EditorMenuRoot = "Tools/DataSakura/Jitter Physics/";
