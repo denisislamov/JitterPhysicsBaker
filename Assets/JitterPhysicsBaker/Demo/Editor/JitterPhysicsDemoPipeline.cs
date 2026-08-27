@@ -26,7 +26,7 @@ namespace DataSakura.JitterPhysics.Demo.Editor
         /// <summary>Where the exported artifact is delivered, relative to the repository root.</summary>
         public const string ServerArtifactsFolder = "Server/artifacts";
 
-        private const string MenuRoot = "Tools/DataSakura/Jitter Physics/Demo/";
+        private const string MenuRoot = "Assets/DataSakura/Jitter Physics/Demo/";
 
         [MenuItem(MenuRoot + "Create Demo Scene And Bake", false, 100)]
         public static void RunFromMenu()
@@ -323,7 +323,6 @@ namespace DataSakura.JitterPhysics.Demo.Editor
         }
     }
 }
-
 
 
 

@@ -7,6 +7,7 @@ using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Editor.Baking;
 using DataSakura.JitterPhysics.Editor.Bootstrap;
+using DataSakura.JitterPhysics.Editor.Diagnostics;
 using DataSakura.JitterPhysics.Editor.Export;
 using DataSakura.JitterPhysics.UnityArtifact;
 using UnityEditor;
@@ -34,7 +35,8 @@ namespace DataSakura.JitterPhysics.Editor
     /// </summary>
     public sealed class JitterPhysicsBakerWindow : EditorWindow
     {
-        private const string MenuPath = JitterPhysicsAuthoringConstants.EditorMenuRoot + "Open";
+        internal const string MenuPath = "Tools/DataSakura/Jitter Physics";
+        internal const string WindowTitle = "DS Jitter Physics";
 
         private enum Tab
         {
@@ -79,7 +81,7 @@ namespace DataSakura.JitterPhysics.Editor
         public static void Open()
         {
             var window = GetWindow<JitterPhysicsBakerWindow>();
-            window.titleContent = new GUIContent("Jitter Physics");
+            window.titleContent = new GUIContent(WindowTitle);
             window.minSize = new Vector2(560f, 440f);
             window.TrySelectLevelFromContext();
             window.RefreshArtifacts();
@@ -102,6 +104,7 @@ namespace DataSakura.JitterPhysics.Editor
 
         private void OnEnable()
         {
+            titleContent = new GUIContent(WindowTitle);
             Selection.selectionChanged += OnSelectionChanged;
             TrySelectLevelFromContext();
         }
@@ -171,12 +174,6 @@ namespace DataSakura.JitterPhysics.Editor
 
         private void DrawTabSelector()
         {
-            if (EditorGUIUtility.currentViewWidth < 520f)
-            {
-                tab = (Tab)EditorGUILayout.Popup("Section", (int)tab, TabNames);
-                return;
-            }
-
             tab = (Tab)GUILayout.Toolbar((int)tab, TabNames);
         }
 
@@ -1023,6 +1020,17 @@ namespace DataSakura.JitterPhysics.Editor
                 + "this project bake the same bytes twice, does an artifact decode, and is it the "
                 + "artifact this build can run.",
                 MessageType.Info);
+
+            bool showBakedGeometry = JitterPhysicsBakeGeometryOverlay.Enabled;
+            bool requestedShowBakedGeometry = EditorGUILayout.ToggleLeft(
+                new GUIContent(
+                    "Show baked geometry overlay",
+                    "Draw the last baked snapshot and changed authoring geometry in Scene View."),
+                showBakedGeometry);
+            if (requestedShowBakedGeometry != showBakedGeometry)
+            {
+                JitterPhysicsBakeGeometryOverlay.SetEnabled(requestedShowBakedGeometry);
+            }
 
             using (new EditorGUI.DisabledScope(level == null))
             {

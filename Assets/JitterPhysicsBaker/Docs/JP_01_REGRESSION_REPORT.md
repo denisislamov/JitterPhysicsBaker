@@ -112,3 +112,44 @@ JP-01 реализован и автоматизированная регрес�
 Standalone package `main` и tag `v0.0.4` опубликованы и независимо сверены через remote refs.
 Source branch монорепозитория не отправлялась. Custom Navigation и EFT в этом срезе не
 изменялись; NPI update не выполнялся.
+
+## Follow-up по скриншотам — `0.0.5`
+
+После проверки `0.0.4` в общем Unity-проекте интерфейс дополнительно выровнен с Custom
+Navigation:
+
+- dock-tab переименован из `Jitter Physics` в `DS Jitter Physics`; параллельный пакет
+  использует `DS Navigation`;
+- `Tools > DataSakura > Jitter Physics` теперь один leaf-item, который сразу открывает окно;
+- прежний отдельный `Show Baked Geometry Overlay` удалён из Tools, а его состояние и функция
+  сохранены как явный toggle в Diagnostics;
+- demo/sample команды перенесены из Tools в `Assets > DataSakura > Jitter Physics`;
+- пять разделов всегда рисуются горизонтальным toolbar, включая узкую dock-панель; `Section`
+  popup больше не используется;
+- удаление выбранного physics artifact по-прежнему находится в Diagnostics, показывает
+  точный список `.asset`, `.bytes` и `.json` и выполняется только после подтверждения.
+
+### Регрессия follow-up
+
+| Проверка | Результат |
+|---|---|
+| Editor csproj build | PASS — 0 warnings, 0 errors |
+| Editor.Tests csproj build | PASS — 0 warnings, 0 errors |
+| Runtime Tests csproj build | PASS — 0 warnings, 0 errors |
+| package `.meta` / LFS | PASS |
+| Jitter2 lock + lock tests | PASS — hash `d67ac0c...cce85`, 96 files |
+| portable `.NET` | PASS — 73/73 |
+| Unity EditMode | PASS — 78/78 |
+| Unity PlayMode | PASS — 52/52 |
+| Live Tools menu | PASS — один `Jitter Physics` entry |
+| Live dock title | PASS — `DS Jitter Physics` |
+| Live narrow tabs | PASS — пять горизонтальных tabs, без popup |
+| Live Diagnostics overlay toggle | PASS — выключен и повторно включён |
+
+Первый повторный EditMode запуск не дошёл до Test Framework из-за несовместимого зависшего
+Unity Licensing Client (`Unsupported protocol version '1.18.1'`). После закрытия Unity Hub и
+перезапуска versioned helper тот же checkout завершил EditMode 78/78; XML обновлён. Это
+диагностика окружения, а не test failure пакета.
+
+Версия `0.0.5` подготовлена к публикации. Source commit, standalone revision и tag будут
+записаны после scoped commit и проверки remote refs.

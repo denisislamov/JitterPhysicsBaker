@@ -22,8 +22,6 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
     [InitializeOnLoad]
     internal static class JitterPhysicsBakeGeometryOverlay
     {
-        private const string MenuPath =
-            JitterPhysicsAuthoringConstants.EditorMenuRoot + "Show Baked Geometry Overlay";
         private const string PreferenceKey =
             "DataSakura.JitterPhysics.Editor.ShowBakedGeometryOverlay";
 
@@ -42,22 +40,13 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
             SceneView.duringSceneGui += DuringSceneGui;
         }
 
-        private static bool Enabled => enabled;
+        internal static bool Enabled => enabled;
 
-        [MenuItem(MenuPath, false, 12)]
-        private static void Toggle()
+        internal static void SetEnabled(bool value)
         {
-            enabled = !enabled;
+            enabled = value;
             EditorPrefs.SetBool(PreferenceKey, enabled);
-            Menu.SetChecked(MenuPath, enabled);
             SceneView.RepaintAll();
-        }
-
-        [MenuItem(MenuPath, true)]
-        private static bool ValidateToggle()
-        {
-            Menu.SetChecked(MenuPath, Enabled);
-            return true;
         }
 
         private static void DuringSceneGui(SceneView sceneView)

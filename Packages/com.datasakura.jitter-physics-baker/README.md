@@ -22,7 +22,7 @@ creates a second sample copy under `Assets/DataSakura`.
 
 ## Status
 
-Early development (`0.0.4`). The assembly graph, the artifact contracts and the editor
+Early development (`0.0.5`). The assembly graph, the artifact contracts and the editor
 bootstrap are being built stage by stage; see `CHANGELOG.md` for what already exists.
 
 ## Requirements
@@ -82,18 +82,20 @@ it. See `Server~/README.md`.
 
 ## Editor entry points
 
-- `Tools > DataSakura > Jitter Physics > Open` — the single authoring surface. Its
+- `Tools > DataSakura > Jitter Physics` — the single authoring surface, titled
+  **DS Jitter Physics** when docked. Its
   workflow matches the other DataSakura authoring packages: **Overview** explains the level
   and shows the cached readiness result, **Geometry** owns explicit static-body markup,
   **Bake** owns the shared world profile and deterministic build, **Settings** explains
   Jitter2 compatibility and opens explicit installation actions, and **Diagnostics** verifies,
-  exports and diagnoses the exact bytes. A narrow window uses the same five sections in a
-  popup. Opening or repainting any section performs no project mutation.
+  exports and diagnoses the exact bytes. The five sections remain a horizontal toolbar at
+  narrow widths, matching DS Navigation. Opening or repainting any section performs no
+  project mutation.
 - The compact `JitterPhysicsLevel` Inspector exposes Level, Geometry Root, Settings, cached
   Bake Status and explicit **Validate / Bake / Open** actions. Output details are under
   **Advanced**. The commands call the same public `JitterPhysicsBakeCommand` entry points as
   automation; removing their old Tools shortcuts does not create a second bake pipeline.
-- `Tools > DataSakura > Jitter Physics > Show Baked Geometry Overlay` — toggles a read-only
+- **Diagnostics > Show baked geometry overlay** toggles a read-only
   Scene View comparison. Green is the exact last baked snapshot; red is current geometry
   that is new or changed. Removed geometry remains as a green ghost until the next bake, and
   unmarked colliders under the geometry root are red because they cannot enter the artifact.

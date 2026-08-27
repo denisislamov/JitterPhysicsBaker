@@ -6,6 +6,20 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-08-27
+
+### Changed
+- Renamed the Unity dock title to `DS Jitter Physics`, matching the `DS Navigation`
+  product prefix and keeping the two authoring windows unambiguous when docked together.
+- Kept the five authoring sections as a horizontal toolbar at every supported window width,
+  matching the Custom Navigation authoring window instead of switching to a `Section` popup.
+- Reduced `Tools > DataSakura > Jitter Physics` to the single authoring-window entry. The
+  baked-geometry overlay toggle now lives in Diagnostics, while demo/sample commands live
+  under `Assets > DataSakura > Jitter Physics`.
+
+### Tests
+- Added structural EditMode coverage for the exact window title and the single Tools entry.
+
 ## [0.0.4] - 2026-08-27
 
 ### Changed
@@ -277,7 +291,8 @@ All notable changes to this package are documented here. The format is based on
   mode. What no test can cover — dialogs, windows, installing into a project, exporting — is
   written down step by step in the development project's manual test plan.
 
-[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.5
 [0.0.4]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.4
 [0.0.3]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.3
 [0.0.2]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.2

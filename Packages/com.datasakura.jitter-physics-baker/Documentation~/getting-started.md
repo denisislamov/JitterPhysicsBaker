@@ -15,7 +15,7 @@ later if you ignore it, the rule is stated where the step is, not in a footnote.
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.4"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.5"
   }
 }
 ```
@@ -33,7 +33,7 @@ deciding which Jitter2 the project will use.
 
 ## 2. Provide Jitter2
 
-Open **Tools > DataSakura > Jitter Physics > Open**, then select **Settings**. Its summary
+Open **Tools > DataSakura > Jitter Physics**, then select **Settings**. Its summary
 tells you what the project currently has; use **Open
 installation details** for the explicit install/update actions.
 
@@ -135,7 +135,7 @@ rate from its own configuration would diverge from client prediction by construc
 
 ## 5. Bake
 
-Open **Tools > DataSakura > Jitter Physics > Open**, select the level, then select **Bake**.
+Open **Tools > DataSakura > Jitter Physics**, select the level, then select **Bake**.
 
 - **Validate** reports problems without writing anything. Every issue can select the object
   that caused it.
@@ -168,8 +168,8 @@ and a client and a server built minutes apart would quietly disagree about it.
 
 ### See what changed since the bake
 
-Enable **Tools > DataSakura > Jitter Physics > Show Baked Geometry Overlay** while looking at
-the level in Scene View.
+Enable **Diagnostics > Show baked geometry overlay** in the **DS Jitter Physics** window while
+looking at the level in Scene View.
 
 - Green wire geometry is the exact last baked snapshot.
 - Red wire geometry is current geometry that is new or differs from that snapshot.
@@ -180,7 +180,7 @@ the level in Scene View.
 
 The legend at the bottom of Scene View reports baked, matching and red shape counts for each
 loaded level. The overlay is read-only: enabling it never validates, repairs ids or writes an
-artifact. Toggle the same menu item off when the comparison is no longer needed.
+artifact. Toggle the same Diagnostics control off when the comparison is no longer needed.
 
 ## 6. Load it in Unity
 

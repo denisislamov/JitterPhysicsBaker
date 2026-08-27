@@ -28,7 +28,7 @@ namespace DataSakura.JitterPhysics.Samples.Editor
     /// </remarks>
     public static class JitterPhysicsSampleScenes
     {
-        private const string MenuRoot = "Tools/DataSakura/Jitter Physics/Samples/";
+        private const string MenuRoot = "Assets/DataSakura/Jitter Physics/Samples/";
 
         private const string BouncingBallLevelId = "sample_bouncing_ball";
         private const string ShooterLevelId = "sample_fps_shooter";
@@ -486,5 +486,4 @@ namespace DataSakura.JitterPhysics.Samples.Editor
         }
     }
 }
-
 
