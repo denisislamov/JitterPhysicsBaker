@@ -69,6 +69,7 @@ namespace DataSakura.JitterPhysics.Editor
         private bool validationStale;
         private string bakeSummary;
         private bool lastActionFailed;
+        private bool uploadInProgress;
 
         private JitterPhysicsArtifactAsset[] artifacts = Array.Empty<JitterPhysicsArtifactAsset>();
         private int selectedArtifact = -1;
@@ -124,7 +125,8 @@ namespace DataSakura.JitterPhysics.Editor
 
             bool levelRequired = tab == Tab.Overview
                                  || tab == Tab.Geometry
-                                 || tab == Tab.Bake;
+                                 || tab == Tab.Bake
+                                 || tab == Tab.Settings;
             if (levelRequired)
             {
                 DrawLevelSelector();
@@ -519,48 +521,131 @@ namespace DataSakura.JitterPhysics.Editor
 
         private void DrawBakeTab()
         {
-            EditorGUILayout.LabelField("World shared by client and server", EditorStyles.boldLabel);
-            if (level.WorldProfile == null)
+            JitterPhysicsArtifactAsset current = CurrentArtifact();
+            JitterPhysicsCompatibilityReport report = JitterPhysicsCompatibilityReport.Create();
+
+            EditorGUILayout.LabelField("Build pipeline", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Build for Client validates and writes one deterministic artifact used by Unity.\n"
+                + "Upload to Server sends those exact verified bytes over HTTP; the server stores "
+                + "them and reports when a restart is required.\n"
+                + "Export to Folder writes the same payload and manifest for offline delivery.",
+                MessageType.None);
+
+            if (!report.CanBake)
+            {
+                EditorGUILayout.HelpBox("Baking is blocked: " + report.Message, MessageType.Error);
+            }
+
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 EditorGUILayout.HelpBox(
-                    "Assign a Jitter Physics World Profile on the Overview tab before baking.",
+                    "Play Mode: Build for Client is disabled because the scene belongs to the simulation.",
                     MessageType.Warning);
             }
-            else
+
+            using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUI.BeginChangeCheck();
-                UnityEditor.Editor profileEditor = UnityEditor.Editor.CreateEditor(level.WorldProfile);
-                if (profileEditor != null)
+                using (new EditorGUI.DisabledScope(
+                    !report.CanBake || EditorApplication.isPlayingOrWillChangePlaymode || uploadInProgress))
                 {
-                    profileEditor.OnInspectorGUI();
-                    DestroyImmediate(profileEditor);
+                    if (GUILayout.Button("Build for Client", GUILayout.Height(30f)))
+                    {
+                        Bake();
+                    }
                 }
 
-                if (EditorGUI.EndChangeCheck())
+                using (new EditorGUI.DisabledScope(current == null || uploadInProgress))
                 {
-                    MarkValidationStale();
+                    if (GUILayout.Button(uploadInProgress ? "Uploading..." : "Upload to Server", GUILayout.Height(30f)))
+                    {
+                        UploadToServer(current);
+                    }
+
+                    if (GUILayout.Button("Export to Folder", GUILayout.Height(30f)))
+                    {
+                        ExportToFolder(current);
+                    }
                 }
             }
 
-            EditorGUILayout.Space(10f);
-            EditorGUILayout.LabelField("Bake pipeline", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(
-                "Bake validates first, writes one deterministic artifact, and leaves the previous "
-                + "artifact untouched if anything fails.",
-                MessageType.None);
-            DrawBakeButtons();
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField("Client artifact", GUILayout.Width(150f));
+                EditorGUILayout.LabelField(
+                    current == null
+                        ? "Not baked"
+                        : $"{current.LevelId} · {current.ShortHash} · {current.BodyCount} bodies, "
+                          + $"{current.ShapeCount} shapes",
+                    EditorStyles.wordWrappedLabel);
+            }
+
             EditorGUILayout.Space(8f);
-            DrawIssues(issues);
+            EditorGUILayout.LabelField("Danger zone", EditorStyles.boldLabel);
+            using (new EditorGUI.DisabledScope(current == null || uploadInProgress))
+            {
+                if (GUILayout.Button("Remove baked physics"))
+                {
+                    DeleteArtifact(current);
+                }
+            }
 
             if (!string.IsNullOrEmpty(bakeSummary))
             {
                 EditorGUILayout.Space(8f);
-                EditorGUILayout.LabelField("Result", EditorStyles.boldLabel);
                 EditorGUILayout.HelpBox(bakeSummary, lastActionFailed ? MessageType.Error : MessageType.Info);
             }
 
             EditorGUILayout.Space(8f);
-            DrawBuildStatus();
+            DrawIssues(issues);
+        }
+
+        private JitterPhysicsArtifactAsset CurrentArtifact()
+        {
+            if (level == null || !level.HasCanonicalLevelId)
+            {
+                return null;
+            }
+
+            return AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(
+                JitterPhysicsArtifactPaths.ArtifactAssetPath(level.GeneratedFolder, level.LevelId));
+        }
+
+        private void ExportToFolder(JitterPhysicsArtifactAsset asset)
+        {
+            string folder = EditorUtility.SaveFolderPanel("Export artifact to", string.Empty, string.Empty);
+            if (!string.IsNullOrEmpty(folder))
+            {
+                ShowExport(JitterPhysicsArtifactExporter.ExportBinary(asset, folder));
+            }
+        }
+
+        private void UploadToServer(JitterPhysicsArtifactAsset asset)
+        {
+            JitterPhysicsArtifactDelivery delivery = JitterPhysicsArtifactExporter.ReadDelivery(asset);
+            issues = delivery.Issues;
+            if (!delivery.Succeeded)
+            {
+                lastActionFailed = true;
+                bakeSummary = "Upload refused: the current artifact did not pass local verification.";
+                return;
+            }
+
+            uploadInProgress = true;
+            bakeSummary = "Uploading verified artifact...";
+            lastActionFailed = false;
+            JitterPhysicsServerUploader.Upload(
+                delivery,
+                JitterPhysicsServerPreferences.BaseUrl,
+                JitterPhysicsServerPreferences.TimeoutSeconds,
+                JitterPhysicsServerPreferences.Token,
+                result =>
+                {
+                    uploadInProgress = false;
+                    lastActionFailed = !result.Succeeded;
+                    bakeSummary = result.Message;
+                    Repaint();
+                });
         }
 
         private void DrawBuildStatus()
@@ -589,44 +674,6 @@ namespace DataSakura.JitterPhysics.Editor
             {
                 EditorGUILayout.LabelField(label, GUILayout.Width(150f));
                 EditorGUILayout.LabelField(value, EditorStyles.boldLabel);
-            }
-        }
-
-        private void DrawBakeButtons()
-        {
-            JitterPhysicsCompatibilityReport report = JitterPhysicsCompatibilityReport.Create();
-
-            if (!report.CanBake)
-            {
-                EditorGUILayout.HelpBox(
-                    "Baking is blocked: " + report.Message
-                    + "\n\nValidation still works, and its findings are worth fixing first.",
-                    MessageType.Error);
-            }
-
-            if (EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                EditorGUILayout.HelpBox(
-                    "Play Mode: the scene state belongs to the simulation, not to the author, so "
-                    + "baking is refused. Validation is still available.",
-                    MessageType.Warning);
-            }
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                if (GUILayout.Button("Validate"))
-                {
-                    Validate();
-                }
-
-                using (new EditorGUI.DisabledScope(
-                    !report.CanBake || EditorApplication.isPlayingOrWillChangePlaymode))
-                {
-                    if (GUILayout.Button("Validate and bake"))
-                    {
-                        Bake();
-                    }
-                }
             }
         }
 
@@ -716,6 +763,11 @@ namespace DataSakura.JitterPhysics.Editor
 
         private void DrawSetupTab()
         {
+            DrawWorldSettings();
+            EditorGUILayout.Space(10f);
+            DrawServerSettings();
+            EditorGUILayout.Space(10f);
+
             JitterPhysicsCompatibilityReport report = JitterPhysicsCompatibilityReport.Create();
 
             EditorGUILayout.LabelField("Jitter2 compatibility", EditorStyles.boldLabel);
@@ -778,6 +830,48 @@ namespace DataSakura.JitterPhysics.Editor
             {
                 JitterPhysicsAboutWindow.OpenWindow();
             }
+        }
+
+        private void DrawWorldSettings()
+        {
+            EditorGUILayout.LabelField("World shared by client and server", EditorStyles.boldLabel);
+            if (level.WorldProfile == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "Assign a Jitter Physics World Profile on the Overview tab before baking.",
+                    MessageType.Warning);
+                return;
+            }
+
+            EditorGUI.BeginChangeCheck();
+            UnityEditor.Editor profileEditor = UnityEditor.Editor.CreateEditor(level.WorldProfile);
+            if (profileEditor != null)
+            {
+                profileEditor.OnInspectorGUI();
+                DestroyImmediate(profileEditor);
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                MarkValidationStale();
+            }
+        }
+
+        private static void DrawServerSettings()
+        {
+            EditorGUILayout.LabelField("Server delivery", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "The token is stored in EditorPrefs on this machine and is never serialized into "
+                + "the Unity project. Without a configured server token, the sample server accepts "
+                + "uploads only from localhost.",
+                MessageType.None);
+
+            JitterPhysicsServerPreferences.BaseUrl = EditorGUILayout.TextField(
+                "Base URL", JitterPhysicsServerPreferences.BaseUrl);
+            JitterPhysicsServerPreferences.TimeoutSeconds = EditorGUILayout.IntSlider(
+                "Timeout (seconds)", JitterPhysicsServerPreferences.TimeoutSeconds, 1, 120);
+            JitterPhysicsServerPreferences.Token = EditorGUILayout.PasswordField(
+                "Upload token", JitterPhysicsServerPreferences.Token);
         }
 
         private static MessageType MessageTypeFor(JitterPhysicsCompatibilityStatus status)
@@ -953,6 +1047,8 @@ namespace DataSakura.JitterPhysics.Editor
 
         private void DeleteArtifact(JitterPhysicsArtifactAsset asset)
         {
+            string deletedLevelId = asset.LevelId;
+            string deletedArtifactHash = asset.ArtifactHash;
             string assetPath = AssetDatabase.GetAssetPath(asset);
             string payloadPath = asset.Payload != null ? AssetDatabase.GetAssetPath(asset.Payload) : null;
             string manifestPath = null;
@@ -972,7 +1068,7 @@ namespace DataSakura.JitterPhysics.Editor
             // Only the files of the artifact that was explicitly chosen, listed by name in the
             // prompt. "Clean up generated artifacts" is how somebody deletes the level a
             // colleague is about to ship.
-            string message = "These files will be deleted:\n\n" + assetPath;
+            string message = "Delete the following generated files from this Unity project?\n\n" + assetPath;
             if (!string.IsNullOrEmpty(payloadPath))
             {
                 message += "\n" + payloadPath;
@@ -983,7 +1079,10 @@ namespace DataSakura.JitterPhysics.Editor
                 message += "\n" + manifestPath;
             }
 
-            if (!EditorUtility.DisplayDialog("Delete artifact", message, "Delete", "Cancel"))
+            message += "\n\nExported or uploaded server copies will not be changed.";
+
+            if (!EditorUtility.DisplayDialog(
+                    "Remove baked physics?", message, "Delete Files", "Cancel"))
             {
                 return;
             }
@@ -1000,6 +1099,18 @@ namespace DataSakura.JitterPhysics.Editor
 
             AssetDatabase.DeleteAsset(assetPath);
             AssetDatabase.Refresh();
+
+            if (level != null
+                && JitterPhysicsHash.HexEquals(level.LastArtifactHash, deletedArtifactHash))
+            {
+                Undo.RecordObject(level, "Remove baked physics");
+                level.SetLastArtifactHash(string.Empty);
+                EditorUtility.SetDirty(level);
+                MarkSceneChanged();
+            }
+
+            lastActionFailed = false;
+            bakeSummary = $"Removed baked physics for '{deletedLevelId}'. Server copies were not changed.";
             RefreshArtifacts();
         }
 

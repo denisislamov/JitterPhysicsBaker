@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DataSakura.JitterPhysics.ArtifactCodec;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Integration;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -82,7 +84,12 @@ namespace DataSakura.JitterPhysics.WebViewer
 
             try
             {
-                RunWebHost(args, levels, runtimeCompatibilityId, jitterLock);
+                RunWebHost(
+                    args,
+                    levels,
+                    runtimeCompatibilityId,
+                    jitterLock,
+                    Path.GetDirectoryName(manifests[0]));
             }
             finally
             {
@@ -96,11 +103,21 @@ namespace DataSakura.JitterPhysics.WebViewer
             string[] args,
             IReadOnlyList<HostedLevel> levels,
             string runtimeCompatibilityId,
-            JitterLock jitterLock)
+            JitterLock jitterLock,
+            string artifactFolder)
         {
             var byId = levels.ToDictionary(level => level.LevelId, StringComparer.Ordinal);
 
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                // Base64 expands payloads by 4/3. Keep the HTTP cap aligned with the portable
+                // codec's decoded-payload cap rather than Kestrel's smaller general default.
+                options.Limits.MaxRequestBodySize =
+                    ((long)PhysicsArtifactLimits.MaxArtifactBytes * 4 / 3)
+                    + PhysicsArtifactManifestCodec.MaxManifestBytes
+                    + (64 * 1024);
+            });
             builder.Services.ConfigureHttpJsonOptions(options =>
             {
                 options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -191,7 +208,77 @@ namespace DataSakura.JitterPhysics.WebViewer
                 return Results.Accepted();
             });
 
+            app.MapPost("/api/artifacts", (HttpContext context, ArtifactUploadRequest request) =>
+            {
+                string uploadToken = Argument(args, "--upload-token");
+                if (!CanUpload(context, uploadToken))
+                {
+                    return Results.Json(
+                        new ArtifactUploadResponse(false, null, null, false, "Artifact upload is not authorized."),
+                        statusCode: StatusCodes.Status403Forbidden);
+                }
+
+                string encodedPayload = request?.DataBase64 ?? string.Empty;
+                long maxEncodedLength = ((long)PhysicsArtifactLimits.MaxArtifactBytes + 2) / 3 * 4;
+                if (encodedPayload.Length > maxEncodedLength)
+                {
+                    return Results.BadRequest(
+                        new ArtifactUploadResponse(false, null, null, false, "Artifact payload exceeds the delivery limit."));
+                }
+
+                byte[] payload;
+                try
+                {
+                    payload = Convert.FromBase64String(encodedPayload);
+                }
+                catch (FormatException)
+                {
+                    return Results.BadRequest(
+                        new ArtifactUploadResponse(false, null, null, false, "Artifact payload is not valid base64."));
+                }
+
+                PhysicsArtifactUploadResult stored = PhysicsArtifactUploadStore.Store(
+                    payload,
+                    request?.ManifestJson,
+                    artifactFolder,
+                    runtimeCompatibilityId);
+                if (!stored.Succeeded)
+                {
+                    return Results.BadRequest(
+                        new ArtifactUploadResponse(false, null, null, false, stored.Error.ToString()));
+                }
+
+                return Results.Ok(new ArtifactUploadResponse(
+                    true,
+                    stored.Manifest.LevelId,
+                    stored.Manifest.ArtifactHash,
+                    true,
+                    $"Stored '{stored.Manifest.LevelId}' ({Short(stored.Manifest.ArtifactHash)}). "
+                    + "Restart the server to load the new artifact."));
+            });
+
             app.Run();
+        }
+
+        private static bool CanUpload(HttpContext context, string configuredToken)
+        {
+            if (!string.IsNullOrEmpty(configuredToken))
+            {
+                return string.Equals(
+                    context.Request.Headers["X-Jitter-Physics-Token"].ToString(),
+                    configuredToken,
+                    StringComparison.Ordinal);
+            }
+
+            IPAddress address = context.Connection.RemoteIpAddress;
+            return address != null && IPAddress.IsLoopback(address);
+        }
+
+        private static string Short(string hash)
+        {
+            return string.IsNullOrEmpty(hash) || hash.Length <= JitterPhysicsArtifactNaming.ShortHashLength
+                ? hash
+                : hash.Substring(0, JitterPhysicsArtifactNaming.ShortHashLength);
         }
 
         private static void DisposeAll(IEnumerable<HostedLevel> levels)
@@ -281,6 +368,22 @@ namespace DataSakura.JitterPhysics.WebViewer
             return null;
         }
     }
+
+    /// <summary>JSON body accepted by the explicit artifact delivery endpoint.</summary>
+    public sealed class ArtifactUploadRequest
+    {
+        /// <summary>Exact manifest text produced by the baker.</summary>
+        public string ManifestJson { get; set; }
+
+        /// <summary>Base64-encoded artifact payload.</summary>
+        public string DataBase64 { get; set; }
+    }
+
+    /// <summary>Machine-readable artifact delivery response.</summary>
+    public sealed record ArtifactUploadResponse(
+        bool Success,
+        string LevelId,
+        string ArtifactHash,
+        bool RestartRequired,
+        string Message);
 }
-
-

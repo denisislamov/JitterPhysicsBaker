@@ -104,6 +104,7 @@ that a deployment smoke test can grep for:
 |---|---|
 | `--manifest <path>` | Load this exact manifest instead of scanning `artifacts/`. |
 | `--artifacts <dir>` | Scan this folder and host every manifest it contains; prefer an absolute path. |
+| `--upload-token <token>` | Require this value in `X-Jitter-Physics-Token`; without it uploads are localhost-only. |
 
 The shared `JitterPhysicsServerStartup` API also supports expected level-id and tick-rate
 checks for a real launcher. This gallery currently accepts both values from each artifact and
@@ -119,6 +120,12 @@ does not expose those expectations as command-line options.
 | `GET /api/state/{id}` | That level's current dynamic bodies; polled each frame. |
 | `POST /api/spawn/{id}?type=sphere\|box&count=N` | Drop bodies into one level. |
 | `POST /api/reset/{id}` | Remove that level's dynamic bodies; the static level is untouched. |
+| `POST /api/artifacts` | Validate and store a baked payload/manifest pair. Restart the server to load it. |
+
+The Unity Bake tab calls `POST /api/artifacts` with the exact artifact used by the client.
+The endpoint never hot-swaps a running physics world: after a successful upload it returns
+`restartRequired: true`. Remote servers should be started with `--upload-token`; the editor
+keeps the matching token in local `EditorPrefs`, outside project assets and version control.
 
 ## Why a seed generator exists
 

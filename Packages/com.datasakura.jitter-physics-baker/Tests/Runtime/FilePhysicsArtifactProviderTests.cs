@@ -177,6 +177,58 @@ namespace DataSakura.JitterPhysics.Tests
             Assert.That(result.ArtifactHash, Is.EqualTo(baked.ArtifactHash));
         }
 
+        [Test]
+        public void UploadStoreWritesAValidPairThatTheServerProviderLoads()
+        {
+            PhysicsArtifactPayload baked = Bake();
+
+            PhysicsArtifactUploadResult stored = PhysicsArtifactUploadStore.Store(
+                baked.Bytes,
+                PhysicsArtifactManifestCodec.Write(baked.Manifest),
+                _directory,
+                baked.Manifest.RuntimeCompatibilityId);
+
+            Assert.That(stored.Succeeded, Is.True, stored.Error.ToString());
+            PhysicsArtifactLoadResult loaded = new FilePhysicsArtifactProvider(stored.ManifestPath)
+                .Load(baked.Manifest.RuntimeCompatibilityId);
+            Assert.That(loaded.Succeeded, Is.True, loaded.Error.ToString());
+            Assert.That(loaded.ArtifactHash, Is.EqualTo(baked.ArtifactHash));
+        }
+
+        [Test]
+        public void UploadStoreRejectsAnotherRuntimeWithoutWritingFiles()
+        {
+            PhysicsArtifactPayload baked = Bake();
+
+            PhysicsArtifactUploadResult stored = PhysicsArtifactUploadStore.Store(
+                baked.Bytes,
+                PhysicsArtifactManifestCodec.Write(baked.Manifest),
+                _directory,
+                JitterPhysicsHash.Sha256HexUtf8("another-runtime"));
+
+            Assert.That(stored.Succeeded, Is.False);
+            Assert.That(stored.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.IncompatibleRuntime));
+            Assert.That(Directory.GetFiles(_directory), Is.Empty);
+        }
+
+        [Test]
+        public void UploadStoreRejectsANonCanonicalPayloadNameWithoutWritingFiles()
+        {
+            PhysicsArtifactPayload baked = Bake();
+            string json = PhysicsArtifactManifestCodec.Write(baked.Manifest)
+                .Replace(baked.Manifest.FileName, "renamed.bytes");
+
+            PhysicsArtifactUploadResult stored = PhysicsArtifactUploadStore.Store(
+                baked.Bytes,
+                json,
+                _directory,
+                baked.Manifest.RuntimeCompatibilityId);
+
+            Assert.That(stored.Succeeded, Is.False);
+            Assert.That(stored.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.InvalidValue));
+            Assert.That(Directory.GetFiles(_directory), Is.Empty);
+        }
+
         private string WriteBoth(PhysicsArtifactPayload baked, string manifestJson = null)
         {
             File.WriteAllBytes(Path.Combine(_directory, baked.Manifest.FileName), baked.Bytes);
@@ -236,5 +288,4 @@ namespace DataSakura.JitterPhysics.Tests
         }
     }
 }
-
 

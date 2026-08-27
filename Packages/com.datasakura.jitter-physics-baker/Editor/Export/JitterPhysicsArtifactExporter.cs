@@ -9,6 +9,37 @@ using UnityEngine;
 
 namespace DataSakura.JitterPhysics.Editor.Export
 {
+    /// <summary>Verified bytes and manifest shared by folder export and server upload.</summary>
+    public sealed class JitterPhysicsArtifactDelivery
+    {
+        internal JitterPhysicsArtifactDelivery(
+            byte[] payload,
+            PhysicsArtifactManifest manifest,
+            string manifestJson,
+            JitterPhysicsIssueLog issues)
+        {
+            Payload = payload;
+            Manifest = manifest;
+            ManifestJson = manifestJson;
+            Issues = issues;
+        }
+
+        /// <summary>Exact baked payload.</summary>
+        public byte[] Payload { get; }
+
+        /// <summary>Manifest cross-checked against the payload.</summary>
+        public PhysicsArtifactManifest Manifest { get; }
+
+        /// <summary>Exact manifest text written by the bake.</summary>
+        public string ManifestJson { get; }
+
+        /// <summary>Validation findings.</summary>
+        public JitterPhysicsIssueLog Issues { get; }
+
+        /// <summary>True when the delivery is safe to export or upload.</summary>
+        public bool Succeeded => Payload != null && Manifest != null && !Issues.HasErrors;
+    }
+
     /// <summary>What an export produced.</summary>
     public sealed class JitterPhysicsExportResult
     {
@@ -50,11 +81,15 @@ namespace DataSakura.JitterPhysics.Editor.Export
         {
             var issues = new JitterPhysicsIssueLog();
 
-            if (!TryRead(asset, issues, out byte[] payload, out PhysicsArtifactManifest manifest)
-                || !TryPrepareFolder(targetFolder, issues))
+            JitterPhysicsArtifactDelivery delivery = ReadDelivery(asset);
+            issues = delivery.Issues;
+            if (!delivery.Succeeded || !TryPrepareFolder(targetFolder, issues))
             {
                 return new JitterPhysicsExportResult(null, issues);
             }
+
+            byte[] payload = delivery.Payload;
+            PhysicsArtifactManifest manifest = delivery.Manifest;
 
             string payloadPath = Path.Combine(
                 targetFolder,
@@ -67,7 +102,7 @@ namespace DataSakura.JitterPhysics.Editor.Export
             try
             {
                 WriteAtomic(payloadPath, payload);
-                WriteAtomic(manifestPath, PhysicsArtifactManifestCodec.Write(manifest));
+                WriteAtomic(manifestPath, delivery.ManifestJson);
             }
             catch (Exception exception)
             {
@@ -95,7 +130,12 @@ namespace DataSakura.JitterPhysics.Editor.Export
                 throw new ArgumentNullException(nameof(options));
             }
 
-            if (!TryRead(asset, issues, out byte[] payload, out PhysicsArtifactManifest manifest)
+            if (!TryRead(
+                    asset,
+                    issues,
+                    out byte[] payload,
+                    out PhysicsArtifactManifest manifest,
+                    out _)
                 || !TryPrepareFolder(targetFolder, issues))
             {
                 return new JitterPhysicsExportResult(null, issues);
@@ -145,14 +185,33 @@ namespace DataSakura.JitterPhysics.Editor.Export
             return new JitterPhysicsExportResult(new[] { path }, issues);
         }
 
+        /// <summary>Reads and cross-checks the exact pair produced by the last bake.</summary>
+        public static JitterPhysicsArtifactDelivery ReadDelivery(JitterPhysicsArtifactAsset asset)
+        {
+            var issues = new JitterPhysicsIssueLog();
+            if (!TryRead(
+                    asset,
+                    issues,
+                    out byte[] payload,
+                    out PhysicsArtifactManifest manifest,
+                    out string manifestJson))
+            {
+                return new JitterPhysicsArtifactDelivery(null, null, null, issues);
+            }
+
+            return new JitterPhysicsArtifactDelivery(payload, manifest, manifestJson, issues);
+        }
+
         private static bool TryRead(
             JitterPhysicsArtifactAsset asset,
             JitterPhysicsIssueLog issues,
             out byte[] payload,
-            out PhysicsArtifactManifest manifest)
+            out PhysicsArtifactManifest manifest,
+            out string manifestJson)
         {
             payload = null;
             manifest = null;
+            manifestJson = null;
 
             if (asset == null)
             {
@@ -187,7 +246,8 @@ namespace DataSakura.JitterPhysics.Editor.Export
                 return false;
             }
 
-            manifest = PhysicsArtifactManifestCodec.Read(File.ReadAllText(manifestPath), out string manifestError);
+            manifestJson = File.ReadAllText(manifestPath);
+            manifest = PhysicsArtifactManifestCodec.Read(manifestJson, out string manifestError);
             if (manifest == null)
             {
                 issues.Error($"Manifest '{manifestPath}' could not be read: {manifestError}", asset);

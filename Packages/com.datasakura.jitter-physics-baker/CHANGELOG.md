@@ -6,6 +6,22 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-08-27
+
+### Added
+- Added explicit HTTP delivery of the already verified client artifact. The sample server
+  validates payload, manifest, content-addressed names and runtime compatibility before
+  storing both files; localhost is allowed by default and remote delivery requires the
+  server's optional upload token.
+- Added `Remove baked physics` to the Bake tab. Its confirmation lists the exact artifact,
+  payload and manifest files; only those project files are removed and server copies remain
+  untouched.
+
+### Changed
+- Reworked Bake to match the compact Navigation workflow: `Build for Client`, `Upload to
+  Server`, `Export to Folder`, current client artifact, danger zone and one result card.
+  World-profile and server-delivery configuration now live in Settings.
+
 ## [0.0.5] - 2026-08-27
 
 ### Changed
