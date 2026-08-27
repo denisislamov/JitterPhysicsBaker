@@ -1,20 +1,9 @@
 using System;
+using DataSakura.JitterPhysics.Editor.Api;
 using UnityEditor;
 
 namespace DataSakura.JitterPhysics.Editor.Diagnostics
 {
-    internal enum JitterPhysicsPreviewScope
-    {
-        ActiveOrSelectedLevel = 0,
-        AllLoadedLevels = 1,
-    }
-
-    internal enum JitterPhysicsPreviewOcclusion
-    {
-        Visible = 0,
-        XRay = 1,
-    }
-
     /// <summary>Personal, non-content settings shared by the Scene View overlay and renderer.</summary>
     internal static class JitterPhysicsPreviewPreferences
     {
@@ -33,6 +22,26 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
             "DataSakura.JitterPhysics.Editor.PhysicsPreview.Occlusion";
 
         internal static event Action Changed;
+
+        internal static JitterPhysicsPreviewState ReadState()
+        {
+            return new JitterPhysicsPreviewState(Sources, Baked, Runtime, Scope, Occlusion);
+        }
+
+        internal static void Apply(JitterPhysicsPreviewState state)
+        {
+            bool changed = SetBoolWithoutNotification(SourcesKey, state.Sources, false);
+            changed |= SetBoolWithoutNotification(BakedKey, state.Baked, false);
+            changed |= SetBoolWithoutNotification(RuntimeKey, state.Runtime, false);
+            changed |= SetIntWithoutNotification(
+                ScopeKey, (int)state.Scope, (int)JitterPhysicsPreviewScope.ActiveOrSelectedLevel);
+            changed |= SetIntWithoutNotification(
+                OcclusionKey, (int)state.Occlusion, (int)JitterPhysicsPreviewOcclusion.Visible);
+            if (!changed) return;
+
+            Changed?.Invoke();
+            SceneView.RepaintAll();
+        }
 
         internal static bool Sources
         {
@@ -79,26 +88,30 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
 
         private static void SetBool(string key, bool value, bool defaultValue)
         {
-            if (EditorPrefs.GetBool(key, defaultValue) == value && EditorPrefs.HasKey(key))
-            {
-                return;
-            }
-
-            EditorPrefs.SetBool(key, value);
+            if (!SetBoolWithoutNotification(key, value, defaultValue)) return;
             Changed?.Invoke();
             SceneView.RepaintAll();
         }
 
         private static void SetInt(string key, int value, int defaultValue)
         {
-            if (EditorPrefs.GetInt(key, defaultValue) == value && EditorPrefs.HasKey(key))
-            {
-                return;
-            }
-
-            EditorPrefs.SetInt(key, value);
+            if (!SetIntWithoutNotification(key, value, defaultValue)) return;
             Changed?.Invoke();
             SceneView.RepaintAll();
+        }
+
+        private static bool SetBoolWithoutNotification(string key, bool value, bool defaultValue)
+        {
+            if (EditorPrefs.GetBool(key, defaultValue) == value && EditorPrefs.HasKey(key)) return false;
+            EditorPrefs.SetBool(key, value);
+            return true;
+        }
+
+        private static bool SetIntWithoutNotification(string key, int value, int defaultValue)
+        {
+            if (EditorPrefs.GetInt(key, defaultValue) == value && EditorPrefs.HasKey(key)) return false;
+            EditorPrefs.SetInt(key, value);
+            return true;
         }
     }
 }

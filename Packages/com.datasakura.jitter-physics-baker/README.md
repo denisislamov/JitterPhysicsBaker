@@ -16,6 +16,9 @@ identical in two code bases by hand.
 path: adding the package, providing Jitter2, marking up a level, baking it, loading it in
 Unity, and running the same bytes on a dedicated server.
 
+Consumer editor adapters use the minimal contract documented in
+**[Documentation~/npi-editor-api.md](Documentation~/npi-editor-api.md)**.
+
 After installing Jitter2 and the integration adapter, import the three runnable demos from
 the package's **Samples** tab in Package Manager; see `Samples~/Demos/README.md`. Setup never
 creates a second sample copy under `Assets/DataSakura`.

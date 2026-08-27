@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Editor.Diagnostics;
+using DataSakura.JitterPhysics.Editor.Api;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEditor;
@@ -137,6 +138,50 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             {
                 if (existed) JitterPhysicsBakeGeometryOverlay.SetEnabled(previous);
                 else JitterPhysicsBakeGeometryOverlay.ResetPreference();
+            }
+        }
+
+        [Test]
+        public void PublicPreviewApiReadsTheOverlayStateWithoutCreatingPreferences()
+        {
+            JitterPhysicsPreviewPreferences.ResetToDefaults();
+
+            JitterPhysicsPreviewState read = JitterPhysicsPreviewApi.Current;
+
+            Assert.That(read.Sources, Is.False);
+            Assert.That(read.Baked, Is.False);
+            Assert.That(read.Runtime, Is.False);
+            Assert.That(EditorPrefs.HasKey(JitterPhysicsPreviewPreferences.SourcesKey), Is.False);
+            Assert.That(EditorPrefs.HasKey(JitterPhysicsPreviewPreferences.BakedKey), Is.False);
+            Assert.That(EditorPrefs.HasKey(JitterPhysicsPreviewPreferences.RuntimeKey), Is.False);
+            Assert.That(EditorPrefs.HasKey(JitterPhysicsPreviewPreferences.ScopeKey), Is.False);
+            Assert.That(EditorPrefs.HasKey(JitterPhysicsPreviewPreferences.OcclusionKey), Is.False);
+        }
+
+        [Test]
+        public void PublicPreviewApiAndPackageOverlayShareOneState()
+        {
+            JitterPhysicsPreviewState previous = JitterPhysicsPreviewApi.Current;
+            try
+            {
+                var requested = new JitterPhysicsPreviewState(
+                    true,
+                    !previous.Baked,
+                    true,
+                    JitterPhysicsPreviewScope.AllLoadedLevels,
+                    JitterPhysicsPreviewOcclusion.XRay);
+
+                JitterPhysicsPreviewApi.Apply(requested);
+
+                Assert.That(JitterPhysicsPreviewPreferences.Sources, Is.True);
+                Assert.That(JitterPhysicsBakeGeometryOverlay.Enabled, Is.EqualTo(requested.Baked));
+                Assert.That(JitterPhysicsPreviewPreferences.Runtime, Is.True);
+                Assert.That(JitterPhysicsPreviewPreferences.Scope, Is.EqualTo(requested.Scope));
+                Assert.That(JitterPhysicsPreviewPreferences.Occlusion, Is.EqualTo(requested.Occlusion));
+            }
+            finally
+            {
+                JitterPhysicsPreviewApi.Apply(previous);
             }
         }
 

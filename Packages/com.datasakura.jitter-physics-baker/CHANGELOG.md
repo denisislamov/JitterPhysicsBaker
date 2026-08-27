@@ -6,6 +6,15 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- Added an editor-only consumer API with explicit standalone or external Level ID ownership,
+  separate Validate/Bake calls and a verified read-only result summary containing paths, full
+  digest, state, issues and available geometry counts.
+- Added public immutable access to the exact preview state used by the package overlay, without
+  duplicate toggles or writes while reading.
+- Added NPI handoff notes, a minimal editor-caller sample and an imported-sample PlayMode delivery
+  fixture.
+
 ## [0.0.10] - 2026-08-27
 
 ### Added

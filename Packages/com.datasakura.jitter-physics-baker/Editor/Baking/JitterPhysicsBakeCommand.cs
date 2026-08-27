@@ -59,7 +59,7 @@ namespace DataSakura.JitterPhysics.Editor.Baking
         /// <summary>True when the project is currently able to bake.</summary>
         public static bool CanBake => JitterPhysicsCompatibilityReport.Create().CanBake;
 
-        private static string DescribeBlockedSetup(JitterPhysicsCompatibilityReport report)
+        internal static string DescribeBlockedSetup(JitterPhysicsCompatibilityReport report)
         {
             switch (report.Status)
             {

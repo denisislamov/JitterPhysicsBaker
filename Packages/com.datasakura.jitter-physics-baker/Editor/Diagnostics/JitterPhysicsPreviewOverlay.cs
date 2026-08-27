@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEditor.Overlays;
 using UnityEngine;
 using UnityEngine.UIElements;
+using DataSakura.JitterPhysics.Editor.Api;
 
 namespace DataSakura.JitterPhysics.Editor.Diagnostics
 {
@@ -18,25 +19,26 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
             root.style.paddingTop = 4f;
             root.style.paddingBottom = 4f;
 
-            Toggle sources = LayerToggle("Sources", () => JitterPhysicsPreviewPreferences.Sources,
-                value => JitterPhysicsPreviewPreferences.Sources = value);
-            Toggle baked = LayerToggle("Baked", () => JitterPhysicsPreviewPreferences.Baked,
-                value => JitterPhysicsPreviewPreferences.Baked = value);
-            Toggle runtime = LayerToggle("Runtime", () => JitterPhysicsPreviewPreferences.Runtime,
-                value => JitterPhysicsPreviewPreferences.Runtime = value);
+            Toggle sources = LayerToggle("Sources", () => JitterPhysicsPreviewApi.Current.Sources,
+                value => JitterPhysicsPreviewApi.Apply(JitterPhysicsPreviewApi.Current.WithSources(value)));
+            Toggle baked = LayerToggle("Baked", () => JitterPhysicsPreviewApi.Current.Baked,
+                value => JitterPhysicsPreviewApi.Apply(JitterPhysicsPreviewApi.Current.WithBaked(value)));
+            Toggle runtime = LayerToggle("Runtime", () => JitterPhysicsPreviewApi.Current.Runtime,
+                value => JitterPhysicsPreviewApi.Apply(JitterPhysicsPreviewApi.Current.WithRuntime(value)));
             root.Add(sources);
             root.Add(baked);
             root.Add(runtime);
 
-            var scope = new EnumField("Scope", JitterPhysicsPreviewPreferences.Scope);
+            var scope = new EnumField("Scope", JitterPhysicsPreviewApi.Current.Scope);
             scope.RegisterValueChangedCallback(change =>
-                JitterPhysicsPreviewPreferences.Scope = (JitterPhysicsPreviewScope)change.newValue);
+                JitterPhysicsPreviewApi.Apply(JitterPhysicsPreviewApi.Current.WithScope(
+                    (JitterPhysicsPreviewScope)change.newValue)));
             root.Add(scope);
 
-            var occlusion = new EnumField("Occlusion", JitterPhysicsPreviewPreferences.Occlusion);
+            var occlusion = new EnumField("Occlusion", JitterPhysicsPreviewApi.Current.Occlusion);
             occlusion.RegisterValueChangedCallback(change =>
-                JitterPhysicsPreviewPreferences.Occlusion =
-                    (JitterPhysicsPreviewOcclusion)change.newValue);
+                JitterPhysicsPreviewApi.Apply(JitterPhysicsPreviewApi.Current.WithOcclusion(
+                    (JitterPhysicsPreviewOcclusion)change.newValue)));
             root.Add(occlusion);
 
             var actions = new VisualElement { style = { flexDirection = FlexDirection.Row } };
@@ -53,11 +55,12 @@ namespace DataSakura.JitterPhysics.Editor.Diagnostics
                 .Every(250);
             root.schedule.Execute(() =>
             {
-                sources.SetValueWithoutNotify(JitterPhysicsPreviewPreferences.Sources);
-                baked.SetValueWithoutNotify(JitterPhysicsPreviewPreferences.Baked);
-                runtime.SetValueWithoutNotify(JitterPhysicsPreviewPreferences.Runtime);
-                scope.SetValueWithoutNotify(JitterPhysicsPreviewPreferences.Scope);
-                occlusion.SetValueWithoutNotify(JitterPhysicsPreviewPreferences.Occlusion);
+                JitterPhysicsPreviewState state = JitterPhysicsPreviewApi.Current;
+                sources.SetValueWithoutNotify(state.Sources);
+                baked.SetValueWithoutNotify(state.Baked);
+                runtime.SetValueWithoutNotify(state.Runtime);
+                scope.SetValueWithoutNotify(state.Scope);
+                occlusion.SetValueWithoutNotify(state.Occlusion);
             }).Every(250);
 
             return root;

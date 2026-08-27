@@ -87,6 +87,14 @@ namespace DataSakura.JitterPhysics.Editor.Baking
             Authoring.JitterPhysicsLevel level,
             string runtimeCompatibilityId)
         {
+            return Bake(level, runtimeCompatibilityId, null);
+        }
+
+        internal static JitterPhysicsBakeResult Bake(
+            Authoring.JitterPhysicsLevel level,
+            string runtimeCompatibilityId,
+            string managedLevelId)
+        {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 var playModeIssues = new JitterPhysicsIssueLog();
@@ -101,10 +109,11 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                 return new JitterPhysicsBakeResult(null, playModeIssues);
             }
 
+            string targetLevelId = managedLevelId ?? level?.LevelId;
             if (level != null
-                && level.HasCanonicalLevelId
+                && JitterPhysicsIdUtility.IsCanonical(targetLevelId)
                 && JitterPhysicsArtifactMigration.IsRequired(
-                    level.GeneratedFolder, level.LevelId, level.LastArtifactHash))
+                    level.GeneratedFolder, targetLevelId, level.LastArtifactHash))
             {
                 var migrationIssues = new JitterPhysicsIssueLog();
                 migrationIssues.Error(
@@ -114,7 +123,8 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                 return new JitterPhysicsBakeResult(null, migrationIssues);
             }
 
-            JitterPhysicsBuildResult build = JitterPhysicsArtifactBuilder.Build(level, runtimeCompatibilityId);
+            JitterPhysicsBuildResult build = JitterPhysicsArtifactBuilder.Build(
+                level, runtimeCompatibilityId, managedLevelId);
             if (!build.Succeeded)
             {
                 return new JitterPhysicsBakeResult(null, build.Issues);

@@ -1,5 +1,9 @@
 # Samples
 
+`Editor/JitterPhysicsEditorApiExample.cs` shows the two supported editor-caller modes:
+standalone Level ID ownership and an explicit externally managed Level ID. It depends only on
+the package editor API; no NPI, EFT or navigation assembly is required.
+
 Three runnable samples: two that put the baked level under load, and one that checks the
 artifact the way a dedicated server would before accepting connections.
 
@@ -17,6 +21,10 @@ before pressing Import.
 
 The controls work with either **Input Manager (Old)** or **Input System Package** as the
 project's active input backend. The samples do not add an Input System package dependency.
+
+After generating either scene, the imported `Samples.PlayModeTests` fixture enters Play Mode,
+loads the same artifact through the Unity runtime loader, builds the Jitter world and runs the
+artifact verification component.
 
 ## Building a sample
 

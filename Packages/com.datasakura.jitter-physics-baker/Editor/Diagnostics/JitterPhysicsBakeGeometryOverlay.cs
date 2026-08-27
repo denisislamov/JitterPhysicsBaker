@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
+using DataSakura.JitterPhysics.Editor.Api;
 using DataSakura.JitterPhysics.Editor.Baking;
 using DataSakura.JitterPhysics.UnityArtifact;
 using UnityEditor;

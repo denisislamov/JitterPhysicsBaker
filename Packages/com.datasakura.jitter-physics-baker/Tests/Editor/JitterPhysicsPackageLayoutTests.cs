@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
+using DataSakura.JitterPhysics.Editor.Api;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -37,6 +38,8 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             "Netick",
             "EFT.Runtime",
             "EFT.Shared",
+            "DataSakura.Navigation",
+            "DataSakura.CustomNavigation",
         };
 
         [Test]
@@ -86,6 +89,12 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             Assert.That(File.Exists(Path.Combine(
                 package.resolvedPath, manifest.samples[0].path, "Editor",
                 "DataSakura.JitterPhysics.Samples.Editor.asmdef")), Is.True);
+            Assert.That(File.Exists(Path.Combine(
+                package.resolvedPath, manifest.samples[0].path, "Editor",
+                "JitterPhysicsEditorApiExample.cs")), Is.True);
+            Assert.That(File.Exists(Path.Combine(
+                package.resolvedPath, manifest.samples[0].path, "Tests", "PlayMode",
+                "DataSakura.JitterPhysics.Samples.PlayModeTests.asmdef")), Is.True);
         }
 
         [Test]
@@ -126,6 +135,36 @@ namespace DataSakura.JitterPhysics.Editor.Tests
 
             Assert.That(editor.includePlatforms, Is.EquivalentTo(new[] { "Editor" }),
                 "The editor assembly must never be part of a player build.");
+        }
+
+        [Test]
+        public void PublicConsumerApiStaysInTheEditorOnlyAssembly()
+        {
+            Assert.That(typeof(JitterPhysicsEditorApi).Assembly,
+                Is.EqualTo(typeof(JitterPhysicsBakerWindow).Assembly));
+            Assert.That(typeof(JitterPhysicsPreviewApi).Assembly,
+                Is.EqualTo(typeof(JitterPhysicsBakerWindow).Assembly));
+
+            foreach (AssemblyName reference in typeof(JitterPhysicsEditorApi).Assembly.GetReferencedAssemblies())
+            {
+                Assert.That(reference.Name, Does.Not.Contain("NPI"));
+                Assert.That(reference.Name, Does.Not.Contain("EFT"));
+                Assert.That(reference.Name, Does.Not.Contain("Navigation"));
+            }
+
+            foreach (string portable in new[]
+                     {
+                         "DataSakura.JitterPhysics.Contracts",
+                         "DataSakura.JitterPhysics.ArtifactCodec",
+                     })
+            {
+                Assembly assembly = AppDomain.CurrentDomain.GetAssemblies()
+                    .Single(value => value.GetName().Name == portable);
+                Assert.That(
+                    assembly.GetReferencedAssemblies().Any(reference => reference.Name == "UnityEditor"),
+                    Is.False,
+                    $"Portable assembly '{portable}' must not inherit the editor API boundary.");
+            }
         }
 
         [Test]

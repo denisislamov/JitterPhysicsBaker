@@ -52,6 +52,14 @@ namespace DataSakura.JitterPhysics.Editor.Baking
             JitterPhysicsLevel level,
             string runtimeCompatibilityId)
         {
+            return Build(level, runtimeCompatibilityId, null);
+        }
+
+        internal static JitterPhysicsBuildResult Build(
+            JitterPhysicsLevel level,
+            string runtimeCompatibilityId,
+            string managedLevelId)
+        {
             var issues = new JitterPhysicsIssueLog();
 
             if (level == null)
@@ -69,7 +77,7 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                 return new JitterPhysicsBuildResult(null, issues);
             }
 
-            string levelId = level.EnsureLevelId();
+            string levelId = managedLevelId ?? level.EnsureLevelId();
             if (!JitterPhysicsIdUtility.IsCanonical(levelId))
             {
                 issues.Error($"The level id '{levelId}' is not canonical.", level);
@@ -263,4 +271,3 @@ namespace DataSakura.JitterPhysics.Editor.Baking
         }
     }
 }
-
