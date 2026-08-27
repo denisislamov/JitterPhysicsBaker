@@ -151,5 +151,9 @@ Unity Licensing Client (`Unsupported protocol version '1.18.1'`). После з�
 перезапуска versioned helper тот же checkout завершил EditMode 78/78; XML обновлён. Это
 диагностика окружения, а не test failure пакета.
 
-Версия `0.0.5` подготовлена к публикации. Source commit, standalone revision и tag будут
-записаны после scoped commit и проверки remote refs.
+Версия `0.0.5` опубликована и независимо проверена:
+
+- source commit: `31135a88c951309197d3442d88128b72c2b233da`;
+- standalone `main` и tag `v0.0.5`:
+  `9ed357d30e5fc749bebfa034dc576913d07156d7`;
+- install URL: `https://github.com/denisislamov/jitter-physics-baker.git#v0.0.5`.
