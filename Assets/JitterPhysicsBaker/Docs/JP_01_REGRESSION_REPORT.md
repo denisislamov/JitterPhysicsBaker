@@ -197,6 +197,9 @@ Unity Licensing Client (`Unsupported protocol version '1.18.1'`). После з�
 после запуска редактора адресно убраны, исходные пользовательские `URP.png` и junior guide
 не затронуты.
 
-Source feature commit: `407244e`. Публикация standalone `v0.0.6` не выполнялась: внешний
-push был остановлен средой до запуска и требует отдельного подтверждения конкретного GitHub
-назначения `https://github.com/denisislamov/jitter-physics-baker.git`.
+Версия `0.0.6` опубликована и независимо проверена через remote refs:
+
+- source feature commit: `407244e`;
+- standalone `main` и lightweight tag `v0.0.6`:
+  `ab7779d734cbbd7e84713172e1ff0b4fd278b19a`;
+- install URL: `https://github.com/denisislamov/jitter-physics-baker.git#v0.0.6`.
