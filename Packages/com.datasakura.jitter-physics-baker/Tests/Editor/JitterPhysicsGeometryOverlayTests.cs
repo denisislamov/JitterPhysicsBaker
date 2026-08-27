@@ -3,6 +3,7 @@ using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Editor.Diagnostics;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEditor;
 
 namespace DataSakura.JitterPhysics.Editor.Tests
 {
@@ -105,6 +106,54 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 "/mesh#0", PhysicsVector3.Zero, PhysicsQuaternion.Identity, vertices, new[] { 0, 2, 1 });
 
             Assert.That(JitterPhysicsGeometryComparer.ShapesMatch(baked, current), Is.False);
+        }
+
+        [Test]
+        public void PreviewUsesTheSpecifiedMutedPalette()
+        {
+            AssertColor(JitterPhysicsBakeGeometryOverlay.SourcesColor, "C5AC83");
+            AssertColor(JitterPhysicsBakeGeometryOverlay.BakedColor, "BD984F");
+            AssertColor(JitterPhysicsBakeGeometryOverlay.RuntimeColor, "D5B975");
+            AssertColor(JitterPhysicsBakeGeometryOverlay.ChangedColor, "A87945");
+            AssertColor(JitterPhysicsBakeGeometryOverlay.ErrorColor, "684779");
+            AssertColor(JitterPhysicsBakeGeometryOverlay.ErrorBackdropColor, "F0DEB8");
+        }
+
+        [Test]
+        public void OldOverlayPreferenceIsTheOnlyBakedLayerState()
+        {
+            bool existed = EditorPrefs.HasKey(JitterPhysicsBakeGeometryOverlay.PreferenceKey);
+            bool previous = JitterPhysicsBakeGeometryOverlay.Enabled;
+            try
+            {
+                JitterPhysicsBakeGeometryOverlay.SetEnabled(!previous);
+                Assert.That(JitterPhysicsPreviewPreferences.Baked, Is.EqualTo(!previous));
+                Assert.That(JitterPhysicsBakeGeometryOverlay.PreferenceKey,
+                    Is.EqualTo("DataSakura.JitterPhysics.Editor.ShowBakedGeometryOverlay"));
+            }
+            finally
+            {
+                if (existed) JitterPhysicsBakeGeometryOverlay.SetEnabled(previous);
+                else JitterPhysicsBakeGeometryOverlay.ResetPreference();
+            }
+        }
+
+        [Test]
+        public void RuntimePreviewContractStaysIndependentOfJitter2()
+        {
+            Assert.That(typeof(IJitterPhysicsRuntimePreviewSource).Assembly,
+                Is.EqualTo(typeof(PhysicsArtifact).Assembly));
+            foreach (System.Reflection.AssemblyName assembly in
+                     typeof(IJitterPhysicsRuntimePreviewSource).Assembly.GetReferencedAssemblies())
+            {
+                Assert.That(assembly.Name.StartsWith("Jitter2", System.StringComparison.Ordinal),
+                    Is.False);
+            }
+        }
+
+        private static void AssertColor(Color color, string expected)
+        {
+            Assert.That(ColorUtility.ToHtmlStringRGB(color), Is.EqualTo(expected));
         }
 
         private Transform CreateTransform()

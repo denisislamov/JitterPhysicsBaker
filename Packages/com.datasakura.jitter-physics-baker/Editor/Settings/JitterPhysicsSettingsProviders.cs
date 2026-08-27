@@ -105,17 +105,15 @@ namespace DataSakura.JitterPhysics.Editor.Settings
                 + "profile, artifact hash or server payload.",
                 MessageType.Info);
 
-            bool requested = EditorGUILayout.ToggleLeft(
-                "Show baked geometry overlay",
-                JitterPhysicsBakeGeometryOverlay.Enabled);
-            if (requested != JitterPhysicsBakeGeometryOverlay.Enabled)
-            {
-                JitterPhysicsBakeGeometryOverlay.SetEnabled(requested);
-            }
+            EditorGUILayout.HelpBox(
+                "Open the native Jitter Physics overlay in Scene View to choose Sources, Baked, "
+                + "Runtime, Scope and Visible/X-Ray. There is one shared personal state; this "
+                + "page does not maintain a second preview toggle.",
+                MessageType.None);
 
             if (GUILayout.Button("Reset to Defaults", GUILayout.Width(160f)))
             {
-                JitterPhysicsBakeGeometryOverlay.ResetPreference();
+                JitterPhysicsPreviewPreferences.ResetToDefaults();
             }
         }
     }

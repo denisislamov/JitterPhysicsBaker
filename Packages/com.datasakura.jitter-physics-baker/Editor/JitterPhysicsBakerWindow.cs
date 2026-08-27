@@ -1176,17 +1176,6 @@ namespace DataSakura.JitterPhysics.Editor
                 + "artifact this build can run.",
                 MessageType.Info);
 
-            bool showBakedGeometry = JitterPhysicsBakeGeometryOverlay.Enabled;
-            bool requestedShowBakedGeometry = EditorGUILayout.ToggleLeft(
-                new GUIContent(
-                    "Show baked geometry overlay",
-                    "Draw the last baked snapshot and changed authoring geometry in Scene View."),
-                showBakedGeometry);
-            if (requestedShowBakedGeometry != showBakedGeometry)
-            {
-                JitterPhysicsBakeGeometryOverlay.SetEnabled(requestedShowBakedGeometry);
-            }
-
             using (new EditorGUI.DisabledScope(level == null))
             {
                 if (GUILayout.Button("Repeat-bake determinism check"))

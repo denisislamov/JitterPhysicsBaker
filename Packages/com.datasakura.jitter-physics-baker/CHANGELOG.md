@@ -6,6 +6,23 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-08-27
+
+### Added
+- Added the native Scene View `Jitter Physics` overlay with independent Sources, Baked and
+  Runtime layers, active/selected or all-loaded level scope, Visible/X-Ray occlusion,
+  personal Settings and Frame Level.
+- Added a Jitter2-independent `IJitterPhysicsRuntimePreviewSource` contract. Runtime preview
+  is drawn only from an active provider; without one the overlay reports `No runtime data`.
+
+### Changed
+- Replaced the old green/red baked-geometry toggle with the muted JP-03 palette and distinct
+  dashed, filled, thick/marked, hatched and double-outline treatments. The old EditorPrefs
+  key is retained as the single Baked-layer preference; the separate window toggle is gone.
+- Cached current conversions and decoded bake records outside Scene View repaint. Moved and
+  removed records from the previous artifact remain visible, while scene, Undo, project and
+  play-mode changes invalidate the cache without creating meshes or materials.
+
 ## [0.0.7] - 2026-08-27
 
 ### Added

@@ -99,10 +99,14 @@ it. See `Server~/README.md`.
   profile and the authoring/generated folders. `Preferences > DataSakura > Jitter Physics >
   Scene Preview` stores only personal display state. A level exposes **Edit / New / Make Local
   Copy**; the last action preserves values but reassigns only that level.
-- **Diagnostics > Show baked geometry overlay** toggles a read-only
-  Scene View comparison. Green is the exact last baked snapshot; red is current geometry
-  that is new or changed. Removed geometry remains as a green ghost until the next bake, and
-  unmarked colliders under the geometry root are red because they cannot enter the artifact.
+- The native Scene View **Jitter Physics** overlay provides read-only Sources, Baked and
+  Runtime layers, level scope, Visible/X-Ray occlusion, Settings and Frame Level. Sources use
+  dashed sand lines, the exact last bake uses an ochre outline/fill, runtime uses a thicker
+  marked outline, and current differences use tobacco hatching with Changed/Moved/Removed
+  labels. Runtime reports `No runtime data` unless an active world supplies exact records
+  through `IJitterPhysicsRuntimePreviewSource`. Opening or repainting the overlay never bakes,
+  hashes or creates a runtime world. The previous baked snapshot remains visible when current
+  geometry is moved or removed.
 - **Settings > Advanced installation and maintenance > Open installation details** installs the fallback Jitter2 copy or the Jitter
   adapter and validates the installation. Its **Advanced** foldout owns migration, server
   projection and removal. Every action is explicit, an external Jitter2 is never touched,

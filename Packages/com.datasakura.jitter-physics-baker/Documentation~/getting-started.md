@@ -15,7 +15,7 @@ later if you ignore it, the rule is stated where the step is, not in a footnote.
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.7"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.8"
   }
 }
 ```
@@ -181,19 +181,18 @@ and a client and a server built minutes apart would quietly disagree about it.
 
 ### See what changed since the bake
 
-Enable **Diagnostics > Show baked geometry overlay** in the **DS Jitter Physics** window while
-looking at the level in Scene View.
+Open the native **Jitter Physics** overlay in Scene View while looking at the level. Enable
+**Sources**, **Baked** and/or **Runtime**, choose the active/selected level or all loaded
+levels, then choose **Visible** or **X-Ray** occlusion. **Frame Level** frames only the current
+scope. Personal choices can be reset from the overlay's **Settings** page.
 
-- Green wire geometry is the exact last baked snapshot.
-- Red wire geometry is current geometry that is new or differs from that snapshot.
-- A moved collider shows its old baked pose in green and its current pose in red.
-- A collider deleted after the bake leaves a green ghost until the next successful bake.
-- An enabled collider under the geometry root but outside every `JitterStaticBodySource` is
-  red, because it cannot enter the artifact.
-
-The legend at the bottom of Scene View reports baked, matching and red shape counts for each
-loaded level. The overlay is read-only: enabling it never validates, repairs ids or writes an
-artifact. Toggle the same Diagnostics control off when the comparison is no longer needed.
+The legend reports source, baked, changed/moved/removed and runtime shape counts. Dashed sand
+is current source geometry, filled ochre is the immutable bake, thick marked light ochre is
+geometry supplied by an active runtime, tobacco hatching is a current difference and a plum
+double outline is an invalid source. If no active runtime implements
+`IJitterPhysicsRuntimePreviewSource`, Runtime says `No runtime data`; it never substitutes
+Unity Colliders. The overlay is read-only: enabling it never validates, repairs ids or writes an
+artifact. Disable the individual layers when the comparison is no longer needed.
 
 ## 6. Load it in Unity
 

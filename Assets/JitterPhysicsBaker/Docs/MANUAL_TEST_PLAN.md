@@ -438,21 +438,35 @@ Ball нажать `Space` и проверить увеличение счётч�
 
 ### MT-30. Scene View показывает разницу с последним bake
 
-1. Открыть запечённую demo-сцену и включить
-   `Tools > DataSakura > Jitter Physics > Show Baked Geometry Overlay`.
-2. Убедиться, что запечённые colliders показаны зелёным wire overlay, а в легенде число
-   `matching` равно числу shapes текущей сцены.
-3. Переместить или изменить размер одного collider-а.
-4. Добавить включённый `BoxCollider` под geometry root без `JitterStaticBodySource`.
-5. Удалить другой collider, не выполняя bake.
-6. Выполнить успешный bake и снова посмотреть Scene View.
-7. Выключить тот же пункт меню.
+1. Открыть запечённую demo-сцену. В Scene View открыть штатный Overlay `Jitter Physics`.
+2. По очереди включить `Sources`, `Baked`, `Runtime`; проверить `Scope = Active Or Selected
+   Level` и `All Loaded Levels`, `Visible` и `X-Ray`, `Frame Level`, переход в `Settings`.
+3. В `Sources + Baked` проверить песочный пунктир текущих sources и сплошной охристый контур
+   со слабой заливкой сохранённого bake. Выключение слоя полностью убирает только этот слой.
+4. Переместить один source, изменить размер другого collider-а и удалить третий collider или
+   весь source, не выполняя bake.
+5. Убедиться, что прежний pose/удалённая форма остаётся видна из сохранённого bake, текущая
+   форма имеет табачную штриховку и подпись `Changed`, `Moved` или `Removed`.
+6. Выполнить успешный bake. Убедиться, что сравнение очистилось и новый bake занял текущий pose.
+7. В Play Mode без установленной integration или без active preview-provider включить Runtime.
+   Убедиться, что показано `No runtime data`, а Unity Colliders не нарисованы как подмена runtime.
+8. Импортировать Demos, установить integration, запустить сцену с `JitterPhysicsSampleWorld`.
+   Убедиться, что Runtime появляется только после готовности мира: светлая охра, линия толще,
+   на формах есть маркеры.
+9. Повторить совместно с Unity Collider gizmos и navigation preview на светлой теме, тёмной
+   теме и текстурированном фоне. Проверить, что physics не использует серый, красный, зелёный,
+   cyan или синий и не перекрывает navigation плотной заливкой.
+10. Открыть две Scene View, большую сцену и несколько загруженных уровней; менять Selection,
+    Scope и transform. В Profiler проверить отсутствие bake/hash всего мира на `Repaint`.
+11. Выполнить Undo/Redo, reload scripts, закрыть одну Scene View и сцену. Проверить отсутствие
+    retained meshes/materials/handlers и ошибок `MissingReferenceException`.
+12. В Preferences нажать `Reset to Defaults`, перезагрузить editor и проверить восстановление
+    личных значений без изменения scene, world profile, artifact hash или source ids.
 
-Ожидаемо: у изменённого collider-а старый pose остаётся зелёным, текущий становится красным;
-непомеченный collider красный; удалённая после bake геометрия остаётся зелёным «призраком».
-После bake актуальная помеченная геометрия зелёная, красный непомеченный collider остаётся
-красным. Toggle имеет checkmark, выключение полностью убирает overlay. Включение и просмотр
-ничего не записывают в сцену, артефакт или source ids.
+Ожидаемо: исходная геометрия, старый bake, runtime, изменения и ошибки различимы цветом и
+формой линии; удалённые данные не теряются до следующего bake. Старый EditorPrefs-флаг управляет
+тем же единственным состоянием Baked; отдельного Tools/Diagnostics toggle больше нет. Overlay
+ничего не записывает в gameplay content, не создаёт runtime world и не выполняет bake на Repaint.
 
 ## 9. Отчёт
 

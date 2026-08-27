@@ -25,7 +25,7 @@ namespace DataSakura.JitterPhysics.Samples
     /// </remarks>
     [DisallowMultipleComponent]
     [AddComponentMenu("DataSakura/Jitter Physics/Sample World")]
-    public sealed class JitterPhysicsSampleWorld : MonoBehaviour
+    public sealed class JitterPhysicsSampleWorld : MonoBehaviour, IJitterPhysicsRuntimePreviewSource
     {
         [Tooltip("Artifact baked from this scene's static geometry. Bake it from the sample menu.")]
         [SerializeField]
@@ -41,6 +41,7 @@ namespace DataSakura.JitterPhysics.Samples
         private int maxCatchUpSteps = 4;
 
         private float accumulator;
+        private PhysicsArtifact loadedArtifact;
 
         /// <summary>The world, once the artifact has been applied. Null until then.</summary>
         public World World { get; private set; }
@@ -102,6 +103,7 @@ namespace DataSakura.JitterPhysics.Samples
             }
 
             World = world;
+            loadedArtifact = loaded.Artifact;
             LevelId = loaded.Artifact.LevelId;
             TickRate = loaded.Artifact.WorldSettings.TickRate;
             StaticBodyCount = built.BodyCount;
@@ -165,7 +167,35 @@ namespace DataSakura.JitterPhysics.Samples
         {
             World?.Dispose();
             World = null;
+            loadedArtifact = null;
             IsReady = false;
+        }
+
+        /// <inheritdoc />
+        public string PhysicsPreviewLevelId => LevelId;
+
+        /// <inheritdoc />
+        public bool IsPhysicsPreviewReady => IsReady && World != null && loadedArtifact != null;
+
+        /// <inheritdoc />
+        public void CopyPhysicsPreviewBodies(System.Collections.Generic.ICollection<PhysicsBodyRecord> destination)
+        {
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
+            if (!IsPhysicsPreviewReady)
+            {
+                return;
+            }
+
+            // These are the exact records applied to this active world in Awake. Re-reading the
+            // scene colliders here would make Runtime a misleading duplicate of Sources.
+            for (int i = 0; i < loadedArtifact.Bodies.Count; i++)
+            {
+                destination.Add(loadedArtifact.Bodies[i]);
+            }
         }
 
         private void Fail(string message)
