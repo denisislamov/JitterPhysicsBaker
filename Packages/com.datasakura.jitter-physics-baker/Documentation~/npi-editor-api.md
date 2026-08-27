@@ -75,7 +75,18 @@ portable `IJitterPhysicsRuntimePreviewSource` contract and is optional.
 
 ## Verified revision
 
-`TO_BE_RECORDED_AFTER_VERIFICATION`
+JP-05 implementation commit:
+
+`b9a2a116b97b4fce0243a9ca7046f10144d308b7`
+
+Verified against that exact tree on Unity `6000.3.19f1`:
+
+- package metadata and Jitter2 lock checks passed;
+- portable/server tests: 78/78;
+- Unity EditMode: 97/97;
+- Unity PlayMode: 57/57;
+- isolated delivery: one project-owned Jitter2, editor API fixtures 7/7, imported sample
+  runtime fixture 1/1.
 
 Use only the exact recorded commit or a later package tag containing it for NPI-01. A branch name
 is not delivery evidence.
