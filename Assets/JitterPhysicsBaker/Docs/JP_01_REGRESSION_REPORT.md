@@ -157,3 +157,46 @@ Unity Licensing Client (`Unsupported protocol version '1.18.1'`). После з�
 - standalone `main` и tag `v0.0.5`:
   `9ed357d30e5fc749bebfa034dc576913d07156d7`;
 - install URL: `https://github.com/denisislamov/jitter-physics-baker.git#v0.0.5`.
+
+## Bake delivery follow-up — `0.0.6`
+
+По Navigation-образцу вкладка Bake стала компактным контуром доставки:
+
+- `Build for Client`, `Upload to Server`, `Export to Folder` используют один уже
+  существующий детерминированный bake/export pipeline;
+- текущий client artifact показан отдельной строкой;
+- `Remove baked physics` перечисляет в confirmation точные `.artifact.asset`,
+  `.jphys.bytes` и `.manifest.json`; удаление очищает last hash уровня, но не затрагивает
+  экспортированные или загруженные серверные копии;
+- world profile и локальные server preferences перенесены в Settings; token хранится только
+  в `EditorPrefs`;
+- sample WebViewer получил `POST /api/artifacts`: payload, manifest, hash, runtime id и
+  канонические имена проверяются до атомарной записи. Живой world не заменяется, ответ явно
+  требует restart.
+
+### Регрессия `0.0.6`
+
+| Проверка | Результат |
+|---|---|
+| package `.meta` / LFS | PASS |
+| Jitter2 lock + lock tests | PASS — hash `d67ac0c...cce85`, 96 files |
+| portable `.NET` | PASS — 76/76 |
+| Editor csproj | PASS — 0 warnings, 0 errors |
+| Editor.Tests csproj | PASS — 0 warnings, 0 errors |
+| Runtime Tests csproj | PASS — 0 warnings, 0 errors |
+| WebViewer build | PASS — 0 warnings, 0 errors |
+| Unity EditMode | PASS — 78/78 |
+| Unity PlayMode | PASS — 55/55 |
+| HTTP upload E2E | PASS — `demo_arena`, HTTP 200, hash совпал, `restartRequired: true` |
+| Обычный Editor import/compile | PASS — Unity `6000.3.19f1`, compile errors отсутствуют |
+| Интерактивный dialog/UI проход | NOT RUN — два Unity процесса нельзя было адресовать раздельно через accessibility; пользовательский EFT Editor не закрывался |
+
+Первый sandbox `.NET` run был остановлен запретом loopback socket; разрешённый повтор прошёл
+76/76. Первый sandbox Unity run не подключился к Licensing Client; разрешённые повторы
+дважды прошли 78/78 и 55/55. Автоматические URP/SceneTemplate/Generated.meta изменения
+после запуска редактора адресно убраны, исходные пользовательские `URP.png` и junior guide
+не затронуты.
+
+Source feature commit: `407244e`. Публикация standalone `v0.0.6` не выполнялась: внешний
+push был остановлен средой до запуска и требует отдельного подтверждения конкретного GitHub
+назначения `https://github.com/denisislamov/jitter-physics-baker.git`.
