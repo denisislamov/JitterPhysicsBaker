@@ -6,6 +6,8 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-08-27
+
 ### Added
 - Added native `Project Settings > DataSakura > Jitter Physics` project defaults and
   `Preferences > DataSakura > Jitter Physics > Scene Preview` personal display settings.
