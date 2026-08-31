@@ -9,23 +9,56 @@ not reference this API. The package has no NPI, EFT or navigation dependency.
 Standalone authoring keeps the existing component-owned ID:
 
 ```csharp
-JitterPhysicsEditorResult validation = JitterPhysicsEditorApi.Validate(
-    level,
-    JitterPhysicsLevelIdBinding.Standalone);
+using DataSakura.JitterPhysics.Authoring;
+using DataSakura.JitterPhysics.Editor.Api;
+
+namespace MyGame.EditorTools
+{
+    public static class NpiPhysicsBakeAdapter
+    {
+        public static JitterPhysicsEditorResult ValidateStandalone(JitterPhysicsLevel level)
+        {
+            return JitterPhysicsEditorApi.Validate(
+                level,
+                JitterPhysicsLevelIdBinding.Standalone);
+        }
+
+        public static JitterPhysicsEditorResult ValidateManaged(
+            JitterPhysicsLevel level,
+            string externalLevelId)
+        {
+            JitterPhysicsLevelIdBinding id = JitterPhysicsLevelIdBinding.External(
+                "NPI",
+                externalLevelId);
+            return JitterPhysicsEditorApi.Validate(level, id);
+        }
+
+        public static JitterPhysicsEditorResult BakeManaged(
+            JitterPhysicsLevel level,
+            string externalLevelId)
+        {
+            JitterPhysicsLevelIdBinding id = JitterPhysicsLevelIdBinding.External(
+                "NPI",
+                externalLevelId);
+            return JitterPhysicsEditorApi.Bake(level, id);
+        }
+
+        public static JitterPhysicsEditorResult ReadManaged(
+            JitterPhysicsLevel level,
+            string externalLevelId)
+        {
+            JitterPhysicsLevelIdBinding id = JitterPhysicsLevelIdBinding.External(
+                "NPI",
+                externalLevelId);
+            return JitterPhysicsEditorApi.ReadSummary(level, id);
+        }
+    }
+}
 ```
 
 An external owner is explicit and is represented only by strings, so no consumer assembly type
-leaks into the package:
-
-```csharp
-JitterPhysicsLevelIdBinding id = JitterPhysicsLevelIdBinding.External(
-    "NPI",
-    "npi_multiplayer_test");
-
-JitterPhysicsEditorResult validation = JitterPhysicsEditorApi.Validate(level, id);
-JitterPhysicsEditorResult baked = JitterPhysicsEditorApi.Bake(level, id);
-JitterPhysicsEditorResult current = JitterPhysicsEditorApi.ReadSummary(level, id);
-```
+leaks into the package. Put this adapter in an Editor-only assembly definition that references
+`DataSakura.JitterPhysics.Authoring` and `DataSakura.JitterPhysics.Editor`.
 
 The externally managed ID is used for that operation and is not written back to the standalone
 `JitterPhysicsLevel`. Empty owners, non-canonical IDs and IDs already owned by another loaded
@@ -45,8 +78,19 @@ Visible/X-Ray keys and raises one shared change notification. A consumer must no
 master toggle.
 
 ```csharp
-JitterPhysicsPreviewState state = JitterPhysicsPreviewApi.Current;
-JitterPhysicsPreviewApi.Apply(state.WithBaked(true));
+using DataSakura.JitterPhysics.Editor.Api;
+
+namespace MyGame.EditorTools
+{
+    public static class NpiPhysicsPreviewPreset
+    {
+        public static void ShowBakedGeometry()
+        {
+            JitterPhysicsPreviewState state = JitterPhysicsPreviewApi.Current;
+            JitterPhysicsPreviewApi.Apply(state.WithBaked(true));
+        }
+    }
+}
 ```
 
 Preview access needs neither Jitter2 nor a navigation package. Runtime preview data remains the

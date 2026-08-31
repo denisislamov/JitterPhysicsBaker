@@ -1,349 +1,156 @@
-# Getting started
+# Getting started: choose a route
 
-This is the whole path, end to end: install the package, mark up a level, bake it, load it in
-Unity, and load the same bytes on a dedicated server.
+[Documentation home](index.md) ·
+[Requirements and compatibility](requirements-and-compatibility.md) ·
+[Installation](installation.md) · [Troubleshooting](troubleshooting.md)
 
-It assumes nothing beyond a Unity 6000.3 project. Where a step has a rule that will bite you
-later if you ignore it, the rule is stated where the step is, not in a footnote.
+This path is retained for compatibility with links from earlier package versions. The manual is
+now split into focused pages so installation, authoring, runtime, and server guidance have one
+maintained source each.
 
----
+Choose the route that matches the result you need.
 
-## 1. Add the package
+| Goal | Recommended route |
+| --- | --- |
+| See a working bake and runtime result in 5–15 minutes | Follow [Quick Start](quick-start.md). |
+| Bake collision for an existing scene | Use the concise authoring route below, then the [Editor guide](editor-guide.md). |
+| Load the artifact in an existing Unity architecture | Read [Runtime API](runtime-api.md) and [Integration](integration.md). |
+| Start a dedicated server from the same artifact | Read [Dedicated server](dedicated-server.md). |
+| Update an older installation | Start with [Migration and upgrading](migration-and-upgrading.md). |
+| Diagnose a failure | Match the symptom in [Troubleshooting](troubleshooting.md). |
 
-`Packages/manifest.json`:
+## Fastest verified sample route
 
-```json
-{
-  "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.10"
-  }
-}
+This route produces a generated scene, a deterministic artifact, and a running Jitter2 result
+without requiring you to design an integration first.
+
+1. Install the pinned package release:
+
+   ```text
+   https://github.com/denisislamov/jitter-physics-baker.git#v0.0.12
+   ```
+
+2. Open **Tools > DataSakura > Jitter Physics Baker Window**.
+3. In a clean scene, press **Create Level**. The current Settings workflow requires a selected
+   `JitterPhysicsLevel`; this command also creates and assigns the default world profile when
+   needed. Save the scene.
+4. Open **Settings > Advanced installation and maintenance > Open installation details**.
+5. If the status is `Missing`, press **Install Jitter2**. If a project-owned copy is already
+   `Compatible`, keep it. Resolve `Incompatible`, `Duplicate`, or `UnsupportedPlugin` before
+   continuing.
+6. Press **Install/update integration**, then **Validate installation**.
+7. Open **Window > Package Manager**, select **DataSakura Jitter Physics Baker**, open **Samples**,
+   and import **Physics Baking Demos**.
+   If the project uses a source-based `Jitter2.Core` asmdef rather than the receipt-owned fallback,
+   add `"Jitter2.Core"` to the imported Runtime sample asmdef's `references` array before continuing;
+   the direct sample reference is documented in [Quick Start](quick-start.md#the-imported-sample-cannot-resolve-jitter2-or-the-integration).
+8. Run **Assets > DataSakura > Jitter Physics > Samples > Build and bake: Bouncing Ball**.
+9. Enter Play Mode and press Space.
+
+Expected result: the generated ball collides with the baked floor, ramp, and primitives, then
+eventually sleeps. The Artifact Verification component reports that the loaded bytes passed its
+payload hash, decode/schema, Level ID, body-count, and tick-rate checks. It displays the payload's
+runtime compatibility ID for comparison; the sample does not prove that ID against an independent
+build identity.
+
+If the sample assembly cannot resolve the integration, return to step 6. For detailed steps,
+expected Console output, and the two most common setup errors, use
+[Quick Start](quick-start.md).
+
+## Author and bake your own level
+
+After completing [Installation](installation.md):
+
+1. Create or select one `JitterPhysicsLevel` for the scene.
+2. Assign its Level ID, Geometry Root, World Profile, and Generated Folder. The Level ID is a
+   persistent content/network identity, not a display label.
+3. Add `JitterStaticBodySource` only to objects that should become static Jitter2 bodies. The
+   package converts marked `BoxCollider`, `SphereCollider`, `CapsuleCollider`, and
+   `MeshCollider` geometry; unmarked colliders are ignored.
+4. Keep each generated Source ID stable. Renaming a GameObject does not require a new ID.
+5. Press **Validate** before baking. It writes no artifact files, but it can normalize and assign
+   empty Level/Source IDs and dirty those authoring objects. Review that scene change, resolve every
+   error, and review warnings.
+6. Press **Build for Client**.
+
+A successful bake writes one delivery trio:
+
+```text
+<level-id>.physics.asset
+<level-id>.physics.bytes
+<level-id>.physics.manifest.json
 ```
 
-Or add it as a local path while developing:
+The binary is the canonical payload, the manifest carries its full hash and compatibility
+metadata, and the Unity asset provides a stable project reference. Treat all three as one unit.
 
-```json
-"com.datasakura.jitter-physics-baker": "file:../jitter-physics-baker"
-```
+Use **Diagnostics > Repeat-bake determinism check** after changing authoring or package code. Two
+bakes of unchanged input must produce identical bytes and SHA-256.
 
-**The import compiles in a project that has no Jitter2.** That is a design constraint, not a
-coincidence: `Contracts`, `ArtifactCodec`, `UnityArtifact`, `Authoring` and `Editor` do not
-reference Jitter2 at all. You can add the package, bake levels and inspect artifacts before
-deciding which Jitter2 the project will use.
+Field defaults, folder ownership, shared-profile behavior, and the current `SubstepCount`
+limitation are documented in [Configuration](configuration.md). Every window, Inspector action,
+overlay layer, and expected result is documented in the [Editor guide](editor-guide.md).
 
-## 2. Provide Jitter2
+## Load the artifact in Unity
 
-Open **Tools > DataSakura > Jitter Physics Baker Window**, then select **Settings**. Its summary
-tells you what the project currently has; use **Open
-installation details** for the explicit install/update actions.
+The consumer owns the Jitter2 world and tick loop:
 
-| Status | What it means | What to do |
-| --- | --- | --- |
-| `Missing` | No `Jitter2.Core` in the project | Press **Install Jitter2** |
-| `Compatible` | Your own copy, matching the lock | Nothing; the package will use it |
-| `Incompatible` | Your own copy, different sources | Re-bake after deciding which one is right |
-| `Duplicate` | Two copies | Remove one; Unity cannot resolve the name |
+1. Load and validate the `JitterPhysicsArtifactAsset` through
+   `JitterPhysicsArtifactLoader.Load(...)`.
+2. Create a new Jitter2 `World`.
+3. Apply the artifact once with `JitterPhysicsWorldBuilder.Apply(...)`.
+4. Refuse startup on a typed load or build error.
+5. Create dynamic bodies only after the static artifact succeeds.
+6. Step at `1f / artifact.WorldSettings.TickRate`; do not substitute Unity's fixed timestep.
 
-**An external Jitter2 always wins.** If the project already has one, the package references it
-by assembly name and never copies, moves or edits it. A tool that "helpfully" replaces a
-consumer's physics engine destroys months of local changes, so this one refuses instead.
+After a failed apply, discard the world. Created bodies are removed, but every setting assigned
+before the failure is not restored. `TopologyFingerprint` is diagnostic; compare
+`artifactHash + runtimeCompatibilityId` for compatibility.
 
-### What `Install Jitter2` actually installs
+The complete call sequence, ownership rules, cleanup, and compilable examples are in
+[Runtime API](runtime-api.md). Assembly references and integration patterns are in
+[Integration](integration.md), with focused variants in [Recipes](recipes.md).
 
-A compiled `netstandard2.1` assembly, not sources. Unity fixes game assemblies at C# 9 and the
-Jitter2 snapshot is written in a later language, so handing Unity the sources produces several
-hundred parse errors. That limit applies to sources Unity compiles, not to an assembly it
-loads, so the package compiles the snapshot itself and ships the result as a managed plugin.
+## Bring up a dedicated server
 
-Two files are written:
+The package supplies portable sources and startup contracts, not a server executable.
 
-- `Jitter2.Core.dll`
-- `System.Runtime.CompilerServices.Unsafe.dll`, unless the project already has one
+1. In installation details, expand **Advanced** and run
+   **Install server runtime sources...** into an SDK-style server source folder.
+2. Build that projection against the server's single compatible Jitter2.
+3. Deliver the `.physics.bytes` and `.physics.manifest.json` pair, or use a generated embedded
+   provider.
+4. Call `JitterPhysicsServerStartup.Start(...)` before enabling connection approval.
+5. Require `IsReady`; log the self-check only after successful load, compatibility validation,
+   and static-world construction.
+6. Carry both compatibility values in the consumer's own handshake and refuse a mismatch before
+   spawning a player.
 
-The second is not optional. It is absent from .NET Standard 2.1 and Unity does not deliver it
-to players; without it the editor still runs, because it resolves the assembly from its own
-toolchain, and the **player build** fails to load Jitter2. The installer says so if it ends up
-missing.
+The server keeps ownership of `World.Step`, networking, authoritative state, deployment, and
+content delivery. Continue with [Dedicated server](dedicated-server.md).
 
-See `Jitter2~/PATCHES.md` for the shims and the seventeen source patches that make the
-snapshot compile, and why they cannot change simulation behaviour.
+## Update or migrate
 
-## 3. Install the integration adapter
+Imported samples, installed integration files, and server-projected sources are copies; changing
+the UPM tag does not overwrite them automatically.
 
-In the detailed installation view, press **Install/update integration**. This is the
-Jitter-dependent half: the code that turns
-artifact records into Jitter2 shapes and bodies. It is separate from the package core so that
-step 1 can work without Jitter2.
+For `0.0.12`, the documentation/version update does not change schema or runtime compatibility,
+so artifacts do not need a version-only re-bake. Receipt-managed components can still report an
+older package SemVer and the server projection includes the package-version constant. Review and
+refresh those copies explicitly without treating the SemVer warning as a runtime mismatch.
 
-Install it after Jitter2, not before. It references `Jitter2.Core` by name, and installing it
-first turns a clean import into a wall of `CS0246`.
+Use [Migration and upgrading](migration-and-upgrading.md) for the safe decision table, pre-`0.0.3`
+layout migration, legacy bake-name migration, sample lifecycle, verification, and rollback.
 
-## 4. Mark up a level
+## If the expected result is missing
 
-Three components, and nothing is baked that you did not mark.
-
-### `JitterPhysicsLevel`
-
-One per scene, on any object. It defines what a bake produces.
-
-| Field | Meaning |
+| Symptom | First check |
 | --- | --- |
-| Level Id | Identity of the level, in the artifact and in the handshake |
-| Geometry Root | Subtree the sources are collected from |
-| World Profile | Gravity, tick rate, solver settings |
-| Generated Folder | Where the artifact asset is written |
-
-The level id is what the client sends and the server compares. Change it and every baked
-artifact for that level becomes a different level.
-
-### `JitterStaticBodySource`
-
-Put one on every object that should become a static body. Its colliders become that body's
-shapes.
-
-| Field | Meaning |
-| --- | --- |
-| Source Id | Stable identity of this body inside the artifact |
-| Include Children | Also collect colliders from child objects |
-| Friction / Restitution | Surface material for every shape on this body |
-
-Source ids are generated once and then kept. Renaming the GameObject does not change the
-artifact, because the id is the identity and the name is only a label. That is what makes a
-re-bake after a rename produce identical bytes.
-
-Supported colliders: `BoxCollider`, `SphereCollider`, `CapsuleCollider`, `MeshCollider`.
-
-A `SphereCollider` under non-uniform scale is approximated by its largest axis, and the bake
-warns. A player brushing against slightly larger geometry is cheaper than a player walking
-through a wall.
-
-### `JitterPhysicsWorldProfile`
-
-A `ScriptableObject`, shared between levels. **Create > DataSakura > Jitter Physics > World
-Profile**.
-
-| Field | Note |
-| --- | --- |
-| Gravity | Used by the client and the server; do not read Unity's `Physics.gravity` instead |
-| Tick Rate | The step both sides advance by |
-| Substep Count | Solver substeps per step |
-| Solver / Relaxation Iterations | Solver quality |
-| Allow Deactivation | Let resting bodies sleep |
-
-These travel inside the artifact. That is deliberate: a server that inherited a different tick
-rate from its own configuration would diverge from client prediction by construction.
-
-Use `Project Settings > DataSakura > Jitter Physics` to select the shared default profile and
-the folders used by new levels. Opening Project Settings creates nothing; press **Create
-Defaults** (or explicitly create a level) to create the first profile. In the level Inspector
-or authoring window:
-
-- **Edit** selects the current asset and warns when loaded levels share it;
-- **New** creates and assigns a profile starting from the project default;
-- **Make Local Copy** copies every value and reassigns only this level, with Undo and prefab
-  overrides preserved.
-
-Personal overlay state is under `Preferences > DataSakura > Jitter Physics > Scene Preview`.
-It is stored outside scenes and project defaults and never contributes to artifact identity.
-
-## 5. Bake
-
-Open **Tools > DataSakura > Jitter Physics Baker Window**, select the level, then select **Bake**.
-
-- **Validate** reports problems without writing anything. Every issue can select the object
-  that caused it.
-- **Build for Client** validates and writes the artifact.
-
-A bake either completes or changes nothing. A partially converted level is never written,
-because missing geometry shows up as a hole in a wall at runtime rather than as a message at
-bake time. The previous artifact survives a failed bake.
-
-Three files are produced:
-
-| File | Purpose |
-| --- | --- |
-| `<level>.physics.bytes` | The exact deterministic artifact payload |
-| `<level>.physics.manifest.json` | Counts, full payload hash, compatibility and tick rate |
-| `<level>.physics.asset` | Stable Unity reference to the payload and its summary |
-
-The full hash remains in the manifest and is verified against the payload. Publishing a changed
-bake replaces the stable-name binary/manifest pair together, with rollback on failure.
-
-### Determinism
-
-Baking the same scene twice must produce the same bytes. The samples expose this as a menu
-entry (**Samples > Verify determinism**), and it is worth running after changing the authoring
-setup.
-
-This is the property the whole format exists for. A baker that emitted a hash table in
-enumeration order, or wrote a timestamp, would still produce a level that loads and plays -
-and a client and a server built minutes apart would quietly disagree about it.
-
-### See what changed since the bake
-
-Open the native **Jitter Physics** overlay in Scene View while looking at the level. Enable
-**Sources**, **Baked** and/or **Runtime**, choose the active/selected level or all loaded
-levels, then choose **Visible** or **X-Ray** occlusion. **Frame Level** frames only the current
-scope. Personal choices can be reset from the overlay's **Settings** page.
-
-The legend reports source, baked, changed/moved/removed and runtime shape counts. Dashed sand
-is current source geometry, filled ochre is the immutable bake, thick marked light ochre is
-geometry supplied by an active runtime, tobacco hatching is an added or reshaped source,
-muted terracotta marks moved geometry, muted brick red marks removed bake records, and a plum
-double outline is an invalid source. If no active runtime implements
-`IJitterPhysicsRuntimePreviewSource`, Runtime says `No runtime data`; it never substitutes
-Unity Colliders. The overlay is read-only: enabling it never validates, repairs ids or writes an
-artifact. Disable the individual layers when the comparison is no longer needed.
-
-## 6. Load it in Unity
-
-The package does not own the tick loop, so this is code you write. The shape of it:
-
-```csharp
-PhysicsArtifactResult loaded = JitterPhysicsArtifactLoader.Load(artifactAsset);
-if (!loaded.Succeeded)
-{
-    // Typed error: Code and Message. Refuse to start; do not fall back to legacy geometry.
-    return;
-}
-
-var world = new World();
-PhysicsWorldBuildResult built = JitterPhysicsWorldBuilder.Apply(world, loaded.Artifact);
-if (!built.Succeeded)
-{
-    world.Dispose();
-    return;
-}
-
-// built.TopologyFingerprint, built.BodyCount, built.ShapeCount
-```
-
-Then step it yourself, on the artifact's tick rate:
-
-```csharp
-float timestep = 1f / loaded.Artifact.WorldSettings.TickRate;
-world.Step(timestep, multiThread: false);
-```
-
-Rules that are not style preferences:
-
-- **Build the static world before creating any dynamic bodies**, and before the first step.
-  Order matters to the broadphase, and a body created into a half-built world will not be
-  where you think it is.
-- **`Apply` is once per world.** A second call is refused rather than merged; merging would
-  silently double every wall in the level.
-- **A failed `Apply` rolls back.** The world is left empty, never partially built, because a
-  partial level looks like it is working.
-- **Take the timestep from the artifact**, not from Unity's fixed timestep. The server does
-  not know your project settings.
-
-`Samples~/Demos/Runtime/JitterPhysicsSampleWorld.cs` is a complete working version of the above.
-
-## 7. Install the samples
-
-After Jitter2 and the integration adapter are installed, open **Window > Package Manager**,
-select **DataSakura Jitter Physics Baker**, open **Samples**, and import
-**Physics Baking Demos**. Then use **Assets > DataSakura > Jitter Physics > Samples > Build
-and bake: Bouncing Ball**.
-
-Unity imports the sample to
-`Assets/Samples/DataSakura Jitter Physics Baker/<package-version>/Physics Baking Demos`.
-Setup installs prerequisites and integration only; it deliberately does not create another
-sample copy under `Assets/DataSakura`.
-
-| Sample | Shows |
-| --- | --- |
-| Bouncing Ball | Bodies land on the baked surfaces and go to sleep |
-| FPS Shooter | Walking on, being stopped by, and shooting at baked geometry |
-| Artifact Verification | What a server checks before accepting players |
-
-The sample assembly references the adapter by name. Package Manager cannot make its standard
-**Import** button conditional on a project-owned assembly, so install the adapter first; use
-the guarded Setup installer if you want the prerequisite checked before any files are copied.
-The sample controls support both Unity input backends without adding an Input System package
-dependency.
-
-## 8. Run it on a dedicated server
-
-The server never opens Unity, so it needs the sources and the bytes.
-
-**Sources.** In **Settings > Open installation details > Advanced**, choose
-**Install server runtime sources...** to
-projects `Contracts`,
-`ArtifactCodec` and the adapter into a folder inside your server project. They compile with a
-plain .NET SDK against your Jitter2 assembly. No `PackageCache` paths, no build-file edits:
-the projection is ordinary source files in a folder an SDK-style project already globs.
-
-**Bytes.** Two ways to deliver them:
-
-- a file, next to the server, loaded by `FilePhysicsArtifactProvider`;
-- embedded into the binary, exported from **Diagnostics**.
-
-**Startup order.** Load the artifact, verify it, build the static world, and only then accept
-connections:
-
-```csharp
-var provider = new FilePhysicsArtifactProvider(manifestPath);
-JitterPhysicsServerState state = JitterPhysicsServerStartup.Start(world, provider, options);
-if (!state.IsReady)
-{
-    // Exit. A server that accepts players into an empty world is worse than one that
-    // does not start.
-    return 1;
-}
-```
-
-The self-check line printed on success is meant for container logs and carries short hashes
-only.
-
-The UPM package supplies server runtime sources, not a standalone server executable. In the
-development monorepo, `Server/JitterPhysicsWebViewer` is a complete host example that loads an
-artifact, builds the world, steps it and renders it in a browser. That example is outside the
-published package tree; copy its hosting pattern into your server project or clone the
-development repository to run it unchanged.
-
-## 9. Make client and server agree
-
-Two values decide compatibility, and both matter.
-
-| Value | Answers |
-| --- | --- |
-| `artifactHash` | "Are we running the same level file?" |
-| `runtimeCompatibilityId` | "Would we simulate it the same way?" |
-
-The second is derived, never written by hand, from the schema version, the Jitter2 source
-hash, the precision and compile profile, and the collider, shape and world-builder semantic
-versions. Two builds can hold byte-identical artifacts and still simulate differently; the id
-is what catches that.
-
-Send both in your handshake, compare both, and refuse the connection before the player spawns.
-`PhysicsCompatibilityToken` encodes them without depending on your transport.
-
-**When the id changes, re-bake.** Upgrading the package, syncing a new Jitter2 snapshot or
-changing the compile profile all change it, and that is the intended behaviour: a client and a
-server built against different Jitter sources must not be able to claim compatibility.
-
-## 10. Diagnose problems
-
-Baker window, **Diagnostics** section:
-
-| Check | Catches |
-| --- | --- |
-| Codec roundtrip | The artifact is no longer canonical |
-| Repeat determinism | The bake is not reproducible |
-| Runtime compatibility | The artifact is stale for this build - re-bake it |
-
-`Validate installation` in Setup compares the receipt with what is on disk, which is what a
-consumer's CI runs to catch "the package was updated but the installed copy was not".
-
-Locally modified files are reported, never overwritten. A local change that an update silently
-reverts works right up until it does not.
-
-## What this package does not claim
-
-The static topology is identical on both sides and the artifact is byte-exact. A bit-exact
-`World.Step` between Unity's runtime and .NET is **not** claimed: that depends on the runtime,
-the JIT and the floating-point environment, none of which this package controls.
-
-What it guarantees is that both sides start from the same geometry and know, before the match
-begins, whether they agree.
+| Package imports but Bake is blocked | Confirm exactly one Jitter2 and a `Compatible` status. |
+| Settings shows only **Create Level** | Create/select a level; Settings currently requires one. |
+| Imported sample has a missing assembly | Install/update the integration before importing or compiling the sample. |
+| Artifact is reported stale | Compare runtime compatibility IDs and re-bake only after aligning Jitter2 and runtime semantics. |
+| World build fails | Discard the failed world and inspect the typed error before retrying. |
+| Player build fails but Editor works | Treat the player backend/platform as a separate gate; inspect AOT, stripping, and managed-plugin errors. |
+
+Continue with the full symptom-to-fix table in [Troubleshooting](troubleshooting.md).

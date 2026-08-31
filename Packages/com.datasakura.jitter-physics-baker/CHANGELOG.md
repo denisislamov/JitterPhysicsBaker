@@ -6,6 +6,27 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.12] - 2026-08-31
+
+### Added
+- Added a complete linked package manual covering compatibility, installation, Quick Start,
+  architecture, Editor authoring, configuration, runtime and server integration, extension
+  points, recipes, troubleshooting, migration, and the supported public API.
+- Added explicit verified-versus-unverified compatibility guidance and documented the known
+  `SubstepCount`, failed-world-apply rollback, late bake-delivery, and topology-fingerprint
+  limits.
+
+### Changed
+- Replaced the long package README with a concise commercial entry point and turned the legacy
+  `Documentation~/getting-started.md` path into a maintained route chooser.
+- Updated installation examples and package release identity to `0.0.12`, while keeping artifact
+  schema and runtime compatibility semantics unchanged.
+
+### Upgrade notes
+- Existing artifacts do not require a version-only re-bake for `0.0.12`. Receipt-managed copied
+  components and the server projection may still report the earlier package SemVer; review and
+  refresh those copies explicitly without treating that warning as a runtime mismatch.
+
 ## [0.0.11] - 2026-08-28
 
 ### Added
@@ -377,7 +398,14 @@ All notable changes to this package are documented here. The format is based on
   mode. What no test can cover — dialogs, windows, installing into a project, exporting — is
   written down step by step in the development project's manual test plan.
 
-[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/denisislamov/jitter-physics-baker/compare/v0.0.12...HEAD
+[0.0.12]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.12
+[0.0.11]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.11
+[0.0.10]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.10
+[0.0.9]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.9
+[0.0.8]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.8
+[0.0.7]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.7
+[0.0.6]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.6
 [0.0.5]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.5
 [0.0.4]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.4
 [0.0.3]: https://github.com/denisislamov/jitter-physics-baker/releases/tag/v0.0.3

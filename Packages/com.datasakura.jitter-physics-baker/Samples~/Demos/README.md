@@ -19,6 +19,13 @@ standard Package Manager import cannot disable its button while that project-own
 is missing, so importing out of order produces a missing-assembly error. Complete Setup
 before pressing Import.
 
+The imported runtime scripts also use Jitter2 types directly. The receipt-owned fallback is an
+auto-referenced precompiled plugin, so it needs no entry in the sample asmdef. If the consumer uses
+a compatible source-based `Jitter2.Core` asmdef instead, add `"Jitter2.Core"` to the imported
+`Runtime/DataSakura.JitterPhysics.Samples.asmdef` `references` array. Assembly-definition
+references are not transitive through the integration adapter. The imported sample is
+consumer-owned; do not edit the package cache copy.
+
 The controls work with either **Input Manager (Old)** or **Input System Package** as the
 project's active input backend. The samples do not add an Input System package dependency.
 
@@ -35,7 +42,7 @@ After installing, use **Assets > DataSakura > Jitter Physics > Samples**:
 | Build and bake: Bouncing Ball | Generates the scene, bakes it, wires the artifact, saves. |
 | Build and bake: FPS Shooter | The same, for the shooter level. |
 | Bake level in the open scene | Re-bakes after you edit the geometry. |
-| Validate level in the open scene | Reports problems without writing anything. |
+| Validate level in the open scene | Reports problems without writing artifact files; it can assign canonical empty Level/Source IDs and dirty those scene objects. |
 | Verify determinism: bake the open level twice | Bakes twice and compares the two hashes. |
 
 The scenes are generated from code, not shipped as `.unity` files. A committed scene is a
@@ -94,9 +101,11 @@ The bake already validated the artifact, which is a different question. What shi
 file, and between baking and loading it can be replaced by a stale copy, truncated in
 transfer, or paired with a manifest from another bake. None of that is visible at bake time.
 
-The fingerprint is the field to compare across machines: a client and a server that print
-different fingerprints built different geometry from the same file, and no amount of
-identical artifact hashes makes that safe.
+Use the full `artifactHash + runtimeCompatibilityId` pair as the client/server compatibility gate.
+A different topology fingerprint is useful evidence that two worlds were built differently, but a
+matching value is not proof: the current fingerprint omits mesh vertex/index contents, materials,
+and world settings. Identical artifact hashes are also insufficient when runtime compatibility IDs
+differ.
 
 ## Where things go
 
