@@ -816,21 +816,21 @@ Epic acceptance:
 
 Subtasks:
 
-- [ ] `git diff --check`.
-- [ ] `python3 tools/verify-package-meta.py`.
-- [ ] `verify-jitter2-lock.py` и `test-jitter2-lock.py`.
-- [ ] Editor/Editor.Tests/Runtime.Tests csproj builds.
-- [ ] Source audit и allowlist validation.
+- [x] `git diff --check`.
+- [x] `python3 tools/verify-package-meta.py`.
+- [x] `verify-jitter2-lock.py` и `test-jitter2-lock.py`.
+- [x] Editor/Editor.Tests/Runtime.Tests csproj builds.
+- [x] Source audit и allowlist validation.
 
 ### JMP-T09.2. Выполнить portable/server gates
 
 Subtasks:
 
-- [ ] Запустить `tools~/test-dotnet.sh`.
-- [ ] Отдельно записать portable codec test count.
-- [ ] Отдельно записать world builder/server startup test count.
-- [ ] Проверить StableMath public API и bit golden suites.
-- [ ] Проверить server DLL hash до startup.
+- [x] Запустить `tools~/test-dotnet.sh`.
+- [x] Отдельно записать portable codec test count.
+- [x] Отдельно записать world builder/server startup test count.
+- [x] Проверить StableMath public API и bit golden suites.
+- [x] Проверить server DLL hash до startup.
 
 ### JMP-T09.3. Выполнить Unity gates
 
@@ -859,16 +859,16 @@ Subtasks:
 
 Subtasks:
 
-- [ ] Записать baseline и final commit.
-- [ ] Перечислить public contract changes.
-- [ ] Указать `Real` alias location для каждой assembly.
-- [ ] Записать canonical DLL SHA-256 и profile.
-- [ ] Записать schema/re-bake decision.
-- [ ] Перечислить remaining scalar/math usages с boundary reason.
-- [ ] Отчитаться по каждому gate отдельно.
-- [ ] Оставить честные `NOT RUN/BLOCKED`.
-- [ ] Приложить final git status и unrelated-file confirmation.
-- [ ] Не выполнять push/tag/publish без отдельного approval.
+- [x] Записать baseline и final commit.
+- [x] Перечислить public contract changes.
+- [x] Указать `Real` alias location для каждой assembly.
+- [x] Записать canonical DLL SHA-256 и profile.
+- [x] Записать schema/re-bake decision.
+- [x] Перечислить remaining scalar/math usages с boundary reason.
+- [x] Отчитаться по каждому gate отдельно.
+- [x] Оставить честные `NOT RUN/BLOCKED`.
+- [x] Приложить final git status и unrelated-file confirmation.
+- [x] Не выполнять push/tag/publish без отдельного approval.
 
 Epic acceptance:
 
