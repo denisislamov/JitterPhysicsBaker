@@ -4,6 +4,7 @@ using DataSakura.JitterPhysics.ArtifactCodec;
 using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Editor.Baking;
+using DataSakura.JitterPhysics.Editor.Export;
 using DataSakura.JitterPhysics.UnityArtifact;
 using NUnit.Framework;
 using UnityEditor;
@@ -231,6 +232,71 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             Assert.That(
                 AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(good.Output.AssetPath),
                 Is.Not.Null);
+        }
+
+        [Test]
+        public void FailureAfterPairImportRollsBackTheWholeTrio()
+        {
+            AssertLateFailureRollsBackTrio(JitterPhysicsArtifactTrioFailurePoint.AfterPairImport);
+        }
+
+        [Test]
+        public void FailureAfterAssetSaveRollsBackTheWholeTrio()
+        {
+            AssertLateFailureRollsBackTrio(JitterPhysicsArtifactTrioFailurePoint.AfterAssetSave);
+        }
+
+        private void AssertLateFailureRollsBackTrio(
+            JitterPhysicsArtifactTrioFailurePoint failurePoint)
+        {
+            JitterPhysicsLevel level = CreateLevelWithGround();
+            JitterPhysicsBakeResult good = JitterPhysicsBaker.Bake(level, RuntimeId);
+            Assert.That(good.Succeeded, Is.True, good.Issues.Format());
+
+            byte[] payloadBefore = File.ReadAllBytes(good.Output.PayloadPath);
+            byte[] manifestBefore = File.ReadAllBytes(good.Output.ManifestPath);
+            byte[] assetBefore = File.ReadAllBytes(good.Output.AssetPath);
+            string payloadGuid = AssetDatabase.AssetPathToGUID(good.Output.PayloadPath);
+            string manifestGuid = AssetDatabase.AssetPathToGUID(good.Output.ManifestPath);
+            string assetGuid = AssetDatabase.AssetPathToGUID(good.Output.AssetPath);
+
+            JitterStaticBodySource source =
+                level.GeometryRoot.GetComponentInChildren<JitterStaticBodySource>();
+            source.transform.position += new Vector3(0f, 3f, 0f);
+
+            JitterPhysicsBakeResult failed = JitterPhysicsBaker.BakeWithFailureForTests(
+                level, RuntimeId, failurePoint);
+
+            Assert.That(failed.Succeeded, Is.False);
+            Assert.That(failed.Issues.Format(), Does.Contain("Injected artifact trio failure"));
+            Assert.That(File.ReadAllBytes(good.Output.PayloadPath), Is.EqualTo(payloadBefore));
+            Assert.That(File.ReadAllBytes(good.Output.ManifestPath), Is.EqualTo(manifestBefore));
+            Assert.That(File.ReadAllBytes(good.Output.AssetPath), Is.EqualTo(assetBefore));
+            Assert.That(AssetDatabase.AssetPathToGUID(good.Output.PayloadPath), Is.EqualTo(payloadGuid));
+            Assert.That(AssetDatabase.AssetPathToGUID(good.Output.ManifestPath), Is.EqualTo(manifestGuid));
+            Assert.That(AssetDatabase.AssetPathToGUID(good.Output.AssetPath), Is.EqualTo(assetGuid));
+
+            var restored = AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(good.Output.AssetPath);
+            PhysicsArtifactResult loaded = JitterPhysicsArtifactLoader.Load(restored, RuntimeId);
+            Assert.That(loaded.Succeeded, Is.True, loaded.Error.ToString());
+            Assert.That(JitterPhysicsArtifactExporter.ReadDelivery(restored).Succeeded, Is.True);
+        }
+
+        [Test]
+        public void ExportRefusesAssetMetadataThatDoesNotMatchThePair()
+        {
+            JitterPhysicsLevel level = CreateLevelWithGround();
+            JitterPhysicsBakeResult baked = JitterPhysicsBaker.Bake(level, RuntimeId);
+            Assert.That(baked.Succeeded, Is.True, baked.Issues.Format());
+
+            var asset = AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(baked.Output.AssetPath);
+            var serialized = new SerializedObject(asset);
+            serialized.FindProperty("shapeCount").intValue += 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            JitterPhysicsArtifactDelivery delivery = JitterPhysicsArtifactExporter.ReadDelivery(asset);
+            Assert.That(delivery.Succeeded, Is.False);
+            Assert.That(delivery.Issues.Format(), Does.Contain("delivery unit"));
         }
 
         [Test]

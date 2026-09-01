@@ -8,6 +8,13 @@ using UnityEngine;
 
 namespace DataSakura.JitterPhysics.Editor.Baking
 {
+    internal enum JitterPhysicsArtifactTrioFailurePoint
+    {
+        None = 0,
+        AfterPairImport,
+        AfterAssetSave,
+    }
+
     /// <summary>What a successful bake produced.</summary>
     public sealed class JitterPhysicsBakeOutput
     {
@@ -87,13 +94,33 @@ namespace DataSakura.JitterPhysics.Editor.Baking
             Authoring.JitterPhysicsLevel level,
             string runtimeCompatibilityId)
         {
-            return Bake(level, runtimeCompatibilityId, null);
+            return BakeCore(
+                level, runtimeCompatibilityId, null, JitterPhysicsArtifactTrioFailurePoint.None);
         }
 
         internal static JitterPhysicsBakeResult Bake(
             Authoring.JitterPhysicsLevel level,
             string runtimeCompatibilityId,
             string managedLevelId)
+        {
+            return BakeCore(
+                level, runtimeCompatibilityId, managedLevelId,
+                JitterPhysicsArtifactTrioFailurePoint.None);
+        }
+
+        internal static JitterPhysicsBakeResult BakeWithFailureForTests(
+            Authoring.JitterPhysicsLevel level,
+            string runtimeCompatibilityId,
+            JitterPhysicsArtifactTrioFailurePoint failurePoint)
+        {
+            return BakeCore(level, runtimeCompatibilityId, null, failurePoint);
+        }
+
+        private static JitterPhysicsBakeResult BakeCore(
+            Authoring.JitterPhysicsLevel level,
+            string runtimeCompatibilityId,
+            string managedLevelId,
+            JitterPhysicsArtifactTrioFailurePoint failurePoint)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
@@ -132,7 +159,8 @@ namespace DataSakura.JitterPhysics.Editor.Baking
 
             try
             {
-                JitterPhysicsBakeOutput output = Write(build.Artifact, level.GeneratedFolder, build.Issues);
+                JitterPhysicsBakeOutput output = Write(
+                    build.Artifact, level.GeneratedFolder, build.Issues, failurePoint);
                 if (output == null)
                 {
                     return new JitterPhysicsBakeResult(null, build.Issues);
@@ -156,7 +184,8 @@ namespace DataSakura.JitterPhysics.Editor.Baking
         private static JitterPhysicsBakeOutput Write(
             PhysicsArtifact artifact,
             string generatedFolder,
-            JitterPhysicsIssueLog issues)
+            JitterPhysicsIssueLog issues,
+            JitterPhysicsArtifactTrioFailurePoint failurePoint)
         {
             PhysicsArtifactPayload payload = PhysicsArtifactWriter.WriteWithManifest(
                 artifact, JitterPhysicsPackage.PackageVersion);
@@ -184,6 +213,7 @@ namespace DataSakura.JitterPhysics.Editor.Baking
             string payloadPath = JitterPhysicsArtifactPaths.BinaryAssetPath(folder, artifact.LevelId);
             string manifestPath = JitterPhysicsArtifactPaths.ManifestAssetPath(folder, artifact.LevelId);
             string assetPath = JitterPhysicsArtifactPaths.ArtifactAssetPath(folder, artifact.LevelId);
+            TrioSnapshot previous = TrioSnapshot.Capture(payloadPath, manifestPath, assetPath);
 
             string staging = FileUtil.GetUniqueTempPathInProject();
             Directory.CreateDirectory(staging);
@@ -206,35 +236,142 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                     File.ReadAllBytes(stagedPayload),
                     ToAbsolutePath(manifestPath),
                     File.ReadAllText(stagedManifest));
+
+                AssetDatabase.ImportAsset(payloadPath, ImportAssetOptions.ForceSynchronousImport);
+                AssetDatabase.ImportAsset(manifestPath, ImportAssetOptions.ForceSynchronousImport);
+                ThrowAt(failurePoint, JitterPhysicsArtifactTrioFailurePoint.AfterPairImport);
+
+                var payloadAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(payloadPath);
+                if (payloadAsset == null)
+                {
+                    throw new IOException($"Unity did not import the payload at '{payloadPath}'.");
+                }
+
+                UpdateArtifactAsset(assetPath, payload.Manifest, payloadAsset);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                ThrowAt(failurePoint, JitterPhysicsArtifactTrioFailurePoint.AfterAssetSave);
+
+                string trioError = VerifyArtifactTrio(
+                    payloadPath, manifestPath, assetPath, payload);
+                if (trioError != null)
+                {
+                    throw new IOException("Artifact trio verification failed: " + trioError);
+                }
+
+                return new JitterPhysicsBakeOutput(
+                    assetPath,
+                    payloadPath,
+                    manifestPath,
+                    payload.ArtifactHash,
+                    payload.Bytes.Length,
+                    payload.Manifest);
+            }
+            catch
+            {
+                previous.Restore();
+                throw;
             }
             finally
             {
-                if (Directory.Exists(staging))
+                if (Directory.Exists(staging)) Directory.Delete(staging, true);
+            }
+        }
+
+        private static void ThrowAt(
+            JitterPhysicsArtifactTrioFailurePoint configured,
+            JitterPhysicsArtifactTrioFailurePoint current)
+        {
+            if (configured == current)
+            {
+                throw new IOException("Injected artifact trio failure at " + current + ".");
+            }
+        }
+
+        private static string VerifyArtifactTrio(
+            string payloadPath,
+            string manifestPath,
+            string assetPath,
+            PhysicsArtifactPayload expected)
+        {
+            byte[] bytes = File.ReadAllBytes(payloadPath);
+            PhysicsArtifactManifest manifest = PhysicsArtifactManifestCodec.Read(
+                File.ReadAllText(manifestPath), out string manifestError);
+            if (manifest == null) return "Manifest is invalid: " + manifestError;
+
+            PhysicsArtifactResult decoded = PhysicsArtifactReader.Read(
+                bytes, expected.ArtifactHash, manifest);
+            if (!decoded.Succeeded) return decoded.Error.ToString();
+
+            var asset = AssetDatabase.LoadAssetAtPath<JitterPhysicsArtifactAsset>(assetPath);
+            if (asset == null) return "Unity artifact asset is missing.";
+            if (!ReferenceEquals(asset.Payload, AssetDatabase.LoadAssetAtPath<TextAsset>(payloadPath)))
+                return "Unity artifact asset points at a different payload.";
+            if (!JitterPhysicsHash.HexEquals(asset.ArtifactHash, expected.ArtifactHash))
+                return "Unity artifact asset records a different hash.";
+
+            PhysicsArtifactResult loaded = JitterPhysicsArtifactLoader.Load(
+                asset, expected.Manifest.RuntimeCompatibilityId);
+            return loaded.Succeeded ? null : loaded.Error.ToString();
+        }
+
+        private sealed class TrioSnapshot
+        {
+            private readonly FileSnapshot[] files;
+
+            private TrioSnapshot(FileSnapshot[] files) => this.files = files;
+
+            internal static TrioSnapshot Capture(params string[] paths)
+            {
+                var files = new FileSnapshot[paths.Length];
+                for (int index = 0; index < paths.Length; index++)
+                    files[index] = FileSnapshot.Capture(paths[index]);
+                return new TrioSnapshot(files);
+            }
+
+            internal void Restore()
+            {
+                for (int index = 0; index < files.Length; index++) files[index].Restore();
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            }
+        }
+
+        private sealed class FileSnapshot
+        {
+            private readonly string assetPath;
+            private readonly string absolutePath;
+            private readonly byte[] bytes;
+
+            private FileSnapshot(string assetPath, string absolutePath, byte[] bytes)
+            {
+                this.assetPath = assetPath;
+                this.absolutePath = absolutePath;
+                this.bytes = bytes;
+            }
+
+            internal static FileSnapshot Capture(string assetPath)
+            {
+                string absolute = ToAbsolutePath(assetPath);
+                return new FileSnapshot(
+                    assetPath,
+                    absolute,
+                    File.Exists(absolute) ? File.ReadAllBytes(absolute) : null);
+            }
+
+            internal void Restore()
+            {
+                if (bytes != null)
                 {
-                    Directory.Delete(staging, true);
+                    File.WriteAllBytes(absolutePath, bytes);
+                    return;
+                }
+
+                if (!AssetDatabase.DeleteAsset(assetPath))
+                {
+                    if (File.Exists(absolutePath)) File.Delete(absolutePath);
+                    if (File.Exists(absolutePath + ".meta")) File.Delete(absolutePath + ".meta");
                 }
             }
-
-            AssetDatabase.ImportAsset(payloadPath, ImportAssetOptions.ForceSynchronousImport);
-            AssetDatabase.ImportAsset(manifestPath, ImportAssetOptions.ForceSynchronousImport);
-
-            var payloadAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(payloadPath);
-            if (payloadAsset == null)
-            {
-                issues.Error($"Unity did not import the payload at '{payloadPath}'.");
-                return null;
-            }
-
-            UpdateArtifactAsset(assetPath, payload.Manifest, payloadAsset);
-            AssetDatabase.SaveAssets();
-
-            return new JitterPhysicsBakeOutput(
-                assetPath,
-                payloadPath,
-                manifestPath,
-                payload.ArtifactHash,
-                payload.Bytes.Length,
-                payload.Manifest);
         }
 
         /// <summary>

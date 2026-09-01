@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using DataSakura.JitterPhysics.Contracts;
 using Jitter2.LinearMath;
@@ -20,6 +21,28 @@ using Real = System.Single;
 
 namespace DataSakura.JitterPhysics.JitterNative.Codec
 {
+    /// <summary>Native schema-one bytes, their hash, and the exact matching manifest.</summary>
+    public sealed class NativePhysicsArtifactPayload
+    {
+        /// <summary>Creates one immutable payload envelope.</summary>
+        public NativePhysicsArtifactPayload(
+            byte[] bytes,
+            string artifactHash,
+            PhysicsArtifactManifest manifest)
+        {
+            Bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
+            ArtifactHash = artifactHash ?? throw new ArgumentNullException(nameof(artifactHash));
+            Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        }
+
+        /// <summary>Canonical binary payload.</summary>
+        public byte[] Bytes { get; }
+        /// <summary>Lowercase SHA-256 of the exact payload.</summary>
+        public string ArtifactHash { get; }
+        /// <summary>Canonical sidecar metadata for the payload.</summary>
+        public PhysicsArtifactManifest Manifest { get; }
+    }
+
     /// <summary>Typed result of decoding a Jitter-native artifact.</summary>
     public readonly struct PhysicsArtifactResult
     {
@@ -103,6 +126,28 @@ namespace DataSakura.JitterPhysics.JitterNative.Codec
             }
 
             return writer.ToArray();
+        }
+
+        /// <summary>Writes schema-one bytes and constructs their matching canonical manifest.</summary>
+        public static NativePhysicsArtifactPayload WriteWithManifest(
+            NativeArtifact artifact,
+            string generatorVersion)
+        {
+            byte[] bytes = Write(artifact);
+            string hash = DataSakura.JitterPhysics.ArtifactCodec.JitterPhysicsHash.Sha256Hex(bytes);
+            var manifest = new PhysicsArtifactManifest(
+                artifact.SchemaVersion.ToString(CultureInfo.InvariantCulture),
+                artifact.RuntimeCompatibilityId,
+                generatorVersion,
+                artifact.LevelId,
+                hash,
+                artifact.Bodies.Count,
+                artifact.ShapeCount,
+                artifact.VertexCount,
+                artifact.TriangleCount,
+                artifact.WorldSettings.TickRate,
+                JitterPhysicsArtifactNaming.BinaryFileName(artifact.LevelId));
+            return new NativePhysicsArtifactPayload(bytes, hash, manifest);
         }
 
         /// <summary>

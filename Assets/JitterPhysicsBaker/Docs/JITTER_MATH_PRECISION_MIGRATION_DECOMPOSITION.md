@@ -670,44 +670,44 @@ Epic acceptance:
 
 Subtasks:
 
-- [ ] Прогнать v0.0.12 writer fixture.
-- [ ] Прогнать migration writer fixture.
-- [ ] Сравнить полный payload и SHA-256.
-- [ ] Сравнить manifest canonical bytes.
-- [ ] Объяснить каждое отличие до merge.
+- [x] Прогнать v0.0.12 writer fixture.
+- [x] Прогнать migration writer fixture.
+- [x] Сравнить полный payload и SHA-256.
+- [x] Сравнить manifest canonical bytes.
+- [x] Объяснить каждое отличие до merge.
 
 ### JMP-T06.2. Реализовать schema decision
 
 Subtasks:
 
-- [ ] При равных bytes сохранить schema 1 и golden fixture.
-- [ ] При любом layout difference повысить schema.
-- [ ] Синхронно обновить `ArtifactSchemaVersion` во writer, reader, validator и tests.
-- [ ] Не читать старые bytes как новый layout.
-- [ ] Добавить legacy reader либо typed migration error согласно ADR.
-- [ ] Обновить package/schema constants синхронно.
+- [x] При равных bytes сохранить schema 1 и golden fixture.
+- [x] При любом layout difference повысить schema.
+- [x] Синхронно обновить `ArtifactSchemaVersion` во writer, reader, validator и tests.
+- [x] Не читать старые bytes как новый layout.
+- [x] Добавить legacy reader либо typed migration error согласно ADR.
+- [x] Обновить package/schema constants синхронно.
 
 ### JMP-T06.3. Обновить runtime compatibility
 
 Subtasks:
 
-- [ ] Включить новый Jitter source/profile identity.
-- [ ] Не маскировать изменение `runtimeCompatibilityId`.
-- [ ] Проверить mismatch client/server.
-- [ ] Документировать обязательный re-bake/re-export.
+- [x] Включить новый Jitter source/profile identity.
+- [x] Не маскировать изменение `runtimeCompatibilityId`.
+- [x] Проверить mismatch client/server.
+- [x] Документировать обязательный re-bake/re-export.
 
 ### JMP-T06.4. Сохранить atomic artifact trio
 
 Subtasks:
 
-- [ ] Обрабатывать payload, manifest и `.physics.asset` как одну delivery unit.
-- [ ] Не выдавать старый asset с новым payload/manifest за valid result.
-- [ ] Добавить negative fixture для late import failure.
-- [ ] Проверять всю trio после bake и перед export.
+- [x] Обрабатывать payload, manifest и `.physics.asset` как одну delivery unit.
+- [x] Не выдавать старый asset с новым payload/manifest за valid result.
+- [x] Добавить negative fixture для late import failure.
+- [x] Проверять всю trio после bake и перед export.
 
 Epic acceptance:
 
-- [ ] Schema и re-bake policy доказаны bytes, а не предположением.
+- [x] Schema и re-bake policy доказаны bytes, а не предположением.
 
 ## JMP-E07. Runtime, server и consumers
 

@@ -259,12 +259,43 @@ namespace DataSakura.JitterPhysics.Editor.Export
                 return false;
             }
 
+            PhysicsArtifactResult assetVerification = JitterPhysicsArtifactLoader.Load(
+                asset, manifest.RuntimeCompatibilityId);
+            if (!assetVerification.Succeeded || !AssetMatchesManifest(asset, manifest))
+            {
+                issues.Error(
+                    "Refusing to export an artifact whose .physics.asset, payload, and manifest "
+                    + "do not describe the same delivery unit. Re-bake the level."
+                    + (assetVerification.Succeeded ? string.Empty : " " + assetVerification.Error),
+                    asset);
+                return false;
+            }
+
             // Export and upload always publish current names, while the read above deliberately
             // remains compatible with exact legacy pairs during migration.
             manifest = manifest.WithCurrentFileName();
             manifestJson = PhysicsArtifactManifestCodec.Write(manifest);
 
             return true;
+        }
+
+        private static bool AssetMatchesManifest(
+            JitterPhysicsArtifactAsset asset,
+            PhysicsArtifactManifest manifest)
+        {
+            return string.Equals(asset.LevelId, manifest.LevelId, StringComparison.Ordinal)
+                && JitterPhysicsHash.HexEquals(asset.ArtifactHash, manifest.ArtifactHash)
+                && JitterPhysicsHash.HexEquals(
+                    asset.RuntimeCompatibilityId, manifest.RuntimeCompatibilityId)
+                && asset.SchemaVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    == manifest.SchemaVersion
+                && asset.TickRate == manifest.TickRate
+                && asset.BodyCount == manifest.BodyCount
+                && asset.ShapeCount == manifest.ShapeCount
+                && asset.VertexCount == manifest.VertexCount
+                && asset.TriangleCount == manifest.TriangleCount
+                && string.Equals(
+                    asset.GeneratorVersion, manifest.GeneratorVersion, StringComparison.Ordinal);
         }
 
         private static string FindManifestPath(string folder, string levelId, string artifactHash)

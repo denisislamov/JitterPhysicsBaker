@@ -41,6 +41,35 @@ namespace DataSakura.JitterPhysics.Server.Tests
         }
 
         [Test]
+        public void NativeMigrationPayloadAndManifestAreExactlyTheV0012Fixture()
+        {
+            PhysicsArtifactPayload legacy = PhysicsArtifactWriter.WriteWithManifest(
+                CreateLegacyArtifact(), "0.0.12");
+            DataSakura.JitterPhysics.JitterNative.Codec.NativePhysicsArtifactPayload native =
+                NativeCodec.WriteWithManifest(CreateNativeArtifact(), "0.0.12");
+
+            Assert.That(native.Bytes, Is.EqualTo(legacy.Bytes));
+            Assert.That(native.ArtifactHash, Is.EqualTo(legacy.ArtifactHash));
+            Assert.That(
+                PhysicsArtifactManifestCodec.Write(native.Manifest),
+                Is.EqualTo(PhysicsArtifactManifestCodec.Write(legacy.Manifest)));
+        }
+
+        [Test]
+        public void NativeReaderDoesNotReinterpretAnotherSchemaAsSchemaOne()
+        {
+            byte[] payload = NativeCodec.Write(CreateNativeArtifact());
+            payload[4] = 2;
+            payload[5] = 0;
+
+            DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult result =
+                NativeCodec.Read(payload);
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.UnsupportedSchema));
+            Assert.That(result.Artifact, Is.Null);
+        }
+
+        [Test]
         public void NativeReaderReturnsOnlyJitterMathValues()
         {
             byte[] payload = PhysicsArtifactWriter.Write(CreateLegacyArtifact());

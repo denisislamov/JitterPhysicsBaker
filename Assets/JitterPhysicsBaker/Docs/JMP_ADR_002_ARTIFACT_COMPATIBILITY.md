@@ -35,6 +35,15 @@ version создаёт новый `runtimeCompatibilityId`. Для baseline:
 Публичная миграция `StableMath` меняет Jitter source bytes и потому требует нового runtime id,
 даже если numeric output и artifact payload bytes остались теми же.
 
+Финальное решение E06 подтверждено executable fixtures:
+
+- Jitter source content hash:
+  `sha256:ca940ca6483ffcedf65854719396cec2d9e038cc43c01e7d35d147cd70766940`;
+- compile profile id:
+  `a2925211b983330117414426be9bf8a2798ce9169c1206e1e55178f708cfa72e`;
+- новый runtime compatibility id:
+  `71e9d01f4006a8e1d097beb047efa8b8aabbe24895cb8d50531c764031c9aa4b`.
+
 ### Legacy artifacts
 
 Автоматический legacy reader не требуется, пока schema bytes равны. Старый payload всё равно
@@ -66,13 +75,13 @@ Payload, manifest и `.physics.asset` являются одной поставк
 
 ## Evidence
 
-`JMPE00MigrationPrototypeTests` фиксирует f32 component bytes, current runtime id, f64 negative
-fixture, tampered DLL identity и golden payload/manifest. Существующий independent
-`PhysicsArtifactGoldenBytesTests` остаётся главным layout oracle.
+`JMPE00MigrationPrototypeTests`, `JitterNativeArtifactCodecTests` и independent
+`PhysicsArtifactGoldenBytesTests` фиксируют old/new full bytes, hash и canonical manifest.
+`JMPE06ArtifactCompatibilityTests` фиксирует schema 1, новый runtime ID и typed mismatch.
 
-Unity `.physics.asset` fixture и repeat-bake через Editor в текущем запуске не обновлялись:
-Unity licensing handshake заблокировал fresh XML. Поэтому ADR принят, но Unity-dependent gates
-остаются `BLOCKED/NOT RUN`, пока не появится свежий consumer run.
+Unity atomic-trio fixtures инъецируют сбой после pair import и после asset save. В обоих случаях
+payload, manifest, `.physics.asset` bytes и все три GUID восстанавливаются, старый loader/export
+result остаётся valid. Fresh Unity regression E06 фиксируется в отдельном evidence документе.
 
 ## Отклонённые варианты
 

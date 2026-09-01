@@ -35,6 +35,27 @@ artifactHash + runtimeCompatibilityId
 Do not substitute `TopologyFingerprint` or package SemVer. The fingerprint is diagnostic, and
 package SemVer is not an input to `runtimeCompatibilityId`.
 
+### Current JMP precision migration decision
+
+The Jitter-native f32 writer preserves schema-one payload and manifest bytes, so there is no
+binary schema migration and no second online reader. The canonical Jitter source/profile identity
+does change, producing runtime ID
+`71e9d01f4006a8e1d097beb047efa8b8aabbe24895cb8d50531c764031c9aa4b` instead of the E00 ID
+`ca8283611d3221120e69e23c4c028720537de4867f1de53df3752db85cd32006`.
+
+For this migration, do all of the following as one coordinated rollout:
+
+1. update/validate the separately installed Jitter runtime;
+2. run **Install/update integration** explicitly;
+3. update and rebuild the dedicated-server projection;
+4. re-bake every affected level even though its schema remains 1;
+5. re-export payload plus manifest and deliver the matching `.physics.asset` to Unity content;
+6. reject mixed old/new runtime IDs on connection or startup.
+
+Do not copy an old schema-one payload into a new manifest or edit the runtime ID by hand. Equal
+layout means the reader can inspect the bytes; only the new derived runtime identity proves that
+the current client and server may simulate them.
+
 ## Before updating
 
 1. Commit or back up the Unity project, including:

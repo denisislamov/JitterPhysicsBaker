@@ -123,8 +123,8 @@ into the vertex data and emit an identity mesh-local pose.
 The writer maps `-0.0f` to `+0.0f` and does not round any other finite float. Rounding would move
 geometry and hide a producer difference.
 
-Quaternion canonicalization first normalizes using double-precision intermediate arithmetic,
-then chooses one of the equivalent `q`/`-q` encodings. The first non-zero component in
+The Jitter-native writer normalizes through the canonical f32 `StableMath` surface, then chooses
+one of the equivalent `q`/`-q` encodings. The first non-zero component in
 `w, x, y, z` order must be positive. The reader accepts unit length within `1e-4` and rejects a
 non-canonical sign or any negative-zero component.
 
@@ -199,6 +199,23 @@ construction or while another thread hashes, writes, previews, or builds them.
 
 `PhysicsCompatibilityToken.Magic` is also a public array in 0.0.12. Treat it as a constant and
 never modify it.
+
+## JMP migration decision
+
+The v0.0.12 writer and the Jitter-native migration writer produce the exact same full payload,
+SHA-256, and canonical manifest for the frozen fixture. Schema therefore remains **1**. This does
+not imply runtime compatibility: the canonical Jitter source hash and compile profile changed, so
+the derived runtime compatibility ID changed from
+`ca8283611d3221120e69e23c4c028720537de4867f1de53df3752db85cd32006` to
+`71e9d01f4006a8e1d097beb047efa8b8aabbe24895cb8d50531c764031c9aa4b`.
+
+Old schema-one bytes remain parseable for offline inspection, but a simulating client/server pair
+must reject the old runtime ID with `IncompatibleRuntime`. Re-bake every level with the aligned
+Unity integration, update the server projection, and re-export the full delivery unit.
+
+The delivery unit is the payload, canonical manifest, and `.physics.asset`. Bake verifies all
+three after import and restores the previous three files on any late failure. Export/upload also
+cross-check every asset metadata field against the payload and manifest before returning bytes.
 
 ## Fingerprints are not artifact identity
 
