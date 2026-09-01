@@ -96,7 +96,7 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
             }
 
             return PhysicsArtifactLoadResult.Success(
-                result.Artifact, manifest, JitterPhysicsHash.Sha256Hex(payload), Description);
+                result.Artifact, manifest, JitterPhysicsHash.Sha256Hex(payload), payload, Description);
         }
 
         /// <summary>
@@ -126,4 +126,3 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
         }
     }
 }
-

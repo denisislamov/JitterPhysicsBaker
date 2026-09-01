@@ -3,6 +3,9 @@ using System.IO;
 using DataSakura.JitterPhysics.ArtifactCodec;
 using DataSakura.JitterPhysics.Contracts;
 using Jitter2;
+using NativeArtifact = DataSakura.JitterPhysics.JitterNative.PhysicsArtifact;
+using NativeCodec = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactCodec;
+using NativeReadResult = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult;
 
 namespace DataSakura.JitterPhysics.Integration
 {
@@ -79,7 +82,7 @@ namespace DataSakura.JitterPhysics.Integration
     public sealed class JitterPhysicsServerState
     {
         /// <summary>The artifact the world was built from, or <c>null</c> when startup failed.</summary>
-        public PhysicsArtifact Artifact { get; }
+        public NativeArtifact Artifact { get; }
 
         /// <summary>Lowercase hex SHA-256 of the payload, for the handshake and the logs.</summary>
         public string ArtifactHash { get; }
@@ -103,7 +106,7 @@ namespace DataSakura.JitterPhysics.Integration
         public PhysicsArtifactError Error { get; }
 
         private JitterPhysicsServerState(
-            PhysicsArtifact artifact,
+            NativeArtifact artifact,
             string artifactHash,
             string source,
             string topologyFingerprint,
@@ -183,10 +186,11 @@ namespace DataSakura.JitterPhysics.Integration
 
         internal static JitterPhysicsServerState Ready(
             PhysicsArtifactLoadResult load,
+            NativeArtifact artifact,
             PhysicsWorldBuildResult build)
         {
             return new JitterPhysicsServerState(
-                load.Artifact,
+                artifact,
                 load.ArtifactHash,
                 load.Source,
                 build.TopologyFingerprint,
@@ -278,14 +282,33 @@ namespace DataSakura.JitterPhysics.Integration
                 return JitterPhysicsServerState.Failed(expectationError, load.Source);
             }
 
-            PhysicsWorldBuildResult build = JitterPhysicsWorldBuilder.Apply(world, load.Artifact);
+            if (load.Payload == null)
+            {
+                return JitterPhysicsServerState.Failed(
+                    new PhysicsArtifactError(
+                        PhysicsArtifactErrorCode.SourceUnavailable,
+                        "The artifact provider validated portable records but did not return the exact "
+                        + "payload bytes required by the Jitter-native runtime. Update the provider.",
+                        load.Artifact.LevelId,
+                        load.ArtifactHash),
+                    load.Source);
+            }
+
+            NativeReadResult native = NativeCodec.Read(
+                load.Payload, load.ArtifactHash, load.Manifest);
+            if (!native.Succeeded)
+            {
+                return JitterPhysicsServerState.Failed(native.Error, load.Source);
+            }
+
+            PhysicsWorldBuildResult build = JitterPhysicsWorldBuilder.Apply(world, native.Artifact);
             if (!build.Succeeded)
             {
                 // The builder rolls its own work back, so the world is left as it was found.
                 return JitterPhysicsServerState.Failed(build.Error, load.Source);
             }
 
-            return JitterPhysicsServerState.Ready(load, build);
+            return JitterPhysicsServerState.Ready(load, native.Artifact, build);
         }
 
         private static PhysicsArtifactError VerifyRuntimeAssembly(JitterPhysicsServerOptions options)

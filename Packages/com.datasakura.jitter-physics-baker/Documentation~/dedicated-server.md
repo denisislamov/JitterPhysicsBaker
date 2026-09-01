@@ -126,9 +126,11 @@ for proof-of-concept and small-level delivery; generation defaults to a 4 MiB pa
 restores Base64 once, then re-hashes and validates exactly as a file provider does.
 
 Implement another `IPhysicsArtifactProvider` for a registry, bundle, or content system. A custom
-provider must return only fully validated artifacts and must convert expected source failures to
-`PhysicsArtifactLoadResult.Failure`. The startup method does not catch arbitrary exceptions from
-consumer provider code.
+provider must return only fully validated artifacts, including the exact validated payload bytes
+in `PhysicsArtifactLoadResult.Payload`, and must convert expected source failures to
+`PhysicsArtifactLoadResult.Failure`. Startup decodes those bytes directly into Jitter-native
+records and rejects a provider without them before world mutation. The startup method does not
+catch arbitrary exceptions from consumer provider code.
 
 See [Extending](extending.md) for a complete provider implementation.
 

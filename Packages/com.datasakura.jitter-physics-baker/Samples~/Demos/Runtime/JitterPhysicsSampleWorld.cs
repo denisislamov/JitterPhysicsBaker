@@ -2,8 +2,11 @@ using System;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Integration;
 using DataSakura.JitterPhysics.UnityArtifact;
+using DataSakura.JitterPhysics.JitterNative.UnityBoundary;
 using Jitter2;
 using UnityEngine;
+using NativeArtifact = DataSakura.JitterPhysics.JitterNative.PhysicsArtifact;
+using NativeReadResult = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult;
 
 namespace DataSakura.JitterPhysics.Samples
 {
@@ -41,7 +44,7 @@ namespace DataSakura.JitterPhysics.Samples
         private int maxCatchUpSteps = 4;
 
         private float accumulator;
-        private PhysicsArtifact loadedArtifact;
+        private NativeArtifact loadedArtifact;
 
         /// <summary>The world, once the artifact has been applied. Null until then.</summary>
         public World World { get; private set; }
@@ -83,7 +86,7 @@ namespace DataSakura.JitterPhysics.Samples
 
             // Re-checked here even though the editor validated it at bake time. The asset on disk
             // is what actually ships, and it can be replaced by a stale copy long after baking.
-            PhysicsArtifactResult loaded = JitterPhysicsArtifactLoader.Load(artifact);
+            NativeReadResult loaded = JitterNativeUnityArtifactLoader.Load(artifact);
             if (!loaded.Succeeded)
             {
                 Fail($"{loaded.Error.Code}: {loaded.Error.Message}");
@@ -192,10 +195,7 @@ namespace DataSakura.JitterPhysics.Samples
 
             // These are the exact records applied to this active world in Awake. Re-reading the
             // scene colliders here would make Runtime a misleading duplicate of Sources.
-            for (int i = 0; i < loadedArtifact.Bodies.Count; i++)
-            {
-                destination.Add(loadedArtifact.Bodies[i]);
-            }
+            JitterNativePreviewProjection.CopyBodies(loadedArtifact, destination);
         }
 
         private void Fail(string message)

@@ -6,6 +6,12 @@ using Jitter2;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 using NUnit.Framework;
+using NativeArtifact = DataSakura.JitterPhysics.JitterNative.PhysicsArtifact;
+using NativeBody = DataSakura.JitterPhysics.JitterNative.PhysicsBodyRecord;
+using NativeCodec = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactCodec;
+using NativeReadResult = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult;
+using NativeSettings = DataSakura.JitterPhysics.JitterNative.PhysicsWorldSettings;
+using NativeShape = DataSakura.JitterPhysics.JitterNative.PhysicsShapeRecord;
 
 namespace DataSakura.JitterPhysics.Server.Tests
 {
@@ -24,7 +30,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         public void ArtifactBecomesStaticGeometry()
         {
             var world = new World();
-            PhysicsArtifact artifact = CreateArenaArtifact();
+            NativeArtifact artifact = CreateArenaArtifact();
 
             PhysicsWorldBuildResult result = JitterPhysicsWorldBuilder.Apply(world, artifact);
 
@@ -42,7 +48,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         [Test]
         public void TopologyFingerprintIsReproducible()
         {
-            PhysicsArtifact artifact = CreateArenaArtifact();
+            NativeArtifact artifact = CreateArenaArtifact();
 
             string first = Build(artifact).TopologyFingerprint;
             string second = Build(artifact).TopologyFingerprint;
@@ -55,10 +61,10 @@ namespace DataSakura.JitterPhysics.Server.Tests
         [Test]
         public void DecodedArtifactBuildsTheSameTopologyAsTheOriginal()
         {
-            PhysicsArtifact original = CreateArenaArtifact();
-            byte[] payload = PhysicsArtifactWriter.Write(original);
+            NativeArtifact original = CreateArenaArtifact();
+            byte[] payload = NativeCodec.Write(original);
 
-            PhysicsArtifactResult decoded = PhysicsArtifactReader.Read(payload);
+            NativeReadResult decoded = NativeCodec.Read(payload);
             Assert.That(decoded.Succeeded, Is.True, decoded.Error.ToString());
 
             // A round trip through the binary format must not change the world that comes out
@@ -72,7 +78,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         public void WorldSettingsFromTheArtifactAreApplied()
         {
             var world = new World();
-            PhysicsArtifact artifact = CreateArenaArtifact();
+            NativeArtifact artifact = CreateArenaArtifact();
 
             JitterPhysicsWorldBuilder.Apply(world, artifact);
 
@@ -85,7 +91,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         public void ApplyingASecondArtifactToTheSameWorldIsRefused()
         {
             var world = new World();
-            PhysicsArtifact artifact = CreateArenaArtifact();
+            NativeArtifact artifact = CreateArenaArtifact();
 
             Assert.That(JitterPhysicsWorldBuilder.Apply(world, artifact).Succeeded, Is.True);
             Assert.That(JitterPhysicsWorldBuilder.HasArtifact(world), Is.True);
@@ -95,6 +101,50 @@ namespace DataSakura.JitterPhysics.Server.Tests
             // Merging would silently double every wall in the level.
             Assert.That(second.Succeeded, Is.False);
             Assert.That(second.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.InvalidValue));
+        }
+
+        [Test]
+        public void FailedApplyRestoresBodiesAndWorldSettings()
+        {
+            var world = new World
+            {
+                Gravity = new JVector(1f, 2f, 3f),
+                SolveMode = SolveMode.Regular,
+                SolverIterations = (2, 3),
+                AllowDeactivation = false,
+            };
+            int before = world.RigidBodies.Count;
+
+            PhysicsWorldBuildResult result = JitterPhysicsWorldBuilder.ApplyWithFailureForTests(
+                world,
+                CreateArenaArtifact(),
+                JitterPhysicsWorldBuildFailurePoint.AfterFirstBody);
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.RequiresWorldDiscard, Is.False);
+            Assert.That(result.Error.Message, Does.Contain("rolled back"));
+            Assert.That(world.RigidBodies.Count, Is.EqualTo(before));
+            Assert.That(world.Gravity, Is.EqualTo(new JVector(1f, 2f, 3f)));
+            Assert.That(world.SolveMode, Is.EqualTo(SolveMode.Regular));
+            Assert.That(world.SolverIterations, Is.EqualTo((2, 3)));
+            Assert.That(world.AllowDeactivation, Is.False);
+            Assert.That(JitterPhysicsWorldBuilder.HasArtifact(world), Is.False);
+        }
+
+        [Test]
+        public void IncompleteRollbackRequiresCallerToDiscardWorld()
+        {
+            var world = new World();
+
+            PhysicsWorldBuildResult result = JitterPhysicsWorldBuilder.ApplyWithFailureForTests(
+                world,
+                CreateArenaArtifact(),
+                JitterPhysicsWorldBuildFailurePoint.ForceIncompleteRollback);
+
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.RequiresWorldDiscard, Is.True);
+            Assert.That(result.Error.Message, Does.Contain("discard this World"));
+            Assert.That(JitterPhysicsWorldBuilder.HasArtifact(world), Is.False);
         }
 
         [Test]
@@ -122,7 +172,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         [Test]
         public void MeshGeometryBecomesTriangles()
         {
-            PhysicsArtifact artifact = CreateMeshArtifact();
+            NativeArtifact artifact = CreateMeshArtifact();
 
             PhysicsWorldBuildResult result = Build(artifact);
 
@@ -137,26 +187,26 @@ namespace DataSakura.JitterPhysics.Server.Tests
         {
             var world = new World();
 
-            var shapes = new List<PhysicsShapeRecord>
+            var shapes = new List<NativeShape>
             {
-                PhysicsShapeRecord.Box(
+                NativeShape.Box(
                     "offset",
-                    new PhysicsVector3(0f, 2f, 0f),
-                    PhysicsQuaternion.Identity,
-                    new PhysicsVector3(1f, 1f, 1f)),
+                    new JVector(0f, 2f, 0f),
+                    JQuaternion.Identity,
+                    new JVector(1f, 1f, 1f)),
             };
 
-            var artifact = new PhysicsArtifact(
+            var artifact = new NativeArtifact(
                 JitterPhysicsPackage.ArtifactSchemaVersion,
                 RuntimeId,
                 "poses",
-                PhysicsWorldSettings.Default,
-                new List<PhysicsBodyRecord>
+                DefaultSettings(),
+                new List<NativeBody>
                 {
-                    new PhysicsBodyRecord(
+                    new NativeBody(
                         "body",
-                        new PhysicsVector3(10f, 0f, 0f),
-                        PhysicsQuaternion.Identity,
+                        new JVector(10f, 0f, 0f),
+                        JQuaternion.Identity,
                         0.2f,
                         0f,
                         shapes),
@@ -188,106 +238,109 @@ namespace DataSakura.JitterPhysics.Server.Tests
         private const string RuntimeId =
             "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 
-        private static PhysicsWorldBuildResult Build(PhysicsArtifact artifact)
+        private static PhysicsWorldBuildResult Build(NativeArtifact artifact)
         {
             return JitterPhysicsWorldBuilder.Apply(new World(), artifact);
         }
 
         /// <summary>Ground plus two covers, the shape of the smallest realistic level.</summary>
-        private static PhysicsArtifact CreateArenaArtifact()
+        private static NativeArtifact CreateArenaArtifact()
         {
-            var bodies = new List<PhysicsBodyRecord>
+            var bodies = new List<NativeBody>
             {
-                new PhysicsBodyRecord(
+                new NativeBody(
                     "cover_a",
-                    new PhysicsVector3(-3f, 0.5f, 2f),
-                    PhysicsQuaternion.Identity,
+                    new JVector(-3f, 0.5f, 2f),
+                    JQuaternion.Identity,
                     0.2f,
                     0f,
-                    new List<PhysicsShapeRecord>
+                    new List<NativeShape>
                     {
-                        PhysicsShapeRecord.Box(
+                        NativeShape.Box(
                             "s_box",
-                            PhysicsVector3.Zero,
-                            PhysicsQuaternion.Identity,
-                            new PhysicsVector3(1f, 1f, 1f)),
+                            JVector.Zero,
+                            JQuaternion.Identity,
+                            new JVector(1f, 1f, 1f)),
                     }),
-                new PhysicsBodyRecord(
+                new NativeBody(
                     "cover_b",
-                    new PhysicsVector3(3f, 0.5f, 2f),
-                    PhysicsQuaternion.Identity,
+                    new JVector(3f, 0.5f, 2f),
+                    JQuaternion.Identity,
                     0.2f,
                     0f,
-                    new List<PhysicsShapeRecord>
+                    new List<NativeShape>
                     {
-                        PhysicsShapeRecord.Capsule(
+                        NativeShape.Capsule(
                             "s_capsule",
-                            PhysicsVector3.Zero,
-                            PhysicsQuaternion.Identity,
+                            JVector.Zero,
+                            JQuaternion.Identity,
                             0.5f,
                             1f),
                     }),
-                new PhysicsBodyRecord(
+                new NativeBody(
                     "ground",
-                    new PhysicsVector3(0f, -0.5f, 0f),
-                    PhysicsQuaternion.Identity,
+                    new JVector(0f, -0.5f, 0f),
+                    JQuaternion.Identity,
                     0.2f,
                     0f,
-                    new List<PhysicsShapeRecord>
+                    new List<NativeShape>
                     {
-                        PhysicsShapeRecord.Box(
+                        NativeShape.Box(
                             "s_ground",
-                            PhysicsVector3.Zero,
-                            PhysicsQuaternion.Identity,
-                            new PhysicsVector3(40f, 1f, 40f)),
+                            JVector.Zero,
+                            JQuaternion.Identity,
+                            new JVector(40f, 1f, 40f)),
                     }),
             };
 
-            return new PhysicsArtifact(
+            return new NativeArtifact(
                 JitterPhysicsPackage.ArtifactSchemaVersion,
                 RuntimeId,
                 "arena",
-                PhysicsWorldSettings.Default,
+                DefaultSettings(),
                 bodies);
         }
 
-        private static PhysicsArtifact CreateMeshArtifact()
+        private static NativeArtifact CreateMeshArtifact()
         {
             var vertices = new[]
             {
-                new PhysicsVector3(-5f, 0f, -5f),
-                new PhysicsVector3(5f, 0f, -5f),
-                new PhysicsVector3(5f, 0f, 5f),
-                new PhysicsVector3(-5f, 0f, 5f),
+                new JVector(-5f, 0f, -5f),
+                new JVector(5f, 0f, -5f),
+                new JVector(5f, 0f, 5f),
+                new JVector(-5f, 0f, 5f),
             };
 
             var indices = new[] { 0, 1, 2, 0, 2, 3 };
 
-            return new PhysicsArtifact(
+            return new NativeArtifact(
                 JitterPhysicsPackage.ArtifactSchemaVersion,
                 RuntimeId,
                 "mesh_level",
-                PhysicsWorldSettings.Default,
-                new List<PhysicsBodyRecord>
+                DefaultSettings(),
+                new List<NativeBody>
                 {
-                    new PhysicsBodyRecord(
+                    new NativeBody(
                         "terrain",
-                        PhysicsVector3.Zero,
-                        PhysicsQuaternion.Identity,
+                        JVector.Zero,
+                        JQuaternion.Identity,
                         0.2f,
                         0f,
-                        new List<PhysicsShapeRecord>
+                        new List<NativeShape>
                         {
-                            PhysicsShapeRecord.Mesh(
+                            NativeShape.Mesh(
                                 "s_mesh",
-                                PhysicsVector3.Zero,
-                                PhysicsQuaternion.Identity,
+                                JVector.Zero,
+                                JQuaternion.Identity,
                                 vertices,
                                 indices),
                         }),
                 });
         }
+
+        private static NativeSettings DefaultSettings()
+        {
+            return new NativeSettings(new JVector(0f, -9.81f, 0f), 30, 1, 6, 4, true);
+        }
     }
 }
-
-

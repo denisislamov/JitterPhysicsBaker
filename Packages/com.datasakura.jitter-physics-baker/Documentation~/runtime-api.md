@@ -45,9 +45,11 @@ tick rate.
 using System;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Integration;
+using DataSakura.JitterPhysics.JitterNative.UnityBoundary;
 using DataSakura.JitterPhysics.UnityArtifact;
 using Jitter2;
 using UnityEngine;
+using NativeReadResult = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult;
 
 namespace MyGame.Physics
 {
@@ -72,7 +74,7 @@ public sealed class JitterArtifactWorldOwner : MonoBehaviour
                 nameof(runtimeCompatibilityId));
         }
 
-        PhysicsArtifactResult loaded = JitterPhysicsArtifactLoader.Load(
+        NativeReadResult loaded = JitterNativeUnityArtifactLoader.Load(
             artifactAsset,
             runtimeCompatibilityId);
 
@@ -126,6 +128,12 @@ simulation contract.
 provider result means that the payload has already been hashed, decoded, validated, checked
 against its manifest, and, when requested, checked against the caller's runtime ID.
 
+Successful providers must also return the exact validated bytes in
+`PhysicsArtifactLoadResult.Payload`. The installable integration decodes those bytes directly into
+the Jitter-native record graph. A custom provider that uses the older success overload without raw
+bytes remains source-compatible for inspection tools, but server startup rejects it with an
+actionable `SourceUnavailable` error before mutating the world.
+
 The package supplies:
 
 - `FilePhysicsArtifactProvider` for a manifest and payload delivered as files;
@@ -142,14 +150,15 @@ load the provider during startup, not from a render callback or while the world 
 
 `JitterPhysicsWorldBuilder.Apply` performs these operations synchronously:
 
-1. reject null, invalid, or already-applied artifacts;
+1. reject null, invalid, or already-applied Jitter-native artifacts;
 2. apply supported world settings;
 3. create bodies in ascending `SourceId` order;
 4. create shapes in ascending `ShapeKey` order;
 5. assign pose and material values, then make each body static;
 6. record that the world has an artifact and return diagnostics.
 
-For primitive records, a non-identity local pose becomes a Jitter2 `TransformedShape`. A mesh is
+No portable vector/quaternion DTO conversion occurs in the simulation path. For primitive
+records, a non-identity local pose becomes a Jitter2 `TransformedShape`. A mesh is
 expanded to one Jitter2 `TriangleShape` per triangle, so `PhysicsWorldBuildResult.ShapeCount` can
 be greater than `PhysicsArtifact.ShapeCount`.
 
@@ -185,8 +194,9 @@ These are implementation facts, not future promises:
 - `PhysicsWorldSettings.SubstepCount` is serialized and validated, but the current world builder
   does not assign `World.SubstepCount`. Values above one therefore do not affect the built world.
 - If Jitter2 throws after world settings were assigned, the builder removes bodies created by
-  that attempt but does not restore the previous gravity, solve mode, solver iterations, or
-  deactivation setting. Dispose the candidate world after any failed `Apply`, as the example does.
+  that attempt and restores gravity, solve mode, solver iterations, and deactivation. Check
+  `PhysicsWorldBuildResult.RequiresWorldDiscard`: when cleanup cannot prove full restoration,
+  dispose the world and create a new one before continuing.
 - `TopologyFingerprint` is a reproducible diagnostic, not a compatibility proof. For meshes it
   includes vertex/index counts but not their contents; it also omits world settings and material
   values. Use the full artifact hash together with the runtime compatibility ID for acceptance.

@@ -62,6 +62,12 @@ namespace DataSakura.JitterPhysics.Contracts
         /// <summary>Lowercase hex SHA-256 of the bytes the artifact was decoded from.</summary>
         public string ArtifactHash { get; }
 
+        /// <summary>
+        /// Exact validated payload bytes. Jitter-dependent consumers decode these directly into
+        /// their native record graph instead of converting the portable inspection DTOs.
+        /// </summary>
+        public byte[] Payload { get; }
+
         /// <summary>Loggable description of the source, copied from the provider.</summary>
         public string Source { get; }
 
@@ -72,12 +78,14 @@ namespace DataSakura.JitterPhysics.Contracts
             PhysicsArtifact artifact,
             PhysicsArtifactManifest manifest,
             string artifactHash,
+            byte[] payload,
             string source,
             PhysicsArtifactError error)
         {
             Artifact = artifact;
             Manifest = manifest;
             ArtifactHash = artifactHash;
+            Payload = payload;
             Source = source;
             Error = error;
         }
@@ -92,6 +100,17 @@ namespace DataSakura.JitterPhysics.Contracts
             string artifactHash,
             string source)
         {
+            return Success(artifact, manifest, artifactHash, null, source);
+        }
+
+        /// <summary>Creates a successful result carrying the exact validated payload bytes.</summary>
+        public static PhysicsArtifactLoadResult Success(
+            PhysicsArtifact artifact,
+            PhysicsArtifactManifest manifest,
+            string artifactHash,
+            byte[] payload,
+            string source)
+        {
             if (artifact == null)
             {
                 throw new ArgumentNullException(nameof(artifact));
@@ -102,7 +121,7 @@ namespace DataSakura.JitterPhysics.Contracts
                 throw new ArgumentException("A successful load must carry the payload hash.", nameof(artifactHash));
             }
 
-            return new PhysicsArtifactLoadResult(artifact, manifest, artifactHash, source, default);
+            return new PhysicsArtifactLoadResult(artifact, manifest, artifactHash, payload, source, default);
         }
 
         /// <summary>Creates a failed result.</summary>
@@ -113,7 +132,7 @@ namespace DataSakura.JitterPhysics.Contracts
                 throw new ArgumentException("A failed load must carry a reason.", nameof(error));
             }
 
-            return new PhysicsArtifactLoadResult(null, null, error.ArtifactHash, source, error);
+            return new PhysicsArtifactLoadResult(null, null, error.ArtifactHash, null, source, error);
         }
 
         /// <summary>Creates a failed result from a code and a message.</summary>
@@ -157,4 +176,3 @@ namespace DataSakura.JitterPhysics.Contracts
         }
     }
 }
-

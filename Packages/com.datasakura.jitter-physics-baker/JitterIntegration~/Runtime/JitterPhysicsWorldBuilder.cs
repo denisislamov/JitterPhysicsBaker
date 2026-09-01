@@ -8,9 +8,25 @@ using Jitter2;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
+using NativeArtifact = DataSakura.JitterPhysics.JitterNative.PhysicsArtifact;
+using NativeBody = DataSakura.JitterPhysics.JitterNative.PhysicsBodyRecord;
+using NativeCanonicalization = DataSakura.JitterPhysics.JitterNative.PhysicsCanonicalization;
+using NativeCodec = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactCodec;
+using NativeSettings = DataSakura.JitterPhysics.JitterNative.PhysicsWorldSettings;
+using NativeShape = DataSakura.JitterPhysics.JitterNative.PhysicsShapeRecord;
+#if !DATASAKURA_SERVER_GLOBAL_REAL
+using Real = System.Single;
+#endif
 
 namespace DataSakura.JitterPhysics.Integration
 {
+    internal enum JitterPhysicsWorldBuildFailurePoint
+    {
+        None = 0,
+        AfterFirstBody,
+        ForceIncompleteRollback,
+    }
+
     /// <summary>Outcome of applying an artifact to a world.</summary>
     public sealed class PhysicsWorldBuildResult
     {
@@ -27,6 +43,12 @@ namespace DataSakura.JitterPhysics.Integration
         public double ElapsedMilliseconds { get; }
 
         /// <summary>
+        /// Whether cleanup could not prove restoration of the input world. The caller must
+        /// dispose this world and create a new one before continuing.
+        /// </summary>
+        public bool RequiresWorldDiscard { get; }
+
+        /// <summary>
         /// Hash over the created topology in creation order. Two runtimes that build the same
         /// world from the same artifact produce the same value; it is the practical way to
         /// prove the client and the server agree about static geometry, which is a stronger
@@ -39,13 +61,15 @@ namespace DataSakura.JitterPhysics.Integration
             int bodyCount,
             int shapeCount,
             double elapsedMilliseconds,
-            string topologyFingerprint)
+            string topologyFingerprint,
+            bool requiresWorldDiscard = false)
         {
             Error = error;
             BodyCount = bodyCount;
             ShapeCount = shapeCount;
             ElapsedMilliseconds = elapsedMilliseconds;
             TopologyFingerprint = topologyFingerprint;
+            RequiresWorldDiscard = requiresWorldDiscard;
         }
 
         /// <summary>True when the world was built.</summary>
@@ -92,7 +116,23 @@ namespace DataSakura.JitterPhysics.Integration
         /// it worked.
         /// </para>
         /// </summary>
-        public static PhysicsWorldBuildResult Apply(World world, PhysicsArtifact artifact)
+        public static PhysicsWorldBuildResult Apply(World world, NativeArtifact artifact)
+        {
+            return ApplyCore(world, artifact, JitterPhysicsWorldBuildFailurePoint.None);
+        }
+
+        internal static PhysicsWorldBuildResult ApplyWithFailureForTests(
+            World world,
+            NativeArtifact artifact,
+            JitterPhysicsWorldBuildFailurePoint failurePoint)
+        {
+            return ApplyCore(world, artifact, failurePoint);
+        }
+
+        private static PhysicsWorldBuildResult ApplyCore(
+            World world,
+            NativeArtifact artifact,
+            JitterPhysicsWorldBuildFailurePoint failurePoint)
         {
             if (world == null)
             {
@@ -119,7 +159,7 @@ namespace DataSakura.JitterPhysics.Integration
                     artifact);
             }
 
-            PhysicsArtifactError validationError = PhysicsArtifactValidator.Validate(artifact);
+            PhysicsArtifactError validationError = NativeCodec.Validate(artifact);
             if (validationError.IsError)
             {
                 return new PhysicsWorldBuildResult(validationError, 0, 0, 0d, null);
@@ -129,6 +169,10 @@ namespace DataSakura.JitterPhysics.Integration
             var created = new List<RigidBody>(artifact.Bodies.Count);
             var fingerprint = new FingerprintBuilder();
             int shapeCount = 0;
+            JVector previousGravity = world.Gravity;
+            SolveMode previousSolveMode = world.SolveMode;
+            (int solver, int relaxation) previousIterations = world.SolverIterations;
+            bool previousAllowDeactivation = world.AllowDeactivation;
 
             try
             {
@@ -136,14 +180,14 @@ namespace DataSakura.JitterPhysics.Integration
 
                 for (int i = 0; i < artifact.Bodies.Count; i++)
                 {
-                    PhysicsBodyRecord record = artifact.Bodies[i];
+                    NativeBody record = artifact.Bodies[i];
                     RigidBody body = world.CreateRigidBody();
                     created.Add(body);
 
                     shapeCount += AddShapes(body, record, fingerprint);
 
-                    body.Position = ToJVector(record.Position);
-                    body.Orientation = ToJQuaternion(record.Orientation);
+                    body.Position = record.Position;
+                    body.Orientation = record.Orientation;
                     body.Friction = record.Friction;
                     body.Restitution = record.Restitution;
 
@@ -152,15 +196,43 @@ namespace DataSakura.JitterPhysics.Integration
                     body.MotionType = MotionType.Static;
 
                     fingerprint.Body(record);
+
+                    if (i == 0 && failurePoint != JitterPhysicsWorldBuildFailurePoint.None)
+                    {
+                        throw new InvalidOperationException("Injected world-build failure.");
+                    }
                 }
             }
             catch (Exception exception)
             {
-                Rollback(world, created);
+                bool restored = Rollback(world, created);
+                try
+                {
+                    world.Gravity = previousGravity;
+                    world.SolveMode = previousSolveMode;
+                    world.SolverIterations = previousIterations;
+                    world.AllowDeactivation = previousAllowDeactivation;
+                }
+                catch (Exception)
+                {
+                    restored = false;
+                }
+
+                if (failurePoint == JitterPhysicsWorldBuildFailurePoint.ForceIncompleteRollback)
+                {
+                    // The production path never fabricates a cleanup result. This hook makes
+                    // the caller contract executable without corrupting Jitter internals.
+                    restored = false;
+                }
+
+                string cleanup = restored
+                    ? "The attempted bodies and settings were rolled back."
+                    : "Rollback was incomplete; discard this World and create a new one.";
                 return Failure(
                     PhysicsArtifactErrorCode.InvalidValue,
-                    "Building the world failed and was rolled back: " + exception.Message,
-                    artifact);
+                    "Building the world failed. " + cleanup + " Cause: " + exception.Message,
+                    artifact,
+                    requiresWorldDiscard: !restored);
             }
 
             stopwatch.Stop();
@@ -182,9 +254,9 @@ namespace DataSakura.JitterPhysics.Integration
             return world != null && Applied.TryGetValue(world, out _);
         }
 
-        private static void ApplyWorldSettings(World world, PhysicsWorldSettings settings)
+        private static void ApplyWorldSettings(World world, NativeSettings settings)
         {
-            world.Gravity = ToJVector(settings.Gravity);
+            world.Gravity = settings.Gravity;
 
             // Both are invariants of prediction rather than preferences: a client that solves
             // differently from the server diverges in a way no reconciliation can explain.
@@ -195,14 +267,14 @@ namespace DataSakura.JitterPhysics.Integration
 
         private static int AddShapes(
             RigidBody body,
-            PhysicsBodyRecord record,
+            NativeBody record,
             FingerprintBuilder fingerprint)
         {
             int count = 0;
 
             for (int i = 0; i < record.Shapes.Count; i++)
             {
-                PhysicsShapeRecord shape = record.Shapes[i];
+                NativeShape shape = record.Shapes[i];
                 fingerprint.Shape(shape);
 
                 if (shape.ShapeType == PhysicsShapeType.Mesh)
@@ -222,12 +294,12 @@ namespace DataSakura.JitterPhysics.Integration
             return count;
         }
 
-        private static RigidBodyShape CreatePrimitive(PhysicsShapeRecord shape)
+        private static RigidBodyShape CreatePrimitive(NativeShape shape)
         {
             switch (shape.ShapeType)
             {
                 case PhysicsShapeType.Box:
-                    return new BoxShape(ToJVector(shape.Size));
+                    return new BoxShape(shape.Size);
 
                 case PhysicsShapeType.Sphere:
                     return new SphereShape(shape.Radius);
@@ -241,7 +313,7 @@ namespace DataSakura.JitterPhysics.Integration
             }
         }
 
-        private static RigidBodyShape Transform(RigidBodyShape shape, PhysicsShapeRecord record)
+        private static RigidBodyShape Transform(RigidBodyShape shape, NativeShape record)
         {
             bool hasTranslation = record.LocalPosition.X != 0f
                 || record.LocalPosition.Y != 0f
@@ -258,22 +330,16 @@ namespace DataSakura.JitterPhysics.Integration
                 return shape;
             }
 
-            JMatrix rotation = JMatrix.CreateFromQuaternion(ToJQuaternion(record.LocalRotation));
-            return new TransformedShape(shape, ToJVector(record.LocalPosition), rotation);
+            JMatrix rotation = JMatrix.CreateFromQuaternion(record.LocalRotation);
+            return new TransformedShape(shape, record.LocalPosition, rotation);
         }
 
-        private static int AddMeshShapes(RigidBody body, PhysicsShapeRecord record)
+        private static int AddMeshShapes(RigidBody body, NativeShape record)
         {
-            var vertices = new JVector[record.Vertices.Length];
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                vertices[i] = ToJVector(record.Vertices[i]);
-            }
-
             // Vertices are already expressed in the body's local space by the baker, so no
             // transform is applied here: the artifact is the single description of where the
             // geometry is.
-            var mesh = new TriangleMesh(vertices, record.Indices);
+            var mesh = new TriangleMesh(record.Vertices, record.Indices);
 
             var shapes = new List<RigidBodyShape>(mesh.Indices.Length);
             for (int i = 0; i < mesh.Indices.Length; i++)
@@ -285,8 +351,9 @@ namespace DataSakura.JitterPhysics.Integration
             return shapes.Count;
         }
 
-        private static void Rollback(World world, List<RigidBody> created)
+        private static bool Rollback(World world, List<RigidBody> created)
         {
+            bool succeeded = true;
             for (int i = created.Count - 1; i >= 0; i--)
             {
                 try
@@ -295,29 +362,22 @@ namespace DataSakura.JitterPhysics.Integration
                 }
                 catch (Exception)
                 {
-                    // Rollback runs while another failure is already being reported; the
-                    // original cause is more useful than a secondary cleanup error.
+                    succeeded = false;
                 }
             }
+
+            return succeeded;
         }
 
         private static PhysicsWorldBuildResult Failure(
             PhysicsArtifactErrorCode code,
             string message,
-            PhysicsArtifact artifact)
+            NativeArtifact artifact,
+            bool requiresWorldDiscard = false)
         {
             return new PhysicsWorldBuildResult(
-                new PhysicsArtifactError(code, message, artifact.LevelId), 0, 0, 0d, null);
-        }
-
-        private static JVector ToJVector(PhysicsVector3 value)
-        {
-            return new JVector(value.X, value.Y, value.Z);
-        }
-
-        private static JQuaternion ToJQuaternion(PhysicsQuaternion value)
-        {
-            return new JQuaternion(value.X, value.Y, value.Z, value.W);
+                new PhysicsArtifactError(code, message, artifact.LevelId),
+                0, 0, 0d, null, requiresWorldDiscard);
         }
 
         /// <summary>
@@ -327,7 +387,7 @@ namespace DataSakura.JitterPhysics.Integration
         {
             private readonly System.Text.StringBuilder builder = new System.Text.StringBuilder(1024);
 
-            internal void Body(PhysicsBodyRecord record)
+            internal void Body(NativeBody record)
             {
                 builder.Append("b:").Append(record.SourceId)
                     .Append('|').Append(Format(record.Position))
@@ -335,15 +395,15 @@ namespace DataSakura.JitterPhysics.Integration
                     .Append('\n');
             }
 
-            internal void Shape(PhysicsShapeRecord record)
+            internal void Shape(NativeShape record)
             {
                 builder.Append("s:").Append(record.ShapeKey)
                     .Append('|').Append((int)record.ShapeType)
                     .Append('|').Append(Format(record.LocalPosition))
                     .Append('|').Append(Format(record.LocalRotation))
                     .Append('|').Append(Format(record.Size))
-                    .Append('|').Append(PhysicsCanonicalization.Format(record.Radius))
-                    .Append('|').Append(PhysicsCanonicalization.Format(record.Length))
+                    .Append('|').Append(NativeCanonicalization.Format(record.Radius))
+                    .Append('|').Append(NativeCanonicalization.Format(record.Length))
                     .Append('|').Append(record.Vertices.Length)
                     .Append('|').Append(record.Indices.Length)
                     .Append('\n');
@@ -354,17 +414,20 @@ namespace DataSakura.JitterPhysics.Integration
                 return JitterPhysicsHash.Sha256HexUtf8(builder.ToString());
             }
 
-            private static string Format(PhysicsVector3 value)
+            private static string Format(in JVector value)
             {
-                return value.ToString();
+                return NativeCanonicalization.Format(value.X) + ","
+                    + NativeCanonicalization.Format(value.Y) + ","
+                    + NativeCanonicalization.Format(value.Z);
             }
 
-            private static string Format(PhysicsQuaternion value)
+            private static string Format(in JQuaternion value)
             {
-                return value.ToString();
+                return NativeCanonicalization.Format(value.X) + ","
+                    + NativeCanonicalization.Format(value.Y) + ","
+                    + NativeCanonicalization.Format(value.Z) + ","
+                    + NativeCanonicalization.Format(value.W);
             }
         }
     }
 }
-
-

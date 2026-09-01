@@ -97,6 +97,7 @@ namespace DataSakura.JitterPhysics.ArtifactCodec
                 result.Artifact,
                 manifest,
                 JitterPhysicsHash.Sha256Hex(payload),
+                payload,
                 Description);
         }
 

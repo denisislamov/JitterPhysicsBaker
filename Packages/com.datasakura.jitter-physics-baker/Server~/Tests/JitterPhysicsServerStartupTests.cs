@@ -179,6 +179,42 @@ namespace DataSakura.JitterPhysics.Server.Tests
             Assert.That(world.RigidBodies.Count - before, Is.Zero);
         }
 
+        [Test]
+        public void RefusesLegacyProviderWithoutExactPayloadBytes()
+        {
+            PhysicsArtifactPayload baked = PhysicsArtifactWriter.WriteWithManifest(
+                CreateArtifact(), JitterPhysicsPackage.PackageVersion);
+            var provider = new PortableRecordsOnlyProvider(baked);
+            var world = new World();
+            int before = world.RigidBodies.Count;
+
+            JitterPhysicsServerState state = JitterPhysicsServerStartup.Start(
+                world, provider, new JitterPhysicsServerOptions(RuntimeId));
+
+            Assert.That(state.IsReady, Is.False);
+            Assert.That(state.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.SourceUnavailable));
+            Assert.That(state.Error.Message, Does.Contain("exact payload bytes"));
+            Assert.That(state.Error.Message, Does.Contain("Update the provider"));
+            Assert.That(world.RigidBodies.Count, Is.EqualTo(before));
+        }
+
+        [Test]
+        public void RuntimeDllMismatchStopsBeforeProviderLoad()
+        {
+            var provider = new CountingProvider();
+
+            JitterPhysicsServerState state = JitterPhysicsServerStartup.Start(
+                new World(),
+                provider,
+                new JitterPhysicsServerOptions(
+                    RuntimeId,
+                    expectedJitterAssemblySha256: new string('0', 64)));
+
+            Assert.That(state.IsReady, Is.False);
+            Assert.That(state.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.IncompatibleRuntime));
+            Assert.That(provider.LoadCount, Is.Zero);
+        }
+
         private IPhysicsArtifactProvider Deliver()
         {
             PhysicsArtifactPayload baked = PhysicsArtifactWriter.WriteWithManifest(
@@ -236,6 +272,43 @@ namespace DataSakura.JitterPhysics.Server.Tests
                 "arena",
                 PhysicsWorldSettings.Default,
                 new List<PhysicsBodyRecord> { cover, ground });
+        }
+
+        private sealed class PortableRecordsOnlyProvider : IPhysicsArtifactProvider
+        {
+            private readonly PhysicsArtifactPayload _payload;
+
+            internal PortableRecordsOnlyProvider(PhysicsArtifactPayload payload)
+            {
+                _payload = payload;
+            }
+
+            public string Description => "portable-records-only";
+
+            public PhysicsArtifactLoadResult Load(string expectedRuntimeCompatibilityId)
+            {
+                return PhysicsArtifactLoadResult.Success(
+                    CreateArtifact(),
+                    _payload.Manifest,
+                    _payload.ArtifactHash,
+                    Description);
+            }
+        }
+
+        private sealed class CountingProvider : IPhysicsArtifactProvider
+        {
+            public int LoadCount { get; private set; }
+
+            public string Description => "counting-provider";
+
+            public PhysicsArtifactLoadResult Load(string expectedRuntimeCompatibilityId)
+            {
+                LoadCount++;
+                return PhysicsArtifactLoadResult.Failure(
+                    PhysicsArtifactErrorCode.SourceUnavailable,
+                    "Not expected to load.",
+                    Description);
+            }
         }
     }
 }

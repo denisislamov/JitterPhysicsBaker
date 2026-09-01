@@ -353,6 +353,85 @@ namespace DataSakura.JitterPhysics.JitterNative.UnityBoundary
         }
     }
 
+    /// <summary>Loads a Unity artifact asset directly into the native runtime graph.</summary>
+    public static class JitterNativeUnityArtifactLoader
+    {
+        /// <summary>Re-hashes, decodes, and cross-checks the asset before returning native records.</summary>
+        public static DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult Load(
+            UnityArtifact.JitterPhysicsArtifactAsset asset,
+            string expectedRuntimeCompatibilityId = null)
+        {
+            if (asset == null || !asset.HasPayload)
+            {
+                return DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult.Failure(
+                    new PhysicsArtifactError(
+                        PhysicsArtifactErrorCode.EmptyPayload,
+                        "No Unity artifact payload was supplied."));
+            }
+
+            DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult result =
+                PhysicsArtifactCodec.Read(asset.GetPayloadBytes(), asset.ArtifactHash);
+            if (!result.Succeeded) return result;
+
+            NativeArtifact artifact = result.Artifact;
+            bool metadataMatches = string.Equals(
+                    asset.LevelId, artifact.LevelId, StringComparison.Ordinal)
+                && string.Equals(
+                    asset.RuntimeCompatibilityId,
+                    artifact.RuntimeCompatibilityId,
+                    StringComparison.OrdinalIgnoreCase)
+                && asset.SchemaVersion == artifact.SchemaVersion
+                && asset.TickRate == artifact.WorldSettings.TickRate
+                && asset.BodyCount == artifact.Bodies.Count
+                && asset.ShapeCount == artifact.ShapeCount
+                && asset.VertexCount == artifact.VertexCount
+                && asset.TriangleCount == artifact.TriangleCount;
+            if (!metadataMatches)
+            {
+                return DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult.Failure(
+                    new PhysicsArtifactError(
+                        PhysicsArtifactErrorCode.ManifestMismatch,
+                        "The Unity .physics.asset metadata does not match its native payload.",
+                        artifact.LevelId,
+                        asset.ArtifactHash));
+            }
+
+            if (!string.IsNullOrEmpty(expectedRuntimeCompatibilityId)
+                && !string.Equals(
+                    expectedRuntimeCompatibilityId,
+                    artifact.RuntimeCompatibilityId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult.Failure(
+                    new PhysicsArtifactError(
+                        PhysicsArtifactErrorCode.IncompatibleRuntime,
+                        "The native artifact was baked for different runtime semantics.",
+                        artifact.LevelId,
+                        asset.ArtifactHash));
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>Presentation-only projection for the Jitter-free Scene View preview contract.</summary>
+    public static class JitterNativePreviewProjection
+    {
+        /// <summary>Copies native bodies into portable preview records on explicit request.</summary>
+        public static void CopyBodies(
+            NativeArtifact artifact,
+            ICollection<DataSakura.JitterPhysics.Contracts.PhysicsBodyRecord> destination)
+        {
+            if (artifact == null) throw new ArgumentNullException(nameof(artifact));
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+
+            DataSakura.JitterPhysics.Contracts.PhysicsArtifact preview =
+                LegacyPhysicsArtifactBridge.ToLegacy(artifact);
+            for (int index = 0; index < preview.Bodies.Count; index++)
+                destination.Add(preview.Bodies[index]);
+        }
+    }
+
     /// <summary>One native bake diagnostic with its Unity context.</summary>
     public sealed class NativeUnityBakeIssue
     {

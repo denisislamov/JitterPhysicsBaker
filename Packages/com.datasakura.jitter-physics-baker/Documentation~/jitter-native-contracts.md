@@ -31,17 +31,16 @@ error.
 
 ## Bounded compatibility window
 
-Schema 1 bytes do not change during source migration. Until JMP-E07 is complete, the original
-Jitter-free records remain in `Runtime/Contracts` as the bootstrap and source-compatibility
-surface. The native reader temporarily delegates hostile byte parsing and the mature limits,
-ordering, and mesh checks to the schema 1 reader, then performs one exact f32 field conversion.
-This bridge is internal and is not a second public artifact format.
+Schema 1 bytes do not change during source migration. The original Jitter-free records remain in
+`Runtime/Contracts` as the bootstrap and source-compatibility surface for inspection tools. The
+native reader delegates hostile byte parsing and the mature limits, ordering, and mesh checks to
+the schema 1 reader, then performs one exact f32 field projection. This bridge is internal and is
+not a second public artifact format.
 
-The bridge and old DTO use inside installed runtime consumers have a fixed removal deadline:
-**JMP-E07**. JMP-E05 migrates Unity producers and boundaries; JMP-E06 freezes compatibility and
-failure policy; JMP-E07 moves the world builder, server, and samples to native records and removes
-their per-record conversions. Do not add new public APIs that accept `PhysicsVector3` or
-`PhysicsQuaternion` during this window.
+JMP-E07 removes old DTO use from installed simulation consumers: the world builder, server, and
+samples accept native records. The remaining internal projection is limited to schema parsing and
+Jitter-free Scene View presentation; neither projection is accepted by the world builder. Do not
+add new public simulation APIs that accept `PhysicsVector3` or `PhysicsQuaternion`.
 
 ## Source migration map
 

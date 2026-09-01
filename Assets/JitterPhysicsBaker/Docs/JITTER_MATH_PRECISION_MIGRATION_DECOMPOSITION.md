@@ -717,40 +717,40 @@ Epic acceptance:
 
 Subtasks:
 
-- [ ] Принимать Jitter-native records без custom DTO conversion.
-- [ ] Применять settings через единый `Real` profile.
-- [ ] Сохранить deterministic topology ordering.
-- [ ] Сохранить typed fail-fast validation.
-- [ ] Проверить cleanup после failed apply; при неполном rollback требовать discard world.
+- [x] Принимать Jitter-native records без custom DTO conversion.
+- [x] Применять settings через единый `Real` profile.
+- [x] Сохранить deterministic topology ordering.
+- [x] Сохранить typed fail-fast validation.
+- [x] Проверить cleanup после failed apply; при неполном rollback требовать discard world.
 
 ### JMP-T07.2. Обновить server startup/projection
 
 Subtasks:
 
-- [ ] Проецировать Jitter-dependent sources отдельно и явно.
-- [ ] Доставлять exact verified Jitter DLL bytes.
-- [ ] Проверять artifact hash, runtime id, level и tick rate до readiness.
-- [ ] Не открывать connection approval до `IsReady`.
-- [ ] Не добавлять package-owned `World.Step`.
+- [x] Проецировать Jitter-dependent sources отдельно и явно.
+- [x] Доставлять exact verified Jitter DLL bytes.
+- [x] Проверять artifact hash, runtime id, level и tick rate до readiness.
+- [x] Не открывать connection approval до `IsReady`.
+- [x] Не добавлять package-owned `World.Step`.
 
 ### JMP-T07.3. Обновить package consumers
 
 Subtasks:
 
-- [ ] Проверить standalone Baker dev project.
-- [ ] Проверить future Custom Navigation direct-reference contract.
+- [x] Проверить standalone Baker dev project.
+- [x] Проверить future Custom Navigation direct-reference contract.
 - [ ] Проверить combined consumer с обоими пакетами.
-- [ ] Проверить exactly-one-Jitter invariant.
-- [ ] Не изменять consumer-owned networking/gameplay layers без отдельной задачи.
+- [x] Проверить exactly-one-Jitter invariant.
+- [x] Не изменять consumer-owned networking/gameplay layers без отдельной задачи.
 
 ### JMP-T07.4. Обновить samples/runtime glue
 
 Subtasks:
 
-- [ ] Перевести runtime sample API на Jitter-native records.
-- [ ] Сохранить consumer-owned tick loop.
-- [ ] Сохранить dynamic bodies/networking вне package responsibility.
-- [ ] Добавить actionable error, если Setup не выполнен.
+- [x] Перевести runtime sample API на Jitter-native records.
+- [x] Сохранить consumer-owned tick loop.
+- [x] Сохранить dynamic bodies/networking вне package responsibility.
+- [x] Добавить actionable error, если Setup не выполнен.
 
 Epic acceptance:
 

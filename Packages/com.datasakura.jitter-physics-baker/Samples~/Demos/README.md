@@ -38,6 +38,10 @@ After generating either scene, the imported `Samples.PlayModeTests` fixture ente
 loads the same artifact through the Unity runtime loader, builds the Jitter world and runs the
 artifact verification component.
 
+The runtime sample loads the `.physics.asset` directly into Jitter-native records and passes that
+graph to the same `JitterPhysicsWorldBuilder` used by the dedicated server. Portable preview DTOs
+are produced only when Scene View asks for presentation data; they are not part of simulation.
+
 ## Building a sample
 
 After installing, use **Assets > DataSakura > Jitter Physics > Samples**:
