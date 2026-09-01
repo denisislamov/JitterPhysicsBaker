@@ -564,48 +564,48 @@ graph и f32 preflight; фактические clean-import и post-Setup Unity 
 
 Subtasks:
 
-- [ ] Заменить `PhysicsVector3` на `JVector`.
-- [ ] Заменить `PhysicsQuaternion` на `JQuaternion`.
-- [ ] Заменить массивы custom vector на `JVector[]`.
-- [ ] Заменить simulation scalar fields на `Real`.
-- [ ] Сохранить domain records и их semantic meaning.
-- [ ] Удалить бессрочные obsolete overloads из основной runtime assembly.
+- [x] Заменить `PhysicsVector3` на `JVector`.
+- [x] Заменить `PhysicsQuaternion` на `JQuaternion`.
+- [x] Заменить массивы custom vector на `JVector[]`.
+- [x] Заменить simulation scalar fields на `Real`.
+- [x] Сохранить domain records и их semantic meaning.
+- [x] Удалить бессрочные obsolete overloads из основной runtime assembly.
 
 ### JMP-T04.2. Мигрировать canonical codec
 
 Subtasks:
 
-- [ ] Добавить `WriteReal/ReadReal`.
-- [ ] Добавить `WriteJVector/ReadJVector`.
-- [ ] Добавить `WriteJQuaternion/ReadJQuaternion`.
-- [ ] Зафиксировать endianness и f32 bit layout.
-- [ ] Проверить canonical ordering и limits.
-- [ ] Не сериализовать padding/runtime struct memory напрямую.
+- [x] Добавить `WriteReal/ReadReal`.
+- [x] Добавить `WriteJVector/ReadJVector`.
+- [x] Добавить `WriteJQuaternion/ReadJQuaternion`.
+- [x] Зафиксировать endianness и f32 bit layout.
+- [x] Проверить canonical ordering и limits.
+- [x] Не сериализовать padding/runtime struct memory напрямую.
 
 ### JMP-T04.3. Мигрировать canonicalization и validation
 
 Subtasks:
 
-- [ ] Перевести normalization/quantization на `StableMath`.
-- [ ] Перевести finite/range checks на Jitter-native values.
-- [ ] Сохранить typed external-input errors.
-- [ ] Проверить NaN, Infinity, `-0`, degenerate quaternion и overflow limits.
-- [ ] Проверить fail-fast до частичного результата.
+- [x] Перевести normalization/quantization на `StableMath`.
+- [x] Перевести finite/range checks на Jitter-native values.
+- [x] Сохранить typed external-input errors.
+- [x] Проверить NaN, Infinity, `-0`, degenerate quaternion и overflow limits.
+- [x] Проверить fail-fast до частичного результата.
 
 ### JMP-T04.4. Удалить custom math DTO безопасно
 
 Subtasks:
 
-- [ ] Инвентаризировать public consumers старых типов.
-- [ ] Подготовить editor upgrader/source migration guide либо временную compatibility assembly.
-- [ ] Указать срок удаления временной compatibility assembly.
-- [ ] Не оставлять старые DTO в canonical runtime навсегда.
-- [ ] Добавить compile fixtures для supported migration path.
+- [x] Инвентаризировать public consumers старых типов.
+- [x] Подготовить editor upgrader/source migration guide либо временную compatibility assembly.
+- [x] Указать срок удаления временной compatibility assembly.
+- [x] Не оставлять старые DTO в canonical runtime навсегда.
+- [x] Добавить compile fixtures для supported migration path.
 
 Epic acceptance:
 
-- [ ] Authoritative records используют Jitter math types и `Real`.
-- [ ] Codec остаётся canonical и покрыт golden tests.
+- [x] Authoritative records используют Jitter math types и `Real`.
+- [x] Codec остаётся canonical и покрыт golden tests.
 
 ## JMP-E05. Unity authoring, baking и runtime boundaries
 
