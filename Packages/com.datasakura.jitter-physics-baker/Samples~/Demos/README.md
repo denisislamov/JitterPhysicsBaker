@@ -19,6 +19,11 @@ standard Package Manager import cannot disable its button while that project-own
 is missing, so importing out of order produces a missing-assembly error. Complete Setup
 before pressing Import.
 
+Installing the package without importing this sample remains a supported no-Jitter readiness
+state: all sample sources stay under the hidden `Samples~` folder and no sample assembly is added
+to the consumer graph. After explicit Setup, editor bake commands use the installed
+Jitter-native Unity boundary; importing the sample does not install or replace Jitter itself.
+
 The imported runtime scripts also use Jitter2 types directly. The receipt-owned fallback is an
 auto-referenced precompiled plugin, so it needs no entry in the sample asmdef. If the consumer uses
 a compatible source-based `Jitter2.Core` asmdef instead, add `"Jitter2.Core"` to the imported

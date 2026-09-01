@@ -32,6 +32,15 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                 return new JitterPhysicsBakeResult(null, issues);
             }
 
+            if (!JitterNativeBuildBridge.IsAvailable)
+            {
+                issues.Error(
+                    "Jitter2 is compatible, but its Jitter-native integration adapter is not "
+                    + "installed. Run Install Integration in Jitter Physics Setup before baking.",
+                    level);
+                return new JitterPhysicsBakeResult(null, issues);
+            }
+
             return JitterPhysicsBaker.Bake(level, report.RuntimeCompatibilityId);
         }
 

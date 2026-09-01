@@ -371,8 +371,7 @@ namespace DataSakura.JitterPhysics.Editor.Install
 
             string text = Encoding.UTF8.GetString(template);
             string tailored = text
-                .Replace("\n    \"DataSakura.JitterPhysics.ArtifactCodec\",\n    \"Jitter2.Core\"\n",
-                    "\n    \"DataSakura.JitterPhysics.ArtifactCodec\"\n")
+                .Replace(",\n    \"Jitter2.Core\"\n", "\n")
                 .Replace(
                     "  \"overrideReferences\": false,\n  \"precompiledReferences\": [],",
                     "  \"overrideReferences\": true,\n  \"precompiledReferences\": [\n"
@@ -1105,6 +1104,5 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
 
 

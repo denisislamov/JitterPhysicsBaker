@@ -144,6 +144,7 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 System.Text.Encoding.UTF8.GetString(
                     JitterPhysicsInstaller.TailorIntegrationAsmdef(template, true)));
             Assert.That(source.references, Does.Contain("Jitter2.Core"));
+            Assert.That(source.references, Does.Contain("DataSakura.JitterPhysics.Authoring"));
             Assert.That(source.overrideReferences, Is.False);
             Assert.That(source.precompiledReferences, Is.Empty);
 
@@ -151,8 +152,42 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 System.Text.Encoding.UTF8.GetString(
                     JitterPhysicsInstaller.TailorIntegrationAsmdef(template, false)));
             Assert.That(plugin.references, Does.Not.Contain("Jitter2.Core"));
+            Assert.That(plugin.references, Does.Contain("DataSakura.JitterPhysics.Authoring"));
             Assert.That(plugin.overrideReferences, Is.True);
             Assert.That(plugin.precompiledReferences, Is.EqualTo(new[] { "Jitter2.Core.dll" }));
+        }
+
+        [Test]
+        public void InstallableUnityBoundaryOwnsTheOnlyUnityToJitterAdapter()
+        {
+            PackageInfo package = FindPackage();
+            Assert.That(package, Is.Not.Null);
+            string integrationRoot = Path.Combine(package.resolvedPath, "JitterIntegration~", "Runtime");
+            string boundaryPath = Path.Combine(integrationRoot, "JitterNativeUnityBaking.cs");
+            string boundary = File.ReadAllText(boundaryPath);
+
+            Assert.That(boundary, Does.Contain("public static class UnityJitterMathAdapter"));
+            Assert.That(boundary, Does.Contain("ToJVector(Vector3 value)"));
+            Assert.That(boundary, Does.Contain("ToJQuaternion(Quaternion value)"));
+            Assert.That(boundary, Does.Contain("GetLocalPose("));
+            Assert.That(boundary, Does.Contain("TransformPoint("));
+            Assert.That(boundary, Does.Contain("JitterNativeUnityArtifactBuilder"));
+            Assert.That(boundary, Does.Contain("JitterNativeColliderConverter"));
+            Assert.That(boundary, Does.Contain("toBodyLocal.determinant < 0f"));
+
+            int declarations = Directory.GetFiles(
+                    package.resolvedPath, "*.cs", SearchOption.AllDirectories)
+                .Where(path => !path.Contains(Path.DirectorySeparatorChar + "Tests" + Path.DirectorySeparatorChar))
+                .Sum(path => Count(File.ReadAllText(path), "class UnityJitterMathAdapter"));
+            Assert.That(declarations, Is.EqualTo(1),
+                "There must be one reviewable Unity-to-Jitter conversion boundary.");
+
+            IReadOnlyDictionary<string, AssemblyDefinition> definitions = LoadPackageAssemblyDefinitions();
+            foreach (AssemblyDefinition definition in definitions.Values)
+            {
+                Assert.That(definition.references ?? Array.Empty<string>(), Does.Not.Contain("Jitter2.Core"),
+                    "The native boundary must remain hidden until explicit Setup installs it.");
+            }
         }
 
         [Test]
@@ -410,6 +445,19 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             visiting.Remove(name);
             visited.Add(name);
             return false;
+        }
+
+        private static int Count(string text, string value)
+        {
+            int count = 0;
+            int offset = 0;
+            while ((offset = text.IndexOf(value, offset, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                offset += value.Length;
+            }
+
+            return count;
         }
 
         [Serializable]

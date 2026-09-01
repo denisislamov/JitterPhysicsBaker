@@ -24,6 +24,7 @@ lifetime, and every call to `World.Step`.
 | Understand the data flow and ownership | [Concepts and architecture](concepts-and-architecture.md) |
 | Inspect optional assemblies and f32 preflight | [Installable assembly graph](installable-assembly-graph.md) |
 | Migrate to Jitter-native artifact records | [Jitter-native contracts](jitter-native-contracts.md) |
+| Inspect Unity-to-Jitter conversion and native baking | [Unity-to-Jitter boundary](unity-jitter-boundary.md) |
 | Configure levels, sources, profiles, and folders | [Configuration](configuration.md) |
 | Load and step a world in Unity | [Runtime API](runtime-api.md) |
 | Integrate with an existing game architecture | [Integration guide](integration.md) |

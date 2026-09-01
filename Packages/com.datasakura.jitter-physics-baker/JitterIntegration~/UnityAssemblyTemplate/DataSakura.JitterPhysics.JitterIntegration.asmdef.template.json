@@ -4,6 +4,7 @@
   "references": [
     "DataSakura.JitterPhysics.Contracts",
     "DataSakura.JitterPhysics.ArtifactCodec",
+    "DataSakura.JitterPhysics.Authoring",
     "Jitter2.Core"
   ],
   "includePlatforms": [],
@@ -16,4 +17,3 @@
   "versionDefines": [],
   "noEngineReferences": false
 }
-

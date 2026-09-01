@@ -93,6 +93,15 @@ namespace DataSakura.JitterPhysics.Editor.Baking
                 return new JitterPhysicsBuildResult(null, issues);
             }
 
+            // After explicit Setup this is the authoritative path: Unity values cross one
+            // adapter into Jitter-native records, are encoded there, and come back only as
+            // verified schema-one bytes. The legacy path below remains available so the
+            // no-Jitter package can still validate authoring and its migration fixtures.
+            if (JitterNativeBuildBridge.IsAvailable)
+            {
+                return JitterNativeBuildBridge.Build(level, runtimeCompatibilityId, managedLevelId);
+            }
+
             IReadOnlyList<PhysicsBodyRecord> bodies = BuildBodies(level, issues);
 
             if (issues.HasErrors)

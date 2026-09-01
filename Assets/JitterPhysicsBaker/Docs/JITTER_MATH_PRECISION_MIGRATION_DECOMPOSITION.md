@@ -615,52 +615,52 @@ Epic acceptance:
 
 Subtasks:
 
-- [ ] Определить единственный supported adapter для vector/quaternion/transform bounds.
-- [ ] Зафиксировать handedness, axis, rotation и scale semantics.
-- [ ] Запретить повторные conversions ниже boundary.
-- [ ] Добавить numerical fixtures для Box/Sphere/Capsule/Mesh.
+- [x] Определить единственный supported adapter для vector/quaternion/transform bounds.
+- [x] Зафиксировать handedness, axis, rotation и scale semantics.
+- [x] Запретить повторные conversions ниже boundary.
+- [x] Добавить numerical fixtures для Box/Sphere/Capsule/Mesh.
 
 ### JMP-T05.2. Мигрировать bake pipeline
 
 Subtasks:
 
-- [ ] Перевести artifact builder на Jitter-native records.
-- [ ] Перевести collider converter.
-- [ ] Сохранить stable source IDs и ordering.
-- [ ] Сохранить deterministic mesh vertex/index policy.
-- [ ] Проверить first/repeat bake equality.
+- [x] Перевести artifact builder на Jitter-native records.
+- [x] Перевести collider converter.
+- [x] Сохранить stable source IDs и ordering.
+- [x] Сохранить deterministic mesh vertex/index policy.
+- [x] Проверить first/repeat bake equality.
 
 ### JMP-T05.3. Мигрировать Editor diagnostics
 
 Subtasks:
 
-- [ ] Перевести geometry comparer на Jitter values после boundary conversion.
-- [ ] Сохранить Sources/Baked/Runtime distinction.
-- [ ] Не выполнять hash/bake/conversion work во время Repaint.
-- [ ] Оставить Unity types только в Scene View/presentation code.
+- [x] Перевести geometry comparer на Jitter values после boundary conversion.
+- [x] Сохранить Sources/Baked/Runtime distinction.
+- [x] Не выполнять hash/bake/conversion work во время Repaint.
+- [x] Оставить Unity types только в Scene View/presentation code.
 
 ### JMP-T05.4. Мигрировать Unity artifact bridge
 
 Subtasks:
 
-- [ ] Не хранить Unity math types в authoritative artifact records.
-- [ ] Сохранить payload/manifest/asset verification.
-- [ ] Проверить import/reimport и moved/removed asset cases.
-- [ ] Проверить late failure policy для всей artifact trio.
+- [x] Не хранить Unity math types в authoritative artifact records.
+- [x] Сохранить payload/manifest/asset verification.
+- [x] Проверить import/reimport и moved/removed asset cases.
+- [x] Проверить late failure policy для всей artifact trio.
 
 ### JMP-T05.5. Обновить samples и Editor tests
 
 Subtasks:
 
-- [ ] Обновить samples после explicit Setup.
-- [ ] Добавить no-Jitter readiness sample/test.
-- [ ] Обновить expected API usages.
-- [ ] Проверить imported UPM sample copies отдельно от package sources.
+- [x] Обновить samples после explicit Setup.
+- [x] Добавить no-Jitter readiness sample/test.
+- [x] Обновить expected API usages.
+- [x] Проверить imported UPM sample copies отдельно от package sources.
 
 Epic acceptance:
 
-- [ ] Unity types ограничены разрешённым boundary allowlist.
-- [ ] Bake и preview behavior не регрессировали.
+- [x] Unity types ограничены разрешённым boundary allowlist.
+- [x] Bake и preview behavior не регрессировали.
 
 ## JMP-E06. Artifact compatibility и migration
 
