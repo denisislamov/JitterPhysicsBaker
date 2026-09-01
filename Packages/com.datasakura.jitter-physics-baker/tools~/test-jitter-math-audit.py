@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -58,12 +60,13 @@ class ScannerTests(unittest.TestCase):
         source_path.parent.mkdir(parents=True)
         source_path.write_text(source, encoding="utf-8")
         policy = {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "repositoryRootMarker": "Packages/com.datasakura.jitter-physics-baker/package.json",
             "ownedRoots": ["Packages/com.datasakura.jitter-physics-baker/Runtime/Contracts"],
             "vendorRoots": ["Packages/com.datasakura.jitter-physics-baker/Jitter2~"],
             "excludedRoots": ["bin", "obj"],
             "baselineFindingsHash": "",
+            "allowlist": [],
         }
         return root, policy
 
@@ -118,6 +121,69 @@ class ScannerTests(unittest.TestCase):
         policy["silentExpansion"] = True
         with self.assertRaisesRegex(ValueError, "unknown fields"):
             AUDIT.validate_policy(policy)
+
+    def test_allowlist_requires_owner_reason_and_known_rule(self) -> None:
+        _, policy = self.create_repo("namespace Demo { }\n")
+        policy["allowlist"] = [{
+            "id": "bad",
+            "path": policy["ownedRoots"][0],
+            "recursive": True,
+            "ruleIds": ["JMP999"],
+            "owner": "",
+            "reason": "",
+        }]
+        with self.assertRaises(ValueError):
+            AUDIT.validate_policy(policy)
+
+    def test_allowed_finding_records_entry_and_unused_entry_is_stale(self) -> None:
+        root, policy = self.create_repo(
+            "namespace Demo { public struct Test { public float Value; } }\n"
+        )
+        policy["allowlist"] = [{
+            "id": "contract-f32",
+            "path": policy["ownedRoots"][0],
+            "recursive": True,
+            "ruleIds": ["JMP007"],
+            "owner": "test",
+            "reason": "explicit fixture",
+        }]
+        report = AUDIT.build_report(root, policy, "snapshot")
+        self.assertEqual(0, report["migrationDebtCount"])
+        self.assertEqual([], report["staleAllowlistEntries"])
+        self.assertEqual("contract-f32", report["findings"][0]["allowlistEntryId"])
+
+        policy["allowlist"][0]["ruleIds"] = ["JMP008"]
+        stale = AUDIT.build_report(root, policy, "snapshot")
+        self.assertEqual(["contract-f32"], stale["staleAllowlistEntries"])
+        self.assertEqual(1, stale["migrationDebtCount"])
+
+    def test_check_prints_path_category_and_remediation_for_forbidden_use(self) -> None:
+        root, policy = self.create_repo(
+            "namespace Demo { public static class Test { public static double Run() => Math.Sqrt(4d); } }\n"
+        )
+        policy["baselineFindingsHash"] = AUDIT.build_report(root, policy, "snapshot")["findingsHash"]
+        policy_path = root / "policy.json"
+        policy_path.write_text(json.dumps(policy), encoding="utf-8")
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "check",
+                "--policy",
+                str(policy_path),
+                "--repository-root",
+                str(root),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(2, completed.returncode)
+        self.assertIn("Test.cs:1:", completed.stderr)
+        self.assertIn("simulation", completed.stderr)
+        self.assertIn("remediation:", completed.stderr)
 
 
 if __name__ == "__main__":

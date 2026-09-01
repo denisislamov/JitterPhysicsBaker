@@ -765,48 +765,48 @@ Epic acceptance:
 
 Subtasks:
 
-- [ ] Запрещать `PhysicsVector3` и `PhysicsQuaternion` в owned deterministic scope.
-- [ ] Запрещать Unity vector/quaternion types вне boundary.
-- [ ] Запрещать `Mathf`, `MathF` и simulation-use `System.Math`.
-- [ ] Запрещать прямые simulation `float`/`double` вместо `Real`.
-- [ ] Запрещать local `StableMath` duplicates.
-- [ ] Печатать path, line, category и remediation.
+- [x] Запрещать `PhysicsVector3` и `PhysicsQuaternion` в owned deterministic scope.
+- [x] Запрещать Unity vector/quaternion types вне boundary.
+- [x] Запрещать `Mathf`, `MathF` и simulation-use `System.Math`.
+- [x] Запрещать прямые simulation `float`/`double` вместо `Real`.
+- [x] Запрещать local `StableMath` duplicates.
+- [x] Печатать path, line, category и remediation.
 
 ### JMP-T08.2. Сделать allowlist проверяемым
 
 Subtasks:
 
-- [ ] Разрешать только Unity authoring/editor/presentation adapters.
-- [ ] Разрешать documented serialization boundaries.
-- [ ] Разрешать `Stopwatch`/telemetry.
-- [ ] Исключать third-party/vendor по точному path, не широкому glob.
-- [ ] Требовать owner и reason для каждой записи.
-- [ ] Падать на stale/unused allowlist entry.
+- [x] Разрешать только Unity authoring/editor/presentation adapters.
+- [x] Разрешать documented serialization boundaries.
+- [x] Разрешать `Stopwatch`/telemetry.
+- [x] Исключать third-party/vendor по точному path, не широкому glob.
+- [x] Требовать owner и reason для каждой записи.
+- [x] Падать на stale/unused allowlist entry.
 
 ### JMP-T08.3. Проверять assembly/runtime identity
 
 Subtasks:
 
-- [ ] Инвентаризировать source и precompiled Jitter providers.
-- [ ] Проверять candidate count ровно 1 после Setup.
-- [ ] Проверять assembly name, source hash, profile id и DLL SHA-256.
-- [ ] Проверять direct references.
-- [ ] Проверять server/Unity binary equality.
-- [ ] Добавить missing/duplicate/tampered/f64 fixtures.
+- [x] Инвентаризировать source и precompiled Jitter providers.
+- [x] Проверять candidate count ровно 1 после Setup.
+- [x] Проверять assembly name, source hash, profile id и DLL SHA-256.
+- [x] Проверять direct references.
+- [x] Проверять server/Unity binary equality.
+- [x] Добавить missing/duplicate/tampered/f64 fixtures.
 
 ### JMP-T08.4. Встроить gates в repository tooling
 
 Subtasks:
 
-- [ ] Добавить audit в pre-commit/CI workflow без скрытых мутаций.
-- [ ] Сохранить `verify-package-meta.py`.
-- [ ] Сохранить lock verification и portable tests.
-- [ ] Обновить developer README с exact commands.
-- [ ] Не считать CI workflow проверенным до реального server run.
+- [x] Добавить audit в pre-commit/CI workflow без скрытых мутаций.
+- [x] Сохранить `verify-package-meta.py`.
+- [x] Сохранить lock verification и portable tests.
+- [x] Обновить developer README с exact commands.
+- [x] Не считать CI workflow проверенным до реального server run.
 
 Epic acceptance:
 
-- [ ] Намеренное запрещённое использование и runtime mismatch делают проверки красными.
+- [x] Намеренное запрещённое использование и runtime mismatch делают проверки красными.
 
 ## JMP-E09. Полная регрессия и release candidate
 

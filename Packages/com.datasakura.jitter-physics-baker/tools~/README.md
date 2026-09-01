@@ -45,6 +45,19 @@ python3 tools~/audit-jitter-math.py inventory \
 ```
 
 `inventory` passes only when the exact finding identities and their reviewed classification
-still match the policy hash. `check` additionally fails while any `must_migrate` finding exists,
-and is intended for the enforcement milestone after the migration. Reports are written only
-when `--json-report` or `--markdown-report` is supplied explicitly.
+still match the policy hash. Every permitted finding must also match a repository-relative,
+non-glob allowlist entry with rule IDs, owner, and reason. An unused entry is an error, so deleted
+debt cannot leave a permanent exception behind.
+
+Run the executable enforcement and its negative fixtures from the repository root:
+
+```sh
+python3 "Packages/com.datasakura.jitter-physics-baker/tools~/test-jitter-math-audit.py"
+python3 "Packages/com.datasakura.jitter-physics-baker/tools~/audit-jitter-math.py" check \
+  --policy "Packages/com.datasakura.jitter-physics-baker/tools~/jitter-math-audit-policy.json"
+```
+
+`check` prints `path:line:column`, rule, category, and remediation for every unapproved use and
+returns non-zero for a new finding, a stale baseline, an unused allowlist entry, or malformed
+policy. Reports are written only when `--json-report` or `--markdown-report` is supplied
+explicitly; normal CI runs are read-only.

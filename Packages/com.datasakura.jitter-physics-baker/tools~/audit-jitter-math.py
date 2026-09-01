@@ -362,14 +362,17 @@ def scan_file(repo_root: Path, file_path: Path) -> tuple[list[dict], list[dict]]
 
 
 def validate_policy(policy: dict) -> None:
-    required = {"schemaVersion", "repositoryRootMarker", "ownedRoots", "vendorRoots", "excludedRoots", "baselineFindingsHash"}
+    required = {
+        "schemaVersion", "repositoryRootMarker", "ownedRoots", "vendorRoots",
+        "excludedRoots", "baselineFindingsHash", "allowlist",
+    }
     missing = sorted(required - set(policy))
     if missing:
         raise ValueError("policy is missing fields: " + ", ".join(missing))
     unknown = sorted(set(policy) - required)
     if unknown:
         raise ValueError("policy has unknown fields: " + ", ".join(unknown))
-    if policy["schemaVersion"] != 1:
+    if policy["schemaVersion"] != 2:
         raise ValueError("unsupported policy schemaVersion")
     for key in ("ownedRoots", "vendorRoots", "excludedRoots"):
         if not isinstance(policy[key], list) or not all(isinstance(item, str) for item in policy[key]):
@@ -381,6 +384,40 @@ def validate_policy(policy: dict) -> None:
     baseline = policy["baselineFindingsHash"]
     if not isinstance(baseline, str) or (baseline and not re.fullmatch(r"sha256:[0-9a-f]{64}", baseline)):
         raise ValueError("baselineFindingsHash must be empty or sha256:<64 lowercase hex>")
+    if not isinstance(policy["allowlist"], list):
+        raise ValueError("policy field 'allowlist' must be an array")
+    known_rules = {rule_id for rule_id, _, _ in RULES}
+    entry_ids: set[str] = set()
+    for entry in policy["allowlist"]:
+        required_entry = {"id", "path", "recursive", "ruleIds", "owner", "reason"}
+        if not isinstance(entry, dict) or set(entry) != required_entry:
+            raise ValueError("each allowlist entry must contain exactly: " + ", ".join(sorted(required_entry)))
+        if not all(isinstance(entry[key], str) and entry[key].strip() for key in ("id", "path", "owner", "reason")):
+            raise ValueError("allowlist id, path, owner and reason must be non-empty strings")
+        if entry["id"] in entry_ids:
+            raise ValueError(f"duplicate allowlist id: {entry['id']}")
+        entry_ids.add(entry["id"])
+        candidate = Path(entry["path"])
+        if candidate.is_absolute() or ".." in candidate.parts or "\\" in entry["path"]:
+            raise ValueError(f"allowlist path must be repository-relative POSIX: {entry['path']}")
+        if not isinstance(entry["recursive"], bool):
+            raise ValueError(f"allowlist recursive must be boolean: {entry['id']}")
+        if not isinstance(entry["ruleIds"], list) or not entry["ruleIds"]:
+            raise ValueError(f"allowlist ruleIds must be a non-empty array: {entry['id']}")
+        unknown_rules = sorted(set(entry["ruleIds"]) - known_rules)
+        if unknown_rules:
+            raise ValueError(f"allowlist entry {entry['id']} has unknown rules: {', '.join(unknown_rules)}")
+
+
+def allowlist_match(path: str, rule_id: str, entries: list[dict]) -> dict | None:
+    for entry in entries:
+        configured = entry["path"].rstrip("/")
+        path_matches = path == configured or (
+            entry["recursive"] and path.startswith(configured + "/")
+        )
+        if path_matches and rule_id in entry["ruleIds"]:
+            return entry
+    return None
 
 
 def enumerate_files(repo_root: Path, policy: dict) -> list[Path]:
@@ -468,17 +505,27 @@ def build_report(repo_root: Path, policy: dict, mode: str) -> dict:
         duplicates = sorted({item for item in ids if ids.count(item) > 1})
         raise RuntimeError("duplicate finding ids: " + ", ".join(duplicates[:5]))
 
+    allowlist_hits = {entry["id"]: 0 for entry in policy["allowlist"]}
+    violations: list[dict] = []
+    for finding in findings:
+        entry = allowlist_match(finding["path"], finding["ruleId"], policy["allowlist"])
+        finding["allowlistEntryId"] = entry["id"] if entry else None
+        if entry:
+            allowlist_hits[entry["id"]] += 1
+        else:
+            violations.append(finding)
+    stale_allowlist = sorted(entry_id for entry_id, count in allowlist_hits.items() if count == 0)
     ambiguous = sum(finding["category"] == "ambiguous" for finding in findings)
-    debt = sum(finding["disposition"] == "must_migrate" for finding in findings)
-    allowed = sum(finding["disposition"] == "allowed" for finding in findings)
+    debt = len(violations)
+    allowed = len(findings) - debt
     legacy = sum(finding["disposition"] == "legacy_fixture" for finding in findings)
     current_hash = findings_hash(findings)
     reviewed = bool(policy["baselineFindingsHash"]) and current_hash == policy["baselineFindingsHash"]
     non_code = sum(candidate["lexicalRegion"] != "code" for candidate in raw_candidates)
 
     return {
-        "schemaVersion": 1,
-        "toolVersion": "0.1.0-proto",
+        "schemaVersion": 2,
+        "toolVersion": "0.2.0",
         "mode": mode,
         "repositoryRevision": "working-tree",
         "policyHash": policy_hash(policy),
@@ -494,8 +541,12 @@ def build_report(repo_root: Path, policy: dict, mode: str) -> dict:
         "allowedCount": allowed,
         "legacyFixtureCount": legacy,
         "ambiguousCount": ambiguous,
-        "unclassifiedCount": 0 if reviewed else len(findings),
-        "stalePolicyCount": 0 if reviewed or not policy["baselineFindingsHash"] else 1,
+        "unclassifiedCount": debt if reviewed else len(findings),
+        "stalePolicyCount": (0 if reviewed or not policy["baselineFindingsHash"] else 1)
+        + len(stale_allowlist),
+        "allowlistHits": allowlist_hits,
+        "staleAllowlistEntries": stale_allowlist,
+        "violations": violations,
         "summary": summarize(findings),
         "findings": findings,
         "rawOccurrences": raw_candidates,
@@ -573,12 +624,17 @@ def main() -> int:
         print(report["findingsHash"])
         return 0 if report["ambiguousCount"] == 0 else 2
     if args.mode == "validate-policy":
-        if policy["baselineFindingsHash"] and not report["baselineReviewed"]:
-            print("JMP_P00_AUDIT_FAILED exit=3 stale=1", file=sys.stderr)
+        if (policy["baselineFindingsHash"] and not report["baselineReviewed"]) or report["staleAllowlistEntries"]:
+            print(
+                "JMP_P00_AUDIT_FAILED exit=3 "
+                f"baseline_stale={int(not report['baselineReviewed'])} "
+                f"unused_allowlist={len(report['staleAllowlistEntries'])}",
+                file=sys.stderr,
+            )
             return 3
         print("JMP_P00_POLICY_OK")
         return 0
-    if report["ambiguousCount"] or not report["baselineReviewed"]:
+    if report["ambiguousCount"] or not report["baselineReviewed"] or report["staleAllowlistEntries"]:
         print(
             "JMP_P00_AUDIT_FAILED exit=2 "
             f"unclassified={report['unclassifiedCount']} ambiguous={report['ambiguousCount']} "
@@ -587,6 +643,13 @@ def main() -> int:
         )
         return 2
     if args.mode == "check" and report["migrationDebtCount"]:
+        for finding in report["violations"][:50]:
+            print(
+                f"{finding['path']}:{finding['line']}:{finding['column']}: "
+                f"{finding['ruleId']} {finding['category']}: {finding['ruleTitle']}; "
+                f"remediation: {finding['targetAction']}",
+                file=sys.stderr,
+            )
         print(
             f"JMP_P00_AUDIT_FAILED exit=2 migration_debt={report['migrationDebtCount']}",
             file=sys.stderr,

@@ -31,6 +31,14 @@ jobs:
       - name: Canonical source hash invariants
         run: python3 "Packages/com.datasakura.jitter-physics-baker/tools~/test-jitter2-lock.py"
 
+      - name: Jitter math audit self-tests
+        run: python3 "Packages/com.datasakura.jitter-physics-baker/tools~/test-jitter-math-audit.py"
+
+      - name: Enforce reviewed math and precision boundaries
+        run: >-
+          python3 "Packages/com.datasakura.jitter-physics-baker/tools~/audit-jitter-math.py" check
+          --policy "Packages/com.datasakura.jitter-physics-baker/tools~/jitter-math-audit-policy.json"
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -73,4 +81,3 @@ jobs:
         with:
           name: unity-test-results
           path: test-results
-

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "repositoryRootMarker": "Packages/com.datasakura.jitter-physics-baker/package.json",
   "ownedRoots": [
     "Packages/com.datasakura.jitter-physics-baker/Runtime/Contracts",
@@ -24,5 +24,111 @@
     "Logs",
     ".git"
   ],
-  "baselineFindingsHash": "sha256:565d1fb388a7b098a8e2b75b81321e9bf873b922eead6961882afd02efe8370f"
+  "baselineFindingsHash": "sha256:2b684299d0971551f325996f8b496441c95a06a9a2d795754e68ea5ecf2dc171",
+  "allowlist": [
+    {
+      "id": "legacy-contract-schema-one",
+      "path": "Packages/com.datasakura.jitter-physics-baker/Runtime/Contracts",
+      "recursive": true,
+      "ruleIds": ["JMP001", "JMP002", "JMP006", "JMP007", "JMP008", "JMP013"],
+      "owner": "Artifact compatibility",
+      "reason": "Jitter-free schema-one inspection DTOs preserve the published byte contract; simulation consumers cannot accept them."
+    },
+    {
+      "id": "legacy-schema-one-codec",
+      "path": "Packages/com.datasakura.jitter-physics-baker/Runtime/ArtifactCodec",
+      "recursive": true,
+      "ruleIds": ["JMP001", "JMP002", "JMP006", "JMP007", "JMP013"],
+      "owner": "Artifact compatibility",
+      "reason": "Schema-one parsing and writing retain their published f32 layout behind the Jitter-free bootstrap boundary."
+    },
+    {
+      "id": "unity-authoring-boundary",
+      "path": "Packages/com.datasakura.jitter-physics-baker/Authoring",
+      "recursive": true,
+      "ruleIds": ["JMP001", "JMP003", "JMP004", "JMP007", "JMP013"],
+      "owner": "Unity authoring",
+      "reason": "Serialized Unity inputs and the Jitter-free readiness surface convert once in the explicitly installed adapter."
+    },
+    {
+      "id": "unity-editor-boundary",
+      "path": "Packages/com.datasakura.jitter-physics-baker/Editor",
+      "recursive": true,
+      "ruleIds": ["JMP001", "JMP002", "JMP003", "JMP004", "JMP007", "JMP008", "JMP013"],
+      "owner": "Unity editor",
+      "reason": "Editor authoring, compatibility, UI and Scene View presentation stay Jitter-free and are frozen by the reviewed finding hash."
+    },
+    {
+      "id": "native-unity-adapter",
+      "path": "Packages/com.datasakura.jitter-physics-baker/JitterIntegration~/Runtime/JitterNativeUnityBaking.cs",
+      "recursive": false,
+      "ruleIds": ["JMP003", "JMP004", "JMP007", "JMP013"],
+      "owner": "Jitter integration",
+      "reason": "This is the single documented Unity-to-Jitter conversion boundary installed by explicit Setup."
+    },
+    {
+      "id": "native-schema-codec-bridge",
+      "path": "Packages/com.datasakura.jitter-physics-baker/JitterIntegration~/Runtime/JitterNativeArtifactCodec.cs",
+      "recursive": false,
+      "ruleIds": ["JMP001", "JMP002", "JMP007"],
+      "owner": "Artifact compatibility",
+      "reason": "The internal reader projection reuses hostile schema-one parsing; native simulation records are returned to callers."
+    },
+    {
+      "id": "native-real-contracts",
+      "path": "Packages/com.datasakura.jitter-physics-baker/JitterIntegration~/Runtime/JitterNativeContracts.cs",
+      "recursive": false,
+      "ruleIds": ["JMP007", "JMP013"],
+      "owner": "Jitter integration",
+      "reason": "Explicit f32 operations canonicalize the supported Real profile and schema-one bits."
+    },
+    {
+      "id": "server-startup-telemetry",
+      "path": "Packages/com.datasakura.jitter-physics-baker/JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs",
+      "recursive": false,
+      "ruleIds": ["JMP008", "JMP013"],
+      "owner": "Dedicated server integration",
+      "reason": "Double is limited to Stopwatch diagnostics; numeric literals do not define artifact scalar storage."
+    },
+    {
+      "id": "world-builder-real-and-telemetry",
+      "path": "Packages/com.datasakura.jitter-physics-baker/JitterIntegration~/Runtime/JitterPhysicsWorldBuilder.cs",
+      "recursive": false,
+      "ruleIds": ["JMP007", "JMP008", "JMP013"],
+      "owner": "Shared world builder",
+      "reason": "Single is the canonical Real alias and double is Stopwatch-only elapsed telemetry."
+    },
+    {
+      "id": "runtime-profile-layout-probe",
+      "path": "Packages/com.datasakura.jitter-physics-baker/JitterIntegration~/Runtime/JitterRuntimeProfile.cs",
+      "recursive": false,
+      "ruleIds": ["JMP007"],
+      "owner": "Runtime profile verification",
+      "reason": "The verifier intentionally measures the exact f32 CLR layout before simulation starts."
+    },
+    {
+      "id": "consumer-samples",
+      "path": "Packages/com.datasakura.jitter-physics-baker/Samples~",
+      "recursive": true,
+      "ruleIds": ["JMP003", "JMP004", "JMP007", "JMP013"],
+      "owner": "Sample consumers",
+      "reason": "Samples own Unity presentation, input, timing and dynamic gameplay; authoritative static records remain native."
+    },
+    {
+      "id": "portable-server-fixtures",
+      "path": "Packages/com.datasakura.jitter-physics-baker/Server~/Tests",
+      "recursive": true,
+      "ruleIds": ["JMP001", "JMP002", "JMP003", "JMP004", "JMP005", "JMP006", "JMP007", "JMP008", "JMP009", "JMP010", "JMP011", "JMP012", "JMP013"],
+      "owner": "Portable test suite",
+      "reason": "Legacy, tampered and f64 fixtures intentionally exercise rejection and compatibility paths."
+    },
+    {
+      "id": "unity-test-fixtures",
+      "path": "Packages/com.datasakura.jitter-physics-baker/Tests",
+      "recursive": true,
+      "ruleIds": ["JMP001", "JMP002", "JMP003", "JMP004", "JMP005", "JMP006", "JMP007", "JMP008", "JMP009", "JMP010", "JMP011", "JMP012", "JMP013"],
+      "owner": "Unity test suite",
+      "reason": "Unity and legacy fixtures intentionally cover boundaries and rejection behavior; the reviewed hash prevents silent additions."
+    }
+  ]
 }
