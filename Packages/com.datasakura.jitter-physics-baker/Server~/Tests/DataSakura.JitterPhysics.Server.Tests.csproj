@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>DataSakura.JitterPhysics.Server.Tests</RootNamespace>
+    <AssemblyName>DataSakura.JitterPhysics.Server.Tests</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS8632</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/*.asmdef;**/*.meta</DefaultItemExcludes>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Jitter2.Core">
+      <HintPath>../../Jitter2~/Prebuilt/Jitter2.Core.dll</HintPath>
+    </Reference>
+    <Using Include="System.Single" Alias="Real" />
+    <Compile Include="../../Runtime/Contracts/**/*.cs" LinkBase="Package/Contracts" />
+    <Compile Include="../../Runtime/ArtifactCodec/**/*.cs" LinkBase="Package/ArtifactCodec" />
+    <Compile Include="../../JitterIntegration~/Runtime/**/*.cs" LinkBase="Package/JitterIntegration" />
+    <Compile Include="../../Tests/Runtime/**/*.cs" LinkBase="Package/Tests" />
+    <Compile Include="*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+</Project>

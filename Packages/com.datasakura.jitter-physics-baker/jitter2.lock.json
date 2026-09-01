@@ -4,8 +4,8 @@
   "upstreamRepository": "https://github.com/notgiven688/jitterphysics2",
   "upstreamCommit": "c15bc6abfdda90a936975979a42f7a54a211084e",
   "patchSetId": "unity-netstandard21-stablemath-v2",
-  "sourceContentHash": "sha256:c4e11cddbf7b0263bfda638def71c0070ce83e087bb210cec2074ac2c7a82212",
-  "integrationApiVersion": 1,
+  "sourceContentHash": "sha256:749c79e40c4965cd455ca80a2d1d1c80a24eb580eb7b721e07adc78b41c82762",
+  "integrationApiVersion": 2,
   "compileProfile": {
     "allowUnsafe": true,
     "continuousIntegrationBuild": true,
@@ -20,15 +20,15 @@
   "consumerPatches": [
     {
       "path": "LinearMath/StableMath.cs",
-      "sha256": "sha256:14051e8d9217ac0c6201ba90d9f50c287792c190b10b1aa99d25bc1b27bc3ae0",
-      "reason": "Consumer deterministic trigonometry implementation absent from pinned upstream c15bc6abfdda90a936975979a42f7a54a211084e."
+      "sha256": "sha256:f5aedf4c135d61325170ab09ff95026db5e0f0e28c6b61ae5f197b576abb465d",
+      "reason": "Public DataSakura deterministic f32 math API required by Custom Navigation and absent from pinned upstream c15bc6abfdda90a936975979a42f7a54a211084e."
     }
   ],
   "unityAssembly": {
     "targetFramework": "netstandard2.1",
     "project": "Jitter2~/StandaloneUnity/Jitter2.Core.csproj",
     "output": "Jitter2~/Prebuilt",
-    "buildInputHash": "sha256:7d3231824931f38cb8a4873b7ce5b9d2af6542f7e0973e10a8a9e0866e99c7f3",
+    "buildInputHash": "sha256:cceac9a4d53f454f5cb558db55295cc4770c89fe1c26e5c6219f7586f68fc555",
     "reproducibilityPolicy": "byte-identical",
     "unsafePackageVersion": "6.0.0",
     "files": [
@@ -37,8 +37,8 @@
       "System.Runtime.CompilerServices.Unsafe.dll"
     ],
     "artifacts": {
-      "Jitter2.Core.dll": "sha256:a87e1ae1f1475f0e35db8defd54a76c529b088716f2b72397fe849c05cecefee",
-      "Jitter2.Core.xml": "sha256:223aa43183ab78484c0800b84ff7fa483943e693959fb3f592153e9ea2dadc28",
+      "Jitter2.Core.dll": "sha256:944666bbe73dfce5ffc5bfb18569fb0004f50e767dcbb8b471dde15242023ca6",
+      "Jitter2.Core.xml": "sha256:be7115c897ac58357cd8155dd1cb91bb6d35f5b31b72841102b43eec83877fa0",
       "System.Runtime.CompilerServices.Unsafe.dll": "sha256:01748200f2400c742aa689f1f5101bd6298efdfd92c00c18f4fa473847235ba9"
     }
   },

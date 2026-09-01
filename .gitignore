@@ -17,6 +17,7 @@
 /[Bb]uild/
 /[Bb]uilds/
 /[Ll]ogs/
+/Artifacts/CanonicalJitter/
 /[Uu]ser[Ss]ettings/
 *.log
 
@@ -49,6 +50,8 @@
 ExportedObj/
 .consulo/
 *.csproj
+!Packages/com.datasakura.jitter-physics-baker/Jitter2~/StandaloneUnity/Jitter2.Core.csproj
+!Packages/com.datasakura.jitter-physics-baker/Server~/Tests/DataSakura.JitterPhysics.Server.Tests.csproj
 *.unityproj
 *.sln
 *.suo

@@ -6547,12 +6547,111 @@
         </member>
         <member name="T:Jitter2.LinearMath.StableMath">
             <summary>
-            Internal trigonometric helpers for bit-identical results on different platforms (not guaranteed by Math and MathF).
+            Deterministic scalar helpers owned by the canonical Jitter runtime.
             </summary>
             <remarks>
-            Until scalar trig in the BCL is both deterministic and fixed by managed source across targets,
-            this helper keeps its own tiny approximation pipeline so the physics engine owns the behavior.
+            Until scalar operations in the BCL are both deterministic and fixed by managed source across
+            targets, this helper keeps the supported simulation-critical behavior in one implementation.
+            The production distribution is single precision; double-precision builds are rejected by the
+            DataSakura compatibility preflight.
             </remarks>
+        </member>
+        <member name="F:Jitter2.LinearMath.StableMath.Pi">
+            <summary>The closest representable <c>Real</c> value to pi.</summary>
+        </member>
+        <member name="F:Jitter2.LinearMath.StableMath.HalfPi">
+            <summary>The closest representable <c>Real</c> value to pi divided by two.</summary>
+        </member>
+        <member name="F:Jitter2.LinearMath.StableMath.QuarterPi">
+            <summary>The closest representable <c>Real</c> value to pi divided by four.</summary>
+        </member>
+        <member name="F:Jitter2.LinearMath.StableMath.TwoPi">
+            <summary>The closest representable <c>Real</c> value to two times pi.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.SinCos(System.Single)">
+            <summary>Returns the deterministic sine and cosine approximation for <paramref name="angle"/>.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Sin(System.Single)">
+            <summary>Returns the deterministic sine approximation for <paramref name="angle"/>.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Cos(System.Single)">
+            <summary>Returns the deterministic cosine approximation for <paramref name="angle"/>.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Atan2(System.Single,System.Single)">
+            <summary>Returns the deterministic four-quadrant arctangent approximation.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Acos(System.Single)">
+            <summary>
+            Returns the deterministic arccosine approximation after clamping finite inputs to
+            <c>[-1, 1]</c>. A NaN input remains NaN.
+            </summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Asin(System.Single)">
+            <summary>
+            Returns the deterministic arcsine approximation after clamping finite inputs to
+            <c>[-1, 1]</c>. A NaN input remains NaN.
+            </summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.IsFinite(System.Single)">
+            <summary>Returns whether <paramref name="value"/> is neither NaN nor infinity.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Abs(System.Single)">
+            <summary>
+            Returns the absolute value. Both positive and negative zero are canonicalized to positive
+            zero, while a NaN payload is returned unchanged.
+            </summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Min(System.Single,System.Single)">
+            <summary>
+            Returns the smaller value. A NaN operand is propagated; when both operands are zero,
+            negative zero wins.
+            </summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Max(System.Single,System.Single)">
+            <summary>
+            Returns the larger value. A NaN operand is propagated; when both operands are zero,
+            positive zero wins.
+            </summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Clamp(System.Single,System.Single,System.Single)">
+            <summary>Clamps a value to the inclusive range defined by <paramref name="minimum"/> and <paramref name="maximum"/>.</summary>
+            <exception cref="T:System.ArgumentException">A bound is NaN or <paramref name="minimum"/> exceeds <paramref name="maximum"/>.</exception>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Clamp01(System.Single)">
+            <summary>Clamps a value to the inclusive range from zero to one.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Lerp(System.Single,System.Single,System.Single)">
+            <summary>Linearly interpolates without clamping <paramref name="amount"/>.</summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.Sqrt(System.Single)">
+            <summary>
+            Returns the correctly rounded square root of a finite non-negative single-precision value.
+            Negative, NaN, and infinite inputs return the canonical quiet NaN.
+            </summary>
+            <remarks>
+            The production f32 implementation uses only integer operations after decoding the IEEE 754
+            input bits. The unsupported f64 profile intentionally throws instead of falling back to a
+            platform square-root implementation.
+            </remarks>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.RoundAwayFromZero(System.Single)">
+            <summary>
+            Rounds to the nearest integral <c>Real</c>, resolving exact half-way cases away from zero.
+            NaN and infinity return the canonical quiet NaN.
+            </summary>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.RoundToInt64AwayFromZero(System.Single)">
+            <summary>
+            Rounds to a signed 64-bit integer, resolving exact half-way cases away from zero.
+            </summary>
+            <exception cref="T:System.ArgumentOutOfRangeException">The input is not finite or is outside the supported Int64 range.</exception>
+        </member>
+        <member name="M:Jitter2.LinearMath.StableMath.QuantizeToInt64(System.Single,System.Single)">
+            <summary>
+            Multiplies by a positive finite scale and rounds the result to Int64 with half-way cases
+            away from zero. This is the canonical deterministic quantization primitive.
+            </summary>
+            <exception cref="T:System.ArgumentOutOfRangeException">A value or scale is invalid, or the scaled result is outside Int64 range.</exception>
         </member>
         <member name="T:Jitter2.Logger">
             <summary>

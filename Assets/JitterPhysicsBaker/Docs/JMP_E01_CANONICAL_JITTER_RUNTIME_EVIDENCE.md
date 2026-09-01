@@ -2,7 +2,7 @@
 
 Дата фиксации: 2026-09-01.
 
-Ветка: `d.islamov/jmp-e01-canonical-jitter-runtime`.
+Общая migration-ветка: `d.islamov/jitter-math-precision-migration`.
 
 Baseline: commit `83bc13c682b4dca93d2d47a715ab45a2a4885074` (`JMP-E00`).
 
@@ -26,7 +26,7 @@ Baseline: commit `83bc13c682b4dca93d2d47a715ab45a2a4885074` (`JMP-E00`).
   `src/Jitter2/LinearMath/StableMath.cs`.
 - Единственный consumer-only source patch явно записан в `consumerPatches` lock-файла:
   `LinearMath/StableMath.cs`, SHA-256
-  `14051e8d9217ac0c6201ba90d9f50c287792c190b10b1aa99d25bc1b27bc3ae0`.
+  `f5aedf4c135d61325170ab09ff95026db5e0f0e28c6b61ae5f197b576abb465d`.
 - Sync сохраняет этот файл только после проверки hash, заменяет upstream snapshot, восстанавливает
   подтверждённый patch и заново применяет 19 netstandard2.1 call-site patches.
 - Included set: `**/*.cs`, `**/csc.rsp`; excluded set lock-файла исключает metadata, asmdefs,
@@ -53,19 +53,19 @@ Lock schema повышена до `2`, `patchSetId` — до
 Идентификаторы после relock:
 
 - `sourceContentHash`:
-  `sha256:c4e11cddbf7b0263bfda638def71c0070ce83e087bb210cec2074ac2c7a82212`;
+  `sha256:749c79e40c4965cd455ca80a2d1d1c80a24eb580eb7b721e07adc78b41c82762`;
 - `compileProfileId`:
   `a2925211b983330117414426be9bf8a2798ce9169c1206e1e55178f708cfa72e`.
 - `buildInputHash` (profile + Runtime + Compat + canonical csproj):
-  `sha256:7d3231824931f38cb8a4873b7ce5b9d2af6542f7e0973e10a8a9e0866e99c7f3`.
+  `sha256:cceac9a4d53f454f5cb558db55295cc4770c89fe1c26e5c6219f7586f68fc555`.
 
 `build-jitter2-unity.sh` выполняет два изолированных clean build и принимает только byte-identical
 результат. Зафиксированные hashes:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `Jitter2.Core.dll` | `a87e1ae1f1475f0e35db8defd54a76c529b088716f2b72397fe849c05cecefee` |
-| `Jitter2.Core.xml` | `223aa43183ab78484c0800b84ff7fa483943e693959fb3f592153e9ea2dadc28` |
+| `Jitter2.Core.dll` | `944666bbe73dfce5ffc5bfb18569fb0004f50e767dcbb8b471dde15242023ca6` |
+| `Jitter2.Core.xml` | `be7115c897ac58357cd8155dd1cb91bb6d35f5b31b72841102b43eec83877fa0` |
 | `System.Runtime.CompilerServices.Unsafe.dll` 6.0.0 | `01748200f2400c742aa689f1f5101bd6298efdfd92c00c18f4fa473847235ba9` |
 
 Текущая policy требует полного byte identity. Допустимых различий PE metadata нет: любое отличие
@@ -94,22 +94,22 @@ Lock schema повышена до `2`, `patchSetId` — до
 | Два clean Jitter build | `bash Packages/com.datasakura.jitter-physics-baker/tools~/build-jitter2-unity.sh` | PASS: все три artifact byte-identical |
 | Source/profile/patch/binary lock | `python3 Packages/com.datasakura.jitter-physics-baker/tools~/verify-jitter2-lock.py` | PASS: 96 files, 1 consumer patch, 3 artifacts |
 | Lock invariants, Compat drift и tamper negative | `python3 Packages/com.datasakura.jitter-physics-baker/tools~/test-jitter2-lock.py` | PASS |
-| Portable/server tests | `bash Packages/com.datasakura.jitter-physics-baker/tools~/test-dotnet.sh` | PASS: 86/86 |
+| Portable/server tests | `bash Packages/com.datasakura.jitter-physics-baker/tools~/test-dotnet.sh` | PASS: 89/89 |
 | Editor compile | `dotnet build DataSakura.JitterPhysics.Editor.csproj ...` | PASS: 0 warnings, 0 errors |
 | Editor tests compile | `dotnet build DataSakura.JitterPhysics.Editor.Tests.csproj ...` | PASS: 0 warnings, 0 errors |
 | Runtime tests compile | `dotnet build DataSakura.JitterPhysics.Tests.csproj ...` | PASS: 0 warnings, 0 errors |
 | Package metadata | `python3 tools/verify-package-meta.py` | PASS: complete `.meta`, no LFS pointers |
-| Unity EditMode/PlayMode | `bash tools/run-unity-tests.sh all` | BLOCKED: project is open in Editor; no fresh XML |
+| Unity EditMode/PlayMode | `bash tools/run-unity-tests.sh all` | PASS: EditMode 97/97; PlayMode 57/57 |
+| Isolated separate-install delivery | `bash tools/verify-jp05-delivery.sh` | PASS: EditMode 7/7; PlayMode 1/1; exactly one Jitter DLL; external public StableMath compile |
 
 Первый sandboxed `.NET` test запуск был aborted, потому что VSTest не получил loopback socket
 (`SocketException (13): Permission denied`). Повтор той же команды вне sandbox прошёл 86/86;
 это ограничение среды запуска, не test failure.
 
-Unity batch runner отказался запускать второй Editor над заблокированным открытым проектом.
-Попытка использовать Test Runner уже открытого Editor была остановлена до любых UI-действий:
-Mac locked, automatic unlock unavailable. Имеющиеся `Logs/TestResults/EditMode.xml` и
-`PlayMode.xml` датированы 2026-08-28 и не считаются evidence этого эпика. Поэтому Unity EditMode,
-PlayMode, clean-import и фактический Setup остаются `BLOCKED/NOT RUN`, а не объявляются зелёными.
+Финальная regression общей migration-ветки выполнена в отдельном worktree. Isolated delivery
+сначала установил Jitter явным действием, затем integration, подтвердил ровно одну DLL и public
+StableMath из внешней Unity assembly. После этого полный проект прошёл свежие EditMode и PlayMode
+наборы без failures/skips.
 
 ## Acceptance status
 
@@ -120,4 +120,6 @@ PlayMode, clean-import и фактический Setup остаются `BLOCKED
 - Unity и server DLL hashes равны: обе materialization path читают один и тот же lock-verified
   `Jitter2~/Prebuilt/Jitter2.Core.dll`; server manifest фиксирует тот же hash.
 
-Эпик не делает `StableMath` public и не меняет его numeric behavior — это scope `JMP-E02`.
+В общей migration-ветке поверх E01 добавлен canonical release prerequisite P00: `StableMath`
+теперь является public API, а его numeric behavior и compatibility identities закреплены
+отдельными release и regression tests.

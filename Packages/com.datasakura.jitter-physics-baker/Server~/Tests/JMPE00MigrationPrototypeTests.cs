@@ -14,14 +14,11 @@ using NUnit.Framework;
 namespace DataSakura.JitterPhysics.Server.Tests
 {
     /// <summary>
-    /// Characterizes the migration boundary before production contracts or the vendored Jitter
-    /// snapshot are changed. These tests belong to JMP-E00 evidence; later epics must update the
-    /// asserted contract deliberately instead of inheriting an accidental layout or math change.
+    /// Verifies the canonical Jitter release contract used by both Unity and .NET consumers.
     /// </summary>
     public sealed class JMPE00MigrationPrototypeTests
     {
-        private static readonly Type StableMathType = typeof(Precision).Assembly.GetType(
-            "Jitter2.LinearMath.StableMath", throwOnError: true);
+        private static readonly Type StableMathType = typeof(StableMath);
 
         [Test]
         public void ProductionJitterAssemblyIsSinglePrecisionWithRecordedLayout()
@@ -60,14 +57,14 @@ namespace DataSakura.JitterPhysics.Server.Tests
         public void CurrentRuntimeIdentityIsFrozenAndF64IsRejectedBeforeWorldConstruction()
         {
             const string sourceHash =
-                "sha256:d67ac0c421687ec7308501bf4b8bcba9c33bed7845a0bfe64d4675b2326cce85";
+                "sha256:749c79e40c4965cd455ca80a2d1d1c80a24eb580eb7b721e07adc78b41c82762";
             const string compileProfileId =
-                "9e724df81fb24d55e6136d35174c721457231606bd602464dbc35b017da73643";
+                "a2925211b983330117414426be9bf8a2798ce9169c1206e1e55178f708cfa72e";
             string current = RuntimeCompatibilityId.Compute(
                 RuntimeCompatibilityInputs.ForCurrentBuild(sourceHash, compileProfileId));
             Assert.That(
                 current,
-                Is.EqualTo("ca8283611d3221120e69e23c4c028720537de4867f1de53df3752db85cd32006"));
+                Is.EqualTo("4d83760322e8e89365d6721126b243584b4369e66d052c679a8a12cc34c8212b"));
 
             string f64 = RuntimeCompatibilityId.Compute(new RuntimeCompatibilityInputs(
                 JitterPhysicsPackage.ArtifactSchemaVersion,
@@ -159,10 +156,12 @@ namespace DataSakura.JitterPhysics.Server.Tests
         }
 
         [Test]
-        public void CurrentStableMathSurfaceAndPlatformSqrtDebtAreExplicit()
+        public void StableMathIsPublicWithTheExactSupportedSurface()
         {
+            Assert.That(StableMathType.IsPublic, Is.True);
+
             string[] actualMethods = StableMathType
-                .GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                .GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly)
                 .Where(method => !method.IsSpecialName)
                 .Select(method => method.Name)
                 .Distinct(StringComparer.Ordinal)
@@ -171,31 +170,104 @@ namespace DataSakura.JitterPhysics.Server.Tests
 
             Assert.That(actualMethods, Is.EqualTo(new[]
             {
+                "Abs",
                 "Acos",
-                "ApplyQuadrant",
-                "ApplyQuadrantCos",
-                "ApplyQuadrantSin",
                 "Asin",
-                "AsinTaylor",
-                "Atan",
                 "Atan2",
-                "AtanTaylor",
+                "Clamp",
+                "Clamp01",
                 "Cos",
-                "CosPolynomial",
-                "FloorToInt",
-                "ReduceAngle",
-                "ReduceToQuadrant",
+                "IsFinite",
+                "Lerp",
+                "Max",
+                "Min",
+                "QuantizeToInt64",
+                "RoundAwayFromZero",
+                "RoundToInt64AwayFromZero",
                 "Sin",
                 "SinCos",
-                "SinPolynomial",
+                "Sqrt",
             }));
+
+            string[] constants = StableMathType
+                .GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly)
+                .Where(field => field.IsLiteral)
+                .Select(field => field.Name)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray();
+            Assert.That(constants, Is.EqualTo(new[] { "HalfPi", "Pi", "QuarterPi", "TwoPi" }));
 
             string packageRoot = Path.GetFullPath(Path.Combine(
                 TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", ".."));
             string source = File.ReadAllText(Path.Combine(
                 packageRoot, "Jitter2~", "Runtime", "LinearMath", "StableMath.cs"));
-            Assert.That(source, Does.Contain("MathR.Sqrt"),
-                "JMP-P02 must retain this as migration debt until deterministic Sqrt is implemented.");
+            Assert.That(source, Does.Not.Contain("MathR.Sqrt"));
+            Assert.That(source, Does.Not.Contain("Math.Sqrt("));
+            Assert.That(source, Does.Not.Contain("MathF.Sqrt("));
+        }
+
+        [Test]
+        public void ExternalAssemblyCallsThePublicStableMathApiAtCompileTime()
+        {
+            (float sin, float cos) = StableMath.SinCos(StableMath.QuarterPi);
+            Assert.That(StableMath.Sin(0f), Is.EqualTo(0f));
+            Assert.That(StableMath.Cos(0f), Is.EqualTo(1f));
+            Assert.That(sin, Is.GreaterThan(0f));
+            Assert.That(cos, Is.GreaterThan(0f));
+            Assert.That(StableMath.Atan2(1f, 0f), Is.EqualTo(StableMath.HalfPi));
+            Assert.That(StableMath.Asin(0f), Is.EqualTo(0f));
+            Assert.That(StableMath.Acos(1f), Is.EqualTo(0f));
+            Assert.That(StableMath.Abs(-2f), Is.EqualTo(2f));
+            Assert.That(StableMath.Min(1f, 2f), Is.EqualTo(1f));
+            Assert.That(StableMath.Max(1f, 2f), Is.EqualTo(2f));
+            Assert.That(StableMath.Clamp(2f, 0f, 1f), Is.EqualTo(1f));
+            Assert.That(StableMath.Clamp01(-1f), Is.EqualTo(0f));
+            Assert.That(StableMath.Sqrt(4f), Is.EqualTo(2f));
+            Assert.That(StableMath.Lerp(2f, 4f, 0.25f), Is.EqualTo(2.5f));
+            Assert.That(StableMath.RoundAwayFromZero(-1.5f), Is.EqualTo(-2f));
+            Assert.That(StableMath.RoundToInt64AwayFromZero(1.5f), Is.EqualTo(2));
+            Assert.That(StableMath.QuantizeToInt64(-1.5f, 1f), Is.EqualTo(-2));
+        }
+
+        [Test]
+        public void StableMathExceptionalAndSignedZeroPolicyIsBitDefined()
+        {
+            Assert.That(StableMath.IsFinite(0f), Is.True);
+            Assert.That(StableMath.IsFinite(float.NaN), Is.False);
+            Assert.That(StableMath.IsFinite(float.PositiveInfinity), Is.False);
+            Assert.That(Bits(StableMath.Abs(-0f)), Is.EqualTo("00000000"));
+            Assert.That(Bits(StableMath.Min(-0f, 0f)), Is.EqualTo("80000000"));
+            Assert.That(Bits(StableMath.Max(-0f, 0f)), Is.EqualTo("00000000"));
+            Assert.That(Bits(StableMath.Sqrt(-0f)), Is.EqualTo("00000000"));
+            Assert.That(Bits(StableMath.Sqrt(float.NaN)), Is.EqualTo("7fc00000"));
+            Assert.That(Bits(StableMath.Sqrt(float.PositiveInfinity)), Is.EqualTo("7fc00000"));
+            Assert.That(Bits(StableMath.Sqrt(-1f)), Is.EqualTo("7fc00000"));
+            Assert.That(Bits(StableMath.Sin(float.NaN)), Is.EqualTo("7fc00000"));
+            Assert.That(Bits(StableMath.RoundAwayFromZero(float.PositiveInfinity)), Is.EqualTo("7fc00000"));
+            Assert.That(Bits(StableMath.Sqrt(2f)), Is.EqualTo("3fb504f3"));
+
+            Assert.Throws<ArgumentException>(() => StableMath.Clamp(0f, 2f, 1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => StableMath.RoundToInt64AwayFromZero(float.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() => StableMath.QuantizeToInt64(1f, 0f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => StableMath.QuantizeToInt64(float.PositiveInfinity, 1f));
+        }
+
+        [Test]
+        public void StableMathSqrtMatchesCorrectlyRoundedF32OracleAcrossStratifiedInputs()
+        {
+            uint state = 0x6d2b79f5u;
+            for (int index = 0; index < 100_000; index++)
+            {
+                state = unchecked(state * 1664525u + 1013904223u);
+                uint finitePositiveBits = state & 0x7fffffffu;
+                if (finitePositiveBits >= 0x7f800000u) finitePositiveBits &= 0x7f7fffffu;
+
+                float input = BitConverter.Int32BitsToSingle(unchecked((int)finitePositiveBits));
+                Assert.That(
+                    Bits(StableMath.Sqrt(input)),
+                    Is.EqualTo(Bits(MathF.Sqrt(input))),
+                    $"sqrt input bits 0x{finitePositiveBits:x8}");
+            }
         }
 
         [Test]
@@ -232,7 +304,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
                 ["Acos(00000000)"] = "3fc90fdb",
                 ["Acos(3f800000)"] = "00000000",
                 ["Acos(bf800000)"] = "40490fdb",
-                ["Acos(ffc00000)"] = "ffc00000",
+                ["Acos(ffc00000)"] = "7fc00000",
                 ["Asin(00000000)"] = "00000000",
                 ["Asin(3f800000)"] = "3fc90fdb",
                 ["Asin(bf800000)"] = "bfc90fdb",
@@ -257,7 +329,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         {
             MethodInfo target = StableMathType.GetMethod(
                 method,
-                BindingFlags.Static | BindingFlags.NonPublic,
+                BindingFlags.Static | BindingFlags.Public,
                 binder: null,
                 types: new[] { typeof(float) },
                 modifiers: null);
@@ -274,7 +346,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         {
             MethodInfo target = StableMathType.GetMethod(
                 method,
-                BindingFlags.Static | BindingFlags.NonPublic,
+                BindingFlags.Static | BindingFlags.Public,
                 binder: null,
                 types: new[] { typeof(float), typeof(float) },
                 modifiers: null);

@@ -23,25 +23,30 @@ ends with `~`). It is used for three things:
 | Patch set | `unity-netstandard21-stablemath-v2` |
 | Built assembly | `Prebuilt/Jitter2.Core.dll` (netstandard2.1) |
 
-Reproduce with:
+Reproduce the approved bytes from the immutable DataSakura release tag with:
 
 ```sh
 python3 tools~/sync-jitter2.py --ref 2.8.9
 bash tools~/build-jitter2-unity.sh
 python3 tools~/verify-jitter2-lock.py
+python3 tools~/build-canonical-jitter-release.py
+python3 tools~/verify-canonical-jitter-release.py \
+  ../../Artifacts/CanonicalJitter/DataSakura.Jitter2.Core-2.8.9-datasakura.1-rc.1.zip
 ```
 
 The sync tool replaces only `Jitter2~/Runtime`, re-applies the 19 netstandard2.1 call-site
 patches, and restores the one lock-declared consumer file after verifying its pre-sync hash. It
-does not write to a consumer's external Jitter checkout.
+does not write to a consumer's external Jitter checkout. The build command performs two isolated
+clean builds and stages the results only when all declared artifacts are byte-identical.
 
 ## Consumer-only source patch
 
 The pinned upstream commit has no `src/Jitter2/LinearMath/StableMath.cs`. The file at
-`Runtime/LinearMath/StableMath.cs` is therefore an explicit additive consumer patch, not an
-upstream file. Its complete reason and SHA-256 are recorded in `consumerPatches` in the lock.
-E01 only transfers and identifies the existing internal implementation; changing its API or
-numerical behavior belongs to E02.
+`Runtime/LinearMath/StableMath.cs` is therefore an explicit additive DataSakura patch, not an
+upstream file. Its complete reason and SHA-256 are recorded in `consumerPatches` in the lock. The
+patch exposes the supported public f32 deterministic math surface required by Custom Navigation;
+changing its API or numerical behavior requires new compatibility identities and the full release
+regression before publication.
 
 ## Why the package ships an assembly and not sources
 
@@ -95,6 +100,7 @@ matches.
 | `World.Deterministic.cs` | `Enum.IsDefined(value)` → `Enum.IsDefined(typeof(SolveMode), value)` | Generic overload, .NET 5. |
 | `ThreadPool.cs` | `OperatingSystem.IsWindows()` → `RuntimeInformation.IsOSPlatform` | .NET 5. |
 | `World.cs` | `Interlocked` on `ulong` reinterpreted as `long` | Only the signed overloads exist in netstandard2.1; two's complement makes the result identical. |
+| `LinearMath/StableMath.cs` | Public supported constants/trigonometry plus owned f32 helpers, square root, rounding and quantization | Consumers require one canonical deterministic math surface. The f32 square root is integer/bit-defined and `Acos`/`Asin` no longer call platform libm. |
 
 ## Dependency shipped alongside
 

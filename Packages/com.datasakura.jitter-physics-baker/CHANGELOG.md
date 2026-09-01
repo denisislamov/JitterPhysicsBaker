@@ -6,6 +6,19 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- Added the independently versioned canonical Jitter RC distribution with deterministic ZIP,
+  immutable manifest identities, detached SHA-256, clean Unity/.NET compile probes, and fail-closed
+  missing/duplicate/f64/hash-mismatch verification.
+- Promoted `Jitter2.LinearMath.StableMath` to a documented public f32 API, including owned
+  bit-defined square root, finite/range helpers, interpolation, rounding, and quantization.
+
+### Changed
+- Advanced the Jitter patch-set/API/source/runtime identities for the public StableMath contract;
+  existing physics artifacts require an explicit compatibility review and re-bake.
+- Tracked the deterministic Jitter and server test `.csproj` inputs so a clean checkout can build
+  and test the same assemblies as the development checkout.
+
 ## [0.0.12] - 2026-08-31
 
 ### Added

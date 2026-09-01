@@ -75,6 +75,17 @@ if [[ "${jitter_count}" != "1" ]]; then
   exit 1
 fi
 
+echo "==> compiling public StableMath from an external Unity assembly"
+cp "${project_root}/Packages/com.datasakura.jitter-physics-baker/tools~/fixtures/CanonicalJitterUnityProbe.cs" \
+  "${fixture_root}/Assets/Editor/CanonicalJitterUnityProbe.cs"
+run_method "DataSakura.JitterPhysics.DeliveryFixture.CanonicalJitterUnityProbe.Run" \
+  "canonical-jitter-probe.log"
+if ! rg -q "CANONICAL_JITTER_UNITY_OK assembly=Jitter2.Core precision=f32 stableMath=public" \
+  "${fixture_root}/canonical-jitter-probe.log"; then
+  echo "error: canonical Jitter Unity probe did not emit its success marker" >&2
+  exit 1
+fi
+
 sample_root="${fixture_root}/Assets/Samples/DataSakura Jitter Physics Baker/JP05/Physics Baking Demos"
 mkdir -p "${sample_root}"
 rsync -a "${project_root}/Packages/com.datasakura.jitter-physics-baker/Samples~/Demos/" \
