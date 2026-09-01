@@ -252,6 +252,12 @@ namespace DataSakura.JitterPhysics.Integration
                 throw new ArgumentNullException(nameof(options));
             }
 
+            JitterRuntimeProfileResult profile = JitterRuntimeProfile.VerifyCanonicalF32();
+            if (!profile.Succeeded)
+            {
+                return JitterPhysicsServerState.Failed(profile.Error, "loaded Jitter2.Core profile");
+            }
+
             PhysicsArtifactError runtimeAssemblyError = VerifyRuntimeAssembly(options);
             if (runtimeAssemblyError.IsError)
             {

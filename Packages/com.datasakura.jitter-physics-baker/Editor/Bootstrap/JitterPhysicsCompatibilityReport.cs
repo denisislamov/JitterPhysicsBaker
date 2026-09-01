@@ -126,6 +126,21 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
                 return Failure($"'{JitterPhysicsLock.FileName}' could not be read: {exception.Message}");
             }
 
+            if (!lockFile.SupportsCanonicalF32)
+            {
+                return new JitterPhysicsCompatibilityReport(
+                    JitterPhysicsCompatibilityStatus.Incompatible,
+                    $"This package supports only the canonical f32 Jitter profile, but the lock "
+                    + $"declares '{lockFile.Precision}'. Setup and baking are blocked before any write.",
+                    Array.Empty<string>(),
+                    lockFile.SourceContentHash,
+                    null,
+                    lockFile.CompileProfileId,
+                    null,
+                    0,
+                    lockFile.IsPlaceholder);
+            }
+
             JitterPhysicsAssemblyInfo jitter = JitterPhysicsAssemblyProbe.ProbeJitter();
 
             if (jitter.IsDuplicated)

@@ -104,6 +104,12 @@ namespace DataSakura.JitterPhysics.Integration
                 throw new ArgumentNullException(nameof(artifact));
             }
 
+            JitterRuntimeProfileResult profile = JitterRuntimeProfile.VerifyCanonicalF32();
+            if (!profile.Succeeded)
+            {
+                return new PhysicsWorldBuildResult(profile.Error, 0, 0, 0d, null);
+            }
+
             if (Applied.TryGetValue(world, out AppliedArtifact existing))
             {
                 return Failure(
@@ -360,6 +366,5 @@ namespace DataSakura.JitterPhysics.Integration
         }
     }
 }
-
 
 

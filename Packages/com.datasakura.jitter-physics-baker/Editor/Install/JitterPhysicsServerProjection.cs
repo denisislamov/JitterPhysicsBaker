@@ -292,9 +292,13 @@ namespace DataSakura.JitterPhysics.Editor.Install
 
             const string props =
                 "<Project>\n"
+                + "  <PropertyGroup>\n"
+                + "    <DefineConstants>$(DefineConstants);DATASAKURA_SERVER_GLOBAL_REAL</DefineConstants>\n"
+                + "  </PropertyGroup>\n"
                 + "  <ItemGroup>\n"
                 + "    <Reference Include=\"Jitter2.Core\" HintPath=\"$(MSBuildThisFileDirectory)JitterRuntime/Jitter2.Core.dll\" Private=\"true\" />\n"
                 + "    <Reference Include=\"System.Runtime.CompilerServices.Unsafe\" HintPath=\"$(MSBuildThisFileDirectory)JitterRuntime/System.Runtime.CompilerServices.Unsafe.dll\" Private=\"true\" />\n"
+                + "    <Using Include=\"System.Single\" Alias=\"Real\" />\n"
                 + "  </ItemGroup>\n"
                 + "</Project>\n";
             byte[] propsBytes = new UTF8Encoding(false).GetBytes(props);
@@ -333,7 +337,7 @@ namespace DataSakura.JitterPhysics.Editor.Install
             builder.Append("{\n");
             JitterPhysicsLock lockFile = JitterPhysicsLock.Load(
                 JitterPhysicsCompatibilityReport.ResolvePackageRootPath());
-            builder.Append("  \"schemaVersion\": 2,\n");
+            builder.Append("  \"schemaVersion\": 3,\n");
             builder.Append("  \"package\": \"").Append(JitterPhysicsPackage.PackageName).Append("\",\n");
             builder.Append("  \"packageVersion\": \"").Append(JitterPhysicsPackage.PackageVersion).Append("\",\n");
             builder.Append("  \"artifactSchemaVersion\": ")
@@ -341,6 +345,13 @@ namespace DataSakura.JitterPhysics.Editor.Install
                 .Append(",\n");
             builder.Append("  \"jitterSourceContentHash\": \"")
                 .Append(lockFile.SourceContentHash).Append("\",\n");
+            builder.Append("  \"jitterCompileProfileId\": \"")
+                .Append(lockFile.CompileProfileId).Append("\",\n");
+            builder.Append("  \"jitterPrecision\": \"")
+                .Append(lockFile.Precision).Append("\",\n");
+            builder.Append("  \"integrationApiVersion\": ")
+                .Append(lockFile.IntegrationApiVersion.ToString(CultureInfo.InvariantCulture))
+                .Append(",\n");
             builder.Append("  \"jitterAssemblySha256\": \"")
                 .Append(lockFile.ExpectedUnityArtifactHash("Jitter2.Core.dll")).Append("\",\n");
             builder.Append("  \"files\": [\n");
@@ -491,4 +502,3 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-

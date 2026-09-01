@@ -22,6 +22,7 @@ lifetime, and every call to `World.Step`.
 | Run a verified sample in 5–15 minutes | [Quick Start](quick-start.md) |
 | Author and bake a real level | [Editor guide](editor-guide.md) |
 | Understand the data flow and ownership | [Concepts and architecture](concepts-and-architecture.md) |
+| Inspect optional assemblies and f32 preflight | [Installable assembly graph](installable-assembly-graph.md) |
 | Configure levels, sources, profiles, and folders | [Configuration](configuration.md) |
 | Load and step a world in Unity | [Runtime API](runtime-api.md) |
 | Integrate with an existing game architecture | [Integration guide](integration.md) |

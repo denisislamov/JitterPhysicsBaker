@@ -49,6 +49,7 @@
 ExportedObj/
 .consulo/
 *.csproj
+!Packages/com.datasakura.jitter-physics-baker/Server~/Tests/DataSakura.JitterPhysics.Server.Tests.csproj
 *.unityproj
 *.sln
 *.suo

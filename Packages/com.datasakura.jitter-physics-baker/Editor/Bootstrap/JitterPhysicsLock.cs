@@ -30,6 +30,7 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
             string upstreamCommit,
             string patchSetId,
             string sourceContentHash,
+            int integrationApiVersion,
             string compileProfileText,
             string compileProfileId,
             string precision,
@@ -46,6 +47,7 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
             UpstreamCommit = upstreamCommit;
             PatchSetId = patchSetId;
             SourceContentHash = sourceContentHash;
+            IntegrationApiVersion = integrationApiVersion;
             CompileProfileText = compileProfileText;
             CompileProfileId = compileProfileId;
             Precision = precision;
@@ -75,6 +77,9 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
         /// <summary>Expected canonical source hash, in <c>sha256:&lt;hex&gt;</c> form.</summary>
         public string SourceContentHash { get; }
 
+        /// <summary>Version of the package-owned installable Jitter API graph.</summary>
+        public int IntegrationApiVersion { get; }
+
         /// <summary>
         /// Canonical serialization of the compile profile, byte-identical to what the Python
         /// tooling hashes: keys sorted ordinally, no whitespace, no trailing newline.
@@ -90,6 +95,10 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
 
         /// <summary>Floating point precision declared by the compile profile.</summary>
         public string Precision { get; }
+
+        /// <summary>Whether the lock selects the only scalar profile supported by this package.</summary>
+        public bool SupportsCanonicalF32 =>
+            string.Equals(Precision, "f32", StringComparison.Ordinal);
 
         /// <summary>
         /// How the snapshot obtains SIMD: <c>hardware</c> means it uses
@@ -185,6 +194,14 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
                 root.StringMember("upstreamCommit", string.Empty),
                 root.StringMember("patchSetId", string.Empty),
                 root.StringMember("sourceContentHash", string.Empty),
+                root.Member("integrationApiVersion") != null
+                    && int.TryParse(
+                        root.Member("integrationApiVersion").Text,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int integrationApiVersion)
+                        ? integrationApiVersion
+                        : 0,
                 profileText,
                 ArtifactCodec.JitterPhysicsHash.Sha256HexUtf8(profileText),
                 profile.StringMember("precision", string.Empty),
@@ -366,6 +383,4 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
         }
     }
 }
-
-
 

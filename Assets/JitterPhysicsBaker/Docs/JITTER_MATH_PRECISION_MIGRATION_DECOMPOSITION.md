@@ -510,46 +510,51 @@ Evidence: `JMP_E02_STABLE_MATH_EVIDENCE.md`. Public API и golden bits подт�
 
 Subtasks:
 
-- [ ] Выделить always-available Jitter-free bootstrap assemblies.
-- [ ] Выделить dormant/installable Jitter-dependent assemblies.
-- [ ] Построить dependency graph без циклов.
-- [ ] Проверить, что Editor UI до Setup показывает actionable readiness, а не compile error.
-- [ ] Зафиксировать public API, недоступный до Setup.
+- [x] Выделить always-available Jitter-free bootstrap assemblies.
+- [x] Выделить dormant/installable Jitter-dependent assemblies.
+- [x] Построить dependency graph без циклов.
+- [x] Проверить, что Editor UI до Setup показывает actionable readiness, а не compile error.
+- [x] Зафиксировать public API, недоступный до Setup.
 
 ### JMP-T03.2. Ввести единый source-level `Real`
 
 Subtasks:
 
-- [ ] Определить alias file для каждой отдельно компилируемой owned assembly.
-- [ ] Синхронизировать `USE_DOUBLE_PRECISION` policy.
-- [ ] Запретить локальные alias variations.
-- [ ] Добавить compile-profile test для каждого project/asmdef.
-- [ ] Документировать telemetry/serialization exceptions.
+- [x] Определить alias file для каждой отдельно компилируемой owned assembly.
+- [x] Синхронизировать `USE_DOUBLE_PRECISION` policy.
+- [x] Запретить локальные alias variations.
+- [x] Добавить compile-profile test для каждого project/asmdef.
+- [x] Документировать telemetry/serialization exceptions.
 
 ### JMP-T03.3. Настроить direct references
 
 Subtasks:
 
 - [ ] Добавить direct Jitter reference всем assemblies с `JVector/JQuaternion/StableMath`.
-- [ ] Не полагаться на transitive asmdef/csproj dependency.
-- [ ] Проверить precompiled references и `overrideReferences` closure.
-- [ ] Проверить отсутствие assembly cycles у EFT/Netick-like consumer.
-- [ ] Обновить templates и receipt manifest.
+- [x] Не полагаться на transitive asmdef/csproj dependency.
+- [x] Проверить precompiled references и `overrideReferences` closure.
+- [x] Проверить отсутствие assembly cycles у EFT/Netick-like consumer.
+- [x] Обновить templates и receipt manifest.
 
 ### JMP-T03.4. Добавить f32 preflight
 
 Subtasks:
 
-- [ ] Проверить lock precision до bake/application/startup.
-- [ ] Проверить `Precision.IsDoublePrecision` runtime flag.
-- [ ] Проверить `Real`, `JVector`, `JQuaternion` layout.
-- [ ] Завершать `f64` понятной typed error.
-- [ ] Не объявлять f64 supported до отдельных artifact/network/Netick gates.
+- [x] Проверить lock precision до bake/application/startup.
+- [x] Проверить `Precision.IsDoublePrecision` runtime flag.
+- [x] Проверить `Real`, `JVector`, `JQuaternion` layout.
+- [x] Завершать `f64` понятной typed error.
+- [x] Не объявлять f64 supported до отдельных artifact/network/Netick gates.
 
 Epic acceptance:
 
 - [ ] Base import без Jitter работает.
 - [ ] После Setup все Jitter-dependent assemblies имеют direct reference и единый profile.
+
+Evidence: `JMP_E03_REAL_AND_ASSEMBLY_GRAPH_EVIDENCE.md`. Source/compile/portable evidence закрывает
+graph и f32 preflight; фактические clean-import и post-Setup Unity gates требуют свежего Editor
+прогона и не отмечаются выполненными по .NET evidence. Installable integration и server projection
+уже имеют direct edge; imported sample assembly переводится с transitive edge в `JMP-E05`.
 
 ## JMP-E04. Jitter-native contracts и codec
 

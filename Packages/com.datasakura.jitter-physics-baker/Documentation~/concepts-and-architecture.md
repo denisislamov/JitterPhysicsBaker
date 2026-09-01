@@ -71,6 +71,11 @@ sleep state, and dynamic bodies are runtime state and are intentionally absent.
 project has no Jitter2. Unity ignores folders ending in `~`, which is why the adapter stays in
 `JitterIntegration~` until the user explicitly installs it.
 
+The installed adapter always has a direct compile edge to Jitter: a named asmdef reference for a
+source distribution or an exact precompiled reference for `Jitter2.Core.dll`. Its f32/layout
+preflight runs before artifact loading or world mutation. See the
+[installable assembly graph](installable-assembly-graph.md) for the full contract and alias policy.
+
 An existing compatible Jitter2 is referenced by assembly name. The installer must not copy,
 move, or modify it. If no Jitter2 exists, the user can explicitly install the pinned fallback
 prebuilt assembly.

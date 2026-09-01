@@ -28,6 +28,8 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             Assert.That(lockFile.IncludedFiles, Is.Not.Empty);
             Assert.That(lockFile.SourceContentHash, Does.StartWith(JitterPhysicsSourceHasher.HashPrefix));
             Assert.That(lockFile.PatchSetId, Is.EqualTo("unity-netstandard21-stablemath-public-v3"));
+            Assert.That(lockFile.IntegrationApiVersion, Is.EqualTo(2));
+            Assert.That(lockFile.SupportsCanonicalF32, Is.True);
             Assert.That(lockFile.UnityArtifactHashes.Keys, Is.EquivalentTo(new[]
             {
                 "Jitter2.Core.dll",
@@ -35,6 +37,19 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 "System.Runtime.CompilerServices.Unsafe.dll",
             }));
             Assert.That(lockFile.VerifyUnityArtifacts(PackageRoot()), Is.Null);
+        }
+
+        [Test]
+        public void OnlyTheExactF32PrecisionNameIsSupported()
+        {
+            JitterPhysicsLock f32 = JitterPhysicsLock.Parse(
+                "{\"integrationApiVersion\":2,\"compileProfile\":{\"precision\":\"f32\"}}");
+            JitterPhysicsLock f64 = JitterPhysicsLock.Parse(
+                "{\"integrationApiVersion\":2,\"compileProfile\":{\"precision\":\"f64\"}}");
+
+            Assert.That(f32.IntegrationApiVersion, Is.EqualTo(2));
+            Assert.That(f32.SupportsCanonicalF32, Is.True);
+            Assert.That(f64.SupportsCanonicalF32, Is.False);
         }
 
         /// <summary>
@@ -289,7 +304,6 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         }
     }
 }
-
 
 
 

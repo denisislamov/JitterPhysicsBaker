@@ -152,6 +152,14 @@ namespace DataSakura.JitterPhysics.Editor.Install
                 return new JitterPhysicsInstallResult(null, issues);
             }
 
+            if (!lockFile.SupportsCanonicalF32)
+            {
+                issues.Error(
+                    $"This package supports only the canonical f32 Jitter profile, but the lock "
+                    + $"declares '{lockFile.Precision}'. Setup stopped before writing files.");
+                return new JitterPhysicsInstallResult(null, issues);
+            }
+
             string artifactError = lockFile.VerifyUnityArtifacts(packageRoot);
             if (artifactError != null)
             {
@@ -344,25 +352,41 @@ namespace DataSakura.JitterPhysics.Editor.Install
         /// Adjusts the adapter's assembly definition to the form Jitter2 takes in this project.
         /// </summary>
         /// <remarks>
-        /// An asmdef's <c>references</c> list names other assembly definitions. When Jitter2 is a
-        /// precompiled plugin there is no assembly definition to name, and leaving the entry in
-        /// makes Unity report a missing reference; auto-referenced plugins are visible to the
-        /// adapter without being listed. A project with its own source-based Jitter2 does have an
-        /// asmdef, and there the entry is exactly what is needed.
+        /// A source Jitter uses a named asmdef reference. A precompiled Jitter instead uses
+        /// <c>overrideReferences</c> plus an exact <c>Jitter2.Core.dll</c> precompiled reference.
+        /// Both are direct compile edges; the adapter never relies on another assembly to expose
+        /// Jitter transitively.
         /// </remarks>
         private static byte[] TailorIntegrationAsmdef(byte[] template)
         {
-            if (ProjectContainsFile(JitterAsmdefName))
+            return TailorIntegrationAsmdef(template, ProjectContainsFile(JitterAsmdefName));
+        }
+
+        internal static byte[] TailorIntegrationAsmdef(byte[] template, bool sourceAssemblyDefinition)
+        {
+            if (sourceAssemblyDefinition)
             {
                 return template;
             }
 
             string text = Encoding.UTF8.GetString(template);
-            string trimmed = text
+            string tailored = text
                 .Replace("\n    \"DataSakura.JitterPhysics.ArtifactCodec\",\n    \"Jitter2.Core\"\n",
-                    "\n    \"DataSakura.JitterPhysics.ArtifactCodec\"\n");
+                    "\n    \"DataSakura.JitterPhysics.ArtifactCodec\"\n")
+                .Replace(
+                    "  \"overrideReferences\": false,\n  \"precompiledReferences\": [],",
+                    "  \"overrideReferences\": true,\n  \"precompiledReferences\": [\n"
+                    + "    \"Jitter2.Core.dll\"\n  ],");
 
-            return Encoding.UTF8.GetBytes(trimmed);
+            if (string.Equals(tailored, text, StringComparison.Ordinal)
+                || tailored.Contains("\"Jitter2.Core\"", StringComparison.Ordinal)
+                || !tailored.Contains("\"Jitter2.Core.dll\"", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "The integration asmdef template no longer matches the direct-reference tailoring contract.");
+            }
+
+            return new UTF8Encoding(false).GetBytes(tailored);
         }
 
         /// <summary>Reports how runnable samples are imported by current package versions.</summary>
@@ -1081,8 +1105,6 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
-
 
 
 

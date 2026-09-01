@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The portable half of the package, compiled and tested by a plain .NET SDK.
+
+    This project exists because "the Unity tests are green" says nothing about the
+    dedicated server: the server compiles the same Contracts and ArtifactCodec sources
+    with a different compiler, a different runtime and different intrinsics. The test
+    files are shared with the Unity test assembly by reference rather than copied, so a
+    fix can never land on one side only.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+
+    <!--
+      Disabled to match Unity, where the package assemblies are compiled without a
+      nullable context. Enabling it here would report the package's own code against rules
+      it is not written for, and warnings that cannot be acted on are warnings that get
+      ignored. CS8632 covers the nullable annotations of the vendored snapshot.
+    -->
+    <Nullable>disable</Nullable>
+
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DefineConstants>$(DefineConstants);DATASAKURA_SERVER_GLOBAL_REAL</DefineConstants>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>DataSakura.JitterPhysics.Server.Tests</RootNamespace>
+    <AssemblyName>DataSakura.JitterPhysics.Server.Tests</AssemblyName>
+
+    <!-- Jitter2 uses pointers and spans over unmanaged memory. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Missing XML comments on the vendored snapshot are not this project's business. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS8632</NoWarn>
+
+    <!-- Sources are listed explicitly below; nothing is picked up implicitly. -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+
+    <!-- Unity's assembly definitions are not MSBuild items and must not be compiled. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/*.asmdef;**/*.meta</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The dormant Jitter2 snapshot is compiled directly. Unity never builds this folder,
+      so without this reference nothing would ever verify that the copy the package ships
+      as a fallback actually compiles and runs.
+    -->
+    <!--
+      Referenced as a built assembly rather than compiled from source, and that is the point: the
+      Unity client loads this exact file. Compiling the snapshot again here would target a modern
+      runtime, where Vector128 is hardware-backed and Jitter2 takes its accelerated code paths -
+      the client, running the netstandard2.1 build, would take the scalar ones. Two different
+      simulations from one artifact is the failure this package exists to prevent, so both sides
+      run the same bytes.
+    -->
+    <Reference Include="Jitter2.Core">
+      <HintPath>../../Jitter2~/Prebuilt/Jitter2.Core.dll</HintPath>
+    </Reference>
+
+    <!--
+      Jitter2 declares this alias as a global using in Precision.cs, which reached the tests only
+      while they compiled the snapshot themselves. It is restated here to match the precision the
+      lock file records; if that profile ever changes, this has to change with it.
+    -->
+    <Using Include="System.Single" Alias="Real" />
+
+
+    <Compile Include="../../Runtime/Contracts/**/*.cs" LinkBase="Package/Contracts" />
+    <Compile Include="../../Runtime/ArtifactCodec/**/*.cs" LinkBase="Package/ArtifactCodec" />
+
+    <!--
+      The Jitter-dependent adapter. It ships in JitterIntegration~ and is installed into a
+      consumer project on request; here it is compiled from the same sources, so the server
+      and the Unity client can never end up with two different world builders.
+    -->
+    <Compile Include="../../JitterIntegration~/Runtime/**/*.cs" LinkBase="Package/JitterIntegration" />
+
+    <Compile Include="../../Tests/Runtime/**/*.cs" LinkBase="Package/Tests" />
+
+    <!-- Tests that only make sense outside Unity, such as the snapshot smoke tests. -->
+    <Compile Include="*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+</Project>

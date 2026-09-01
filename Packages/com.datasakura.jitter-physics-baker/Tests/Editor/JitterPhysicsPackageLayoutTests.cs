@@ -6,6 +6,7 @@ using System.Reflection;
 using DataSakura.JitterPhysics.Authoring;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Editor.Api;
+using DataSakura.JitterPhysics.Editor.Install;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -124,6 +125,49 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                         + "lives in JitterIntegration~ and is installed explicitly, so that the "
                         + "package imports cleanly into a project without Jitter2.");
                 }
+            }
+        }
+
+        [Test]
+        public void InstallableIntegrationHasADirectJitterReferenceForBothProviderModes()
+        {
+            PackageInfo package = FindPackage();
+            Assert.That(package, Is.Not.Null);
+            string path = Path.Combine(
+                package.resolvedPath,
+                "JitterIntegration~",
+                "UnityAssemblyTemplate",
+                "DataSakura.JitterPhysics.JitterIntegration.asmdef.template.json");
+            byte[] template = File.ReadAllBytes(path);
+
+            AssemblyDefinition source = JsonUtility.FromJson<AssemblyDefinition>(
+                System.Text.Encoding.UTF8.GetString(
+                    JitterPhysicsInstaller.TailorIntegrationAsmdef(template, true)));
+            Assert.That(source.references, Does.Contain("Jitter2.Core"));
+            Assert.That(source.overrideReferences, Is.False);
+            Assert.That(source.precompiledReferences, Is.Empty);
+
+            AssemblyDefinition plugin = JsonUtility.FromJson<AssemblyDefinition>(
+                System.Text.Encoding.UTF8.GetString(
+                    JitterPhysicsInstaller.TailorIntegrationAsmdef(template, false)));
+            Assert.That(plugin.references, Does.Not.Contain("Jitter2.Core"));
+            Assert.That(plugin.overrideReferences, Is.True);
+            Assert.That(plugin.precompiledReferences, Is.EqualTo(new[] { "Jitter2.Core.dll" }));
+        }
+
+        [Test]
+        public void AlwaysCompiledAssemblyGraphIsAcyclic()
+        {
+            IReadOnlyDictionary<string, AssemblyDefinition> definitions = LoadPackageAssemblyDefinitions();
+            var visiting = new HashSet<string>(StringComparer.Ordinal);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (string assembly in AlwaysCompiledAssemblies)
+            {
+                Assert.That(
+                    HasCycle(assembly, definitions, visiting, visited),
+                    Is.False,
+                    $"Always-compiled assembly graph contains a cycle through '{assembly}'.");
             }
         }
 
@@ -342,6 +386,32 @@ namespace DataSakura.JitterPhysics.Editor.Tests
                 .Any(segment => segment.EndsWith("~", StringComparison.Ordinal));
         }
 
+        private static bool HasCycle(
+            string name,
+            IReadOnlyDictionary<string, AssemblyDefinition> definitions,
+            ISet<string> visiting,
+            ISet<string> visited)
+        {
+            if (visited.Contains(name)) return false;
+            if (!visiting.Add(name)) return true;
+
+            if (definitions.TryGetValue(name, out AssemblyDefinition definition))
+            {
+                foreach (string reference in definition.references ?? Array.Empty<string>())
+                {
+                    if (definitions.ContainsKey(reference)
+                        && HasCycle(reference, definitions, visiting, visited))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            visiting.Remove(name);
+            visited.Add(name);
+            return false;
+        }
+
         [Serializable]
         private sealed class PackageManifest
         {
@@ -362,6 +432,8 @@ namespace DataSakura.JitterPhysics.Editor.Tests
             public string name;
             public string[] references;
             public string[] includePlatforms;
+            public bool overrideReferences;
+            public string[] precompiledReferences;
             public bool noEngineReferences;
         }
     }
