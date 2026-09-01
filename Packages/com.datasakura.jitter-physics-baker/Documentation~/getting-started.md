@@ -27,7 +27,7 @@ without requiring you to design an integration first.
 1. Install the pinned package release:
 
    ```text
-   https://github.com/denisislamov/jitter-physics-baker.git#v0.0.12
+   https://github.com/denisislamov/jitter-physics-baker.git#v0.7.0
    ```
 
 2. Open **Tools > DataSakura > Jitter Physics Baker Window**.
@@ -95,16 +95,16 @@ overlay layer, and expected result is documented in the [Editor guide](editor-gu
 
 The consumer owns the Jitter2 world and tick loop:
 
-1. Load and validate the `JitterPhysicsArtifactAsset` through
-   `JitterPhysicsArtifactLoader.Load(...)`.
+1. After explicit Setup, load and validate the `JitterPhysicsArtifactAsset` through
+   `JitterNativeUnityArtifactLoader.Load(...)`.
 2. Create a new Jitter2 `World`.
 3. Apply the artifact once with `JitterPhysicsWorldBuilder.Apply(...)`.
 4. Refuse startup on a typed load or build error.
 5. Create dynamic bodies only after the static artifact succeeds.
 6. Step at `1f / artifact.WorldSettings.TickRate`; do not substitute Unity's fixed timestep.
 
-After a failed apply, discard the world. Created bodies are removed, but every setting assigned
-before the failure is not restored. `TopologyFingerprint` is diagnostic; compare
+After a failed apply, inspect `RequiresWorldDiscard`; discard the world when complete restoration
+could not be proven. `TopologyFingerprint` is diagnostic; compare
 `artifactHash + runtimeCompatibilityId` for compatibility.
 
 The complete call sequence, ownership rules, cleanup, and compilable examples are in
@@ -137,10 +137,9 @@ content delivery. Continue with [Dedicated server](dedicated-server.md).
 Imported samples, installed integration files, and server-projected sources are copies; changing
 the UPM tag does not overwrite them automatically.
 
-For `0.0.12`, the documentation/version update does not change schema or runtime compatibility,
-so artifacts do not need a version-only re-bake. Receipt-managed components can still report an
-older package SemVer and the server projection includes the package-version constant. Review and
-refresh those copies explicitly without treating the SemVer warning as a runtime mismatch.
+For `0.7.0`, the schema remains 1 but runtime compatibility changes. Update the separately
+installed Jitter runtime, integration and server projection together, then re-bake and re-export
+every affected level. Never combine a `0.0.12` payload/manifest with the `0.7.0` runtime.
 
 Use [Migration and upgrading](migration-and-upgrading.md) for the safe decision table, pre-`0.0.3`
 layout migration, legacy bake-name migration, sample lifecycle, verification, and rollback.

@@ -1,6 +1,6 @@
 # API reference
 
-Applies to package version **0.0.12**.
+Applies to package version **0.7.0**.
 
 [Documentation index](index.md) · [Quick start](quick-start.md) ·
 [Configuration](configuration.md) · [Troubleshooting](troubleshooting.md) ·
@@ -308,7 +308,7 @@ canonical hash derivation.
 `DataSakura.JitterPhysics.ArtifactCodec.PhysicsCompatibilityToken` is a transport-neutral readonly
 value containing `LevelId`, `ArtifactHash`, and `RuntimeCompatibilityId`; the consumer carries its
 bytes in its own handshake. Neither type owns resources or authenticates a peer.
-`PhysicsCompatibilityToken.Magic` is a publicly exposed mutable array, so package 0.0.12 callers
+`PhysicsCompatibilityToken.Magic` is a publicly exposed mutable array, so package 0.7.0 callers
 must not modify it.
 
 | Exact signature | Parameters, return, effects, errors, state, and thread context |
@@ -350,7 +350,7 @@ replacement for the artifact. Calls belong on Unity's main thread.
 | `JitterPhysicsLevel`: `public IReadOnlyList<JitterStaticBodySource> CollectSources()` | Allocates and returns currently loaded active sources under `GeometryRoot`, or explicit sources across scene roots. Ordering is not canonicalized here. Read-only with respect to components. |
 | `JitterStaticBodySource`: `public string EnsureSourceId()` | Keeps a canonical ID or assigns a sanitized one derived from the current value/name. Mutates the component; it does not call `SetDirty`. |
 | `JitterStaticBodySource`: `public void SetSourceId(string value)` | Sanitizes and overwrites the serialized ID. Mutates the component; repeatability follows canonical sanitization. |
-| `JitterPhysicsWorldProfile`: `public PhysicsWorldSettings ToWorldSettings()` | Returns a new portable settings object with canonicalized gravity. Read-only. The value includes `SubstepCount`, but 0.0.12's world builder does not apply that field. |
+| `JitterPhysicsWorldProfile`: `public PhysicsWorldSettings ToWorldSettings()` | Returns a new portable settings object with canonicalized gravity. Read-only. The value includes `SubstepCount`, but 0.7.0's world builder does not apply that field. |
 
 Example: [create the first level](quick-start.md#1-create-the-first-level). Authoring constraints:
 [Configuration](configuration.md).
@@ -447,17 +447,18 @@ multiple external threads. Deterministic package policy requires the consumer to
 
 #### `DataSakura.JitterPhysics.Integration.JitterPhysicsWorldBuilder`
 
-This static, nonreplaceable builder creates bodies from a validated `PhysicsArtifact`.
+This static, nonreplaceable builder creates bodies from a validated
+`DataSakura.JitterPhysics.JitterNative.PhysicsArtifact`.
 `DataSakura.JitterPhysics.Integration.PhysicsWorldBuildResult` is a package-created sealed result
-with `Error`, body/shape counts, elapsed milliseconds, `TopologyFingerprint`, and `Succeeded`; it
-owns no cleanup.
+with `Error`, body/shape counts, elapsed milliseconds, `TopologyFingerprint`, `Succeeded`, and
+`RequiresWorldDiscard`; it owns no cleanup.
 
 | Exact signature | Parameters, return, effects, errors, and state |
 | --- | --- |
-| `public static PhysicsWorldBuildResult Apply(Jitter2.World world, PhysicsArtifact artifact)` | Throws `ArgumentNullException` for null arguments. Refuses a second successful apply to the same `World` with typed `InvalidValue`; validates, mutates world settings, then creates static bodies. It does not compare the artifact runtime ID with the caller build or configure/enforce the consumer tick loop/threading flag. Construction exceptions are caught as typed `InvalidValue`. Rollback attempts to remove created bodies and suppresses secondary removal errors, while changed gravity/solve/iteration/deactivation settings are **not restored**; always dispose/discard a failed candidate world. `SubstepCount` is not applied. Mesh local pose is ignored because triangle vertices are passed directly. |
+| `public static PhysicsWorldBuildResult Apply(Jitter2.World world, JitterNative.PhysicsArtifact artifact)` | Throws `ArgumentNullException` for null arguments. Refuses a second successful apply to the same `World` with typed `InvalidValue`; validates, applies settings, then creates static bodies from native records. It does not configure or own the consumer tick loop. Construction exceptions become typed `InvalidValue`; rollback removes created bodies and restores prior settings. When restoration cannot be proven, `RequiresWorldDiscard` is true. `SubstepCount` is not applied. Mesh local pose is ignored because triangle vertices are passed directly. |
 | `public static bool HasArtifact(Jitter2.World world)` | Returns false for null or a world without a completed successful apply. It is process-local bookkeeping, not inspection of arbitrary existing bodies. Read-only, but concurrent access guarantees are unverified. |
 
-`TopologyFingerprint` is diagnostic only in 0.0.12: it omits world settings, material values, and
+`TopologyFingerprint` is diagnostic only in 0.7.0: it omits world settings, material values, and
 mesh vertex/index contents (it includes only mesh counts), so equality is not proof of complete
 simulation equivalence. Example: [build the world](runtime-api.md#building-the-world).
 
@@ -481,7 +482,7 @@ consumer.
 
 Example: [dedicated-server startup contract](dedicated-server.md#startup-contract).
 
-### Significant API limits in 0.0.12
+### Significant API limits in 0.7.0
 
 - Portable DTO getters do not imply deep immutability; list/array storage and
   `PhysicsCompatibilityToken.Magic` can be mutated by callers.
@@ -492,21 +493,21 @@ Example: [dedicated-server startup contract](dedicated-server.md#startup-contrac
 - `SubstepCount` is serialized and validated but not applied by `JitterPhysicsWorldBuilder`.
 - Direct world-builder callers must load with an expected runtime ID and run their own loop at the
   artifact tick rate; `Apply` enforces neither.
-- A failed build attempts to remove created bodies, suppresses removal failures, and does not
-  restore changed world settings; discard the candidate world.
+- A failed build removes created bodies and restores changed world settings. Discard the candidate
+  world when `RequiresWorldDiscard` is true.
 - Mesh local position/rotation is not applied during mesh construction; vertices must already be
   expressed in the body-local frame expected by the builder.
 - `TopologyFingerprint` is incomplete as described above.
 - Managed .NET portable tests are present, but IL2CPP/AOT platform acceptance is not proven by a
   completed mobile smoke gate.
 
-See [Runtime API limitations](runtime-api.md#current-0012-runtime-limitations),
+See [Runtime API limitations](runtime-api.md#current-070-runtime-limitations),
 [Troubleshooting](troubleshooting.md), and [Extending](extending.md#constraints-to-preserve).
 
 ## Complete public-type inventory
 
 The following purpose-oriented tables account for all 99 production public types in package
-version 0.0.12. Assembly headings and source paths locate each short type name; detailed APIs above
+version 0.7.0. Assembly headings and source paths locate each short type name; detailed APIs above
 use fully qualified names. Source paths are package-relative.
 
 ### Assembly: Contracts
@@ -643,7 +644,8 @@ Source root: `Runtime/UnityArtifact/`
 | `JitterPhysicsArtifactLoader` | Hash, decode, validate, metadata and optional runtime check | `Runtime/UnityArtifact/JitterPhysicsArtifactLoader.cs` |
 | `JitterPhysicsArtifactPaths` | Current and legacy Unity asset paths | `Runtime/UnityArtifact/JitterPhysicsArtifactPaths.cs` |
 
-Normal runtime callers use `JitterPhysicsArtifactLoader.Load`. `Initialize` and path helpers are
+Jitter-free inspection callers use `JitterPhysicsArtifactLoader.Load`; simulating callers use the
+installed `JitterNativeUnityArtifactLoader.Load`. `Initialize` and path helpers are
 public for cross-assembly editor/bake infrastructure and should not be a second runtime pipeline.
 The loader currently cross-checks nonempty asset level/runtime IDs and body count when its copied
 value is nonzero, but not every copied Inspector field.
@@ -744,6 +746,7 @@ Source root before installation: `JitterIntegration~/Runtime/`
 | --- | --- | --- |
 | `JitterPhysicsWorldBuilder` | Apply one validated static artifact to a Jitter2 world | `JitterIntegration~/Runtime/JitterPhysicsWorldBuilder.cs` |
 | `PhysicsWorldBuildResult` | Typed build outcome and diagnostics | `JitterIntegration~/Runtime/JitterPhysicsWorldBuilder.cs` |
+| `JitterNativeUnityArtifactLoader` | Validate a Unity artifact asset and decode native records | `JitterIntegration~/Runtime/JitterNativeUnityBaking.cs` |
 | `JitterPhysicsServerStartup` | Provider → expectation checks → world build → readiness | `JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs` |
 | `JitterPhysicsServerOptions` | Required runtime ID, optional expected level/tick, and production Jitter DLL hash gate | `JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs` |
 | `JitterPhysicsServerState` | Readiness, loaded identity, counts, self-check, typed error | `JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs` |
@@ -758,11 +761,11 @@ references the prebuilt Jitter2 assembly, and compiles the portable and integrat
 by reference. It is compatibility evidence for that test target, not a standalone server product
 or proof for every server target framework.
 
-## Important 0.0.12 behavior notes
+## Important 0.7.0 behavior notes
 
 - `SubstepCount` is not applied by the world builder.
-- Failed construction only attempts body removal and does not restore changed world settings;
-  discard the candidate world.
+- Failed construction restores bodies/settings or sets `RequiresWorldDiscard` when complete
+  restoration cannot be proven.
 - Mesh local pose is ignored; vertices must already be body-local.
 - `TopologyFingerprint` omits mesh contents and other simulation-affecting values.
 - DTO storage and `PhysicsCompatibilityToken.Magic` are publicly mutable by reference.

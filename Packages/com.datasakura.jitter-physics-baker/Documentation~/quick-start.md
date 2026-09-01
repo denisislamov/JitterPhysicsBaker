@@ -5,19 +5,19 @@
 
 This walkthrough proves the shortest complete package path in Unity: configure Jitter2, install
 the adapter, import a native UPM sample, bake deterministic static geometry, and run that artifact
-in a real Jitter2 world. It is written for DataSakura Jitter Physics Baker `0.0.12` and normally
+in a real Jitter2 world. It is written for DataSakura Jitter Physics Baker `0.7.0` and normally
 takes 5–15 minutes after the package has resolved.
 
 ## Before you begin
 
 - Use Unity `6000.3` or later. The repository's recorded Editor revision is `6000.3.19f1`.
-- Install package version `0.0.12`; see [Installation](installation.md) for the Git URL and local
+- Install package version `0.7.0`; see [Installation](installation.md) for the Git URL and local
   package forms.
 - Exit Play Mode and wait for script compilation to finish.
 - Save or commit work in the consumer project. The setup and sample commands below deliberately
   create project files.
 
-Confirm that Package Manager shows **DataSakura Jitter Physics Baker** version `0.0.12` before
+Confirm that Package Manager shows **DataSakura Jitter Physics Baker** version `0.7.0` before
 continuing.
 
 ## 1. Create the first level
@@ -105,10 +105,10 @@ Either press **Open Package Manager samples** in Setup or open **Window > Packag
 Select **DataSakura Jitter Physics Baker**, open **Samples**, and import
 **Physics Baking Demos**.
 
-For `0.0.12`, Unity normally creates:
+For `0.7.0`, Unity normally creates:
 
 ```text
-Assets/Samples/DataSakura Jitter Physics Baker/0.0.12/Physics Baking Demos/
+Assets/Samples/DataSakura Jitter Physics Baker/0.7.0/Physics Baking Demos/
 ```
 
 Imported samples are consumer-owned, versioned copies. Updating or removing the package does not
@@ -218,7 +218,7 @@ precompiled Jitter2 fallback, wait for compilation; its plugin is auto-reference
 
 If the project instead uses a compatible source-based `Jitter2.Core` asmdef, open the imported
 consumer copy at
-`Assets/Samples/DataSakura Jitter Physics Baker/0.0.12/Physics Baking Demos/Runtime/`
+`Assets/Samples/DataSakura Jitter Physics Baker/0.7.0/Physics Baking Demos/Runtime/`
 and add `"Jitter2.Core"` to the `references` array in
 `DataSakura.JitterPhysics.Samples.asmdef`. The sample scripts use Jitter2 types directly, and asmdef
 references are not transitive through `DataSakura.JitterPhysics.JitterIntegration`. Wait for Unity

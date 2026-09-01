@@ -93,9 +93,12 @@ The complete sample implementation is
 using System;
 using DataSakura.JitterPhysics.Contracts;
 using DataSakura.JitterPhysics.Integration;
+using DataSakura.JitterPhysics.JitterNative.UnityBoundary;
 using DataSakura.JitterPhysics.UnityArtifact;
 using Jitter2;
 using UnityEngine;
+using NativeArtifact = DataSakura.JitterPhysics.JitterNative.PhysicsArtifact;
+using NativeReadResult = DataSakura.JitterPhysics.JitterNative.Codec.PhysicsArtifactResult;
 
 namespace MyGame.Physics
 {
@@ -104,7 +107,7 @@ public sealed class MyJitterWorldOwner : MonoBehaviour
     [SerializeField] private JitterPhysicsArtifactAsset artifact;
 
     private World world;
-    private PhysicsArtifact loadedArtifact;
+    private NativeArtifact loadedArtifact;
     private float accumulator;
 
     public PhysicsArtifactError StartWorld(string runtimeCompatibilityId)
@@ -121,8 +124,8 @@ public sealed class MyJitterWorldOwner : MonoBehaviour
                 nameof(runtimeCompatibilityId));
         }
 
-        PhysicsArtifactResult loaded =
-            JitterPhysicsArtifactLoader.Load(
+        NativeReadResult loaded =
+            JitterNativeUnityArtifactLoader.Load(
                 artifact,
                 runtimeCompatibilityId);
         if (!loaded.Succeeded)

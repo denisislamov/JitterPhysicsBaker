@@ -4,7 +4,7 @@
 [Runtime API](runtime-api.md) · [Troubleshooting](troubleshooting.md)
 
 This reference records the defaults and accepted ranges in DataSakura Jitter Physics Baker
-`0.0.12`. World and source values are content: they affect baked bytes. Project folders and
+`0.7.0`. World and source values are content: they affect baked bytes. Project folders and
 personal preview preferences do not describe simulation, but they control where content is
 created and how it is inspected.
 
@@ -91,7 +91,7 @@ The profile is a shared asset. **Edit** changes the shared instance. Use **Make 
 changing values for only one level.
 
 > [!IMPORTANT]
-> In `0.0.12`, **Substep Count** is serialized and validated but
+> In `0.7.0`, **Substep Count** is serialized and validated but
 > `JitterPhysicsWorldBuilder` does not currently assign it to the rebuilt Jitter2 world. Values
 > greater than `1` therefore do not change that world. Keep it at `1` when integration depends on
 > behavior documented by this release, and do not claim that a higher value has been applied.

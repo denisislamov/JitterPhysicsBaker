@@ -6,6 +6,51 @@ All notable changes to this package are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-02
+
+### Added
+- Added the public canonical deterministic f32 `Jitter2.LinearMath.StableMath` surface with
+  documented domains and golden bit fixtures for zero, halfway, subnormal, quadrant, gameplay,
+  NaN, infinity and invalid-domain inputs.
+- Added Jitter-native artifact records and codec APIs using `JVector`, `JQuaternion` and the
+  canonical `Real` profile, plus the single explicitly installed Unity-to-Jitter authoring
+  boundary.
+- Added executable math/precision enforcement with reviewed owner-and-reason allowlist entries,
+  stale-entry detection, actionable diagnostics and portable CI integration.
+- Added migration evidence and a coordinated consumer upgrade guide for Unity integration,
+  dedicated-server projection and baked content.
+
+### Changed
+- Canonicalized the package-owned Jitter2 source/profile distribution and made Unity and server
+  consume the same verified `Jitter2.Core.dll` bytes.
+- Moved the shared world builder, server startup and runtime samples to native records without
+  portable vector/quaternion conversion in the simulation path.
+- Extended successful artifact-provider results with the exact validated payload bytes required
+  by native server startup. Existing custom providers compile, but simulation startup rejects a
+  success result that omits those bytes.
+- Made failed world application restore settings and bodies, with an explicit
+  `RequiresWorldDiscard` result when complete rollback cannot be proven.
+- Preserved the existing installation model: the base package imports without Jitter2, Jitter2 is
+  provided separately, and the integration and server projection are updated only by explicit
+  commands.
+
+### Compatibility
+- Artifact schema remains `1`; the migration writer preserves the published f32 payload and
+  canonical manifest layout.
+- Runtime compatibility changes to
+  `71e9d01f4006a8e1d097beb047efa8b8aabbe24895cb8d50531c764031c9aa4b` because the canonical
+  Jitter source/profile identity changed. Every affected level must be re-baked and re-exported.
+- Payload, manifest and `.physics.asset` are one atomic delivery unit. Do not mix `0.0.12`
+  artifacts or manifests with the `0.7.0` Unity/server runtime.
+
+### Upgrade notes
+- Update the UPM package first, validate or separately update the single compatible Jitter2,
+  explicitly run **Install/update integration**, and refresh the dedicated-server projection.
+- Rebuild client and server, re-bake every level, re-export the complete artifact trio and deploy
+  runtime plus content as one coordinated release.
+- Imported samples are versioned consumer copies. Import the `0.7.0` sample after Setup and merge
+  local changes explicitly.
+
 ## [0.0.12] - 2026-08-31
 
 ### Added

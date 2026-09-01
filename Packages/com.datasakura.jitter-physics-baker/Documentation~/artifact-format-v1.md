@@ -1,6 +1,6 @@
 # Artifact format v1
 
-Applies to package version **0.0.12** and artifact schema **1**.
+Applies to package version **0.7.0** and artifact schema **1**.
 
 [Documentation index](index.md) · [Quick start](quick-start.md) ·
 [Configuration](configuration.md) · [Troubleshooting](troubleshooting.md) ·
@@ -62,7 +62,7 @@ Fields appear exactly in this order.
 | Multi-threaded | `uint8` | `0`, single-threaded only |
 | Body count | `int32` | 0 through 65,536 |
 
-`SubstepCount` is part of schema 1 and therefore part of the payload hash. In package 0.0.12 the
+`SubstepCount` is part of schema 1 and therefore part of the payload hash. In package 0.7.0 the
 world builder does not assign it to `World.SubstepCount`; this is a runtime implementation gap,
 not permission to remove or reinterpret the field.
 
@@ -114,7 +114,7 @@ For a mesh:
 - total level indices are capped at 12,000,000.
 
 Mesh vertices are currently consumed as body-local coordinates. Although schema 1 carries local
-position and rotation for every shape, package 0.0.12 does not apply those two fields to mesh
+position and rotation for every shape, package 0.7.0 does not apply those two fields to mesh
 construction and validation does not require identity. Producers must bake the mesh transform
 into the vertex data and emit an identity mesh-local pose.
 
@@ -151,7 +151,7 @@ content after the closing brace. It currently accepts additional fields and does
 them.
 
 The reader cross-checks payload hash, level ID, runtime ID, payload file name, body/shape/vertex/
-triangle counts, and tick rate. The decoded payload independently enforces schema 1. In 0.0.12,
+triangle counts, and tick rate. The decoded payload independently enforces schema 1. In 0.7.0,
 the manifest's `schemaVersion` string and `generatorVersion` are descriptive and are not compared
 with the decoded artifact/package version.
 
@@ -197,7 +197,7 @@ not deeply immutable: mesh arrays and underlying lists can be changed by code th
 reference, and `PhysicsArtifactPayload.Bytes` exposes its array. Do not mutate them after
 construction or while another thread hashes, writes, previews, or builds them.
 
-`PhysicsCompatibilityToken.Magic` is also a public array in 0.0.12. Treat it as a constant and
+`PhysicsCompatibilityToken.Magic` is also a public array in 0.7.0. Treat it as a constant and
 never modify it.
 
 ## JMP migration decision
@@ -220,7 +220,7 @@ cross-check every asset metadata field against the payload and manifest before r
 ## Fingerprints are not artifact identity
 
 `PhysicsWorldBuildResult.TopologyFingerprint` is not stored in schema 1 and is not used by the
-artifact reader. In 0.0.12 it includes record order and selected shape metadata, but only mesh
+artifact reader. In 0.7.0 it includes record order and selected shape metadata, but only mesh
 array lengths rather than mesh contents, and it omits material/world settings. It is suitable for
 a repeatable smoke diagnostic only. Never substitute it for `artifactHash` plus
 `runtimeCompatibilityId`.

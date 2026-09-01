@@ -21,10 +21,10 @@ player target works.
 | Area | Status | Details |
 | --- | --- | --- |
 | Unity minimum | Declared | Unity `6000.3`, from the package manifest. |
-| Unity Editor | Previously verified implementation | Unity `6000.3.19f1` is the exact editor revision used by the development project. The unchanged implementation in `0.0.11` recorded 97/97 Edit Mode and 57/57 Play Mode tests. |
+| Unity Editor | Blocked for this release | Unity `6000.3.19f1` is the exact editor revision used by the development project. The `0.7.0` rerun was blocked before fresh XML by Licensing Client protocol mismatch. |
 | Later Unity versions | Unverified | `6000.3` is a minimum, not evidence that every later editor release has been tested. Run the package and consumer suites before adopting a later editor. |
 | Clean import without Jitter2 | Verified design contract | The always-compiled package assemblies do not reference `Jitter2.Core`. Import and authoring UI remain available when Jitter2 is absent. Baking and world construction do not. |
-| Unity Editor scripting backend | Previously verified implementation | Editor compilation plus Edit Mode and Play Mode tests were exercised on `6000.3.19f1` before the documentation-only `0.0.12` update. |
+| Unity Editor scripting backend | Compile verified, engine run blocked | Generated Unity csproj compilation passes; fresh Edit Mode and Play Mode XML is not available for `0.7.0`. |
 | Mono player | Unverified for this release | Editor tests do not replace a built-player smoke test. |
 | IL2CPP player | Unverified for this release | IL2CPP is an intended integration target, but a completed IL2CPP player gate is not recorded for this documentation release. Do not present it as certified. |
 | Render pipelines | Unverified matrix | The package has no URP or HDRP package dependency, but Built-in/URP/HDRP player acceptance has not been recorded as a release matrix. |
@@ -40,10 +40,10 @@ player target works.
 > separate gates.
 
 > [!NOTE]
-> The `0.0.12` Unity rerun did not reach test discovery: the available Editor reported
-> `Licensing initialization failed after 74.85s`. The older XML results above remain useful
-> implementation evidence, but they are not a current-release pass. Rerun both Unity suites when
-> the licensing service is available.
+> The `0.7.0` Unity rerun did not reach test discovery: the existing Licensing Client answered
+> with unsupported protocol `1.18.1` (`ResponseCode 505`), and the editor-specific client did not
+> establish its channel. Older XML is not a current-release pass. Rerun both Unity suites before
+> publishing the release tag.
 
 ## Unity Package dependencies
 
@@ -120,8 +120,8 @@ integrating it:
 - `SubstepCount` is serialized into the world profile and artifact, but the shared world builder
   does not currently assign it to the Jitter2 world. Values greater than `1` therefore do not
   change the rebuilt runtime world.
-- A failed world apply removes bodies created by that apply, but it does not restore every world
-  setting assigned before the failure. Discard the failed world and create a new one.
+- A failed world apply removes bodies and restores world settings. If the result reports
+  `RequiresWorldDiscard`, discard the failed world and create a new one.
 - `TopologyFingerprint` is a diagnostic summary, not a compatibility credential. For mesh shapes
   it includes vertex and index counts, not the complete mesh content. Use
   `artifactHash + runtimeCompatibilityId` for client/server compatibility.

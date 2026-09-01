@@ -1,6 +1,6 @@
 # Extending the package
 
-Applies to package version **0.0.12**.
+Applies to package version **0.7.0**.
 
 [Documentation index](index.md) · [Quick start](quick-start.md) ·
 [Configuration](configuration.md) · [Troubleshooting](troubleshooting.md) ·
@@ -215,7 +215,8 @@ timestamps, absolute paths, Unity instance IDs, or hash-table enumeration order.
 
 Use these as normal consumer entry points:
 
-- `JitterPhysicsArtifactLoader.Load`;
+- `JitterNativeUnityArtifactLoader.Load` for simulation, or the Jitter-free
+  `JitterPhysicsArtifactLoader.Load` for inspection;
 - `IPhysicsArtifactProvider` and the supplied providers;
 - `JitterPhysicsWorldBuilder.Apply`;
 - `JitterPhysicsServerStartup.Start`;
@@ -234,7 +235,7 @@ cross-runtime tests, and update conflicts.
 ## Constraints to preserve
 
 - Build into a fresh candidate world and dispose it after any failure because settings rollback
-  is partial in 0.0.12.
+  is partial in 0.7.0.
 - Do not rely on `SubstepCount` until builder support is implemented and compatibility-versioned.
 - Bake mesh local transforms into vertices; the current builder ignores mesh local pose fields.
 - Compare full artifact hash plus runtime ID. `TopologyFingerprint` omits mesh contents and other

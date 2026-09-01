@@ -1,6 +1,6 @@
 # Dedicated server
 
-Applies to package version **0.0.12**.
+Applies to package version **0.7.0**.
 
 [Documentation index](index.md) · [Quick start](quick-start.md) ·
 [Configuration](configuration.md) · [Troubleshooting](troubleshooting.md) ·
@@ -222,9 +222,9 @@ authoritative even when both sides begin with identical validated artifact bytes
 ## Failure and cleanup behavior
 
 Failures before world construction leave geometry untouched. During construction, the builder
-catches Jitter2 exceptions and removes bodies created by that attempt. In 0.0.12 it does not
-restore world settings that were assigned before the exception. Use a fresh candidate world and
-dispose it after any failed startup; do not continue a match with that instance.
+catches Jitter2 exceptions, removes bodies created by that attempt and restores the previous
+world settings. If `PhysicsWorldBuildResult.RequiresWorldDiscard` is true, cleanup could not prove
+full restoration: dispose that world and create a new one before continuing.
 
 The builder also rejects a second artifact on the same world. Level changes require a new world.
 There is no package-level hot reload or unload operation.
@@ -242,13 +242,13 @@ The repository test harness targets .NET 10. That proves compilation and tests f
 harness, not every consumer target framework, container image, CPU floating-point environment,
 or deployment filesystem.
 
-## Diagnostic limitations in 0.0.12
+## Diagnostic limitations in 0.7.0
 
 - `SubstepCount` is validated but not applied by the world builder.
 - `TopologyFingerprint` omits mesh vertex/index contents, materials, and world settings. Do not
   use it for connection approval.
 - Mesh local position/rotation are ignored; mesh vertices must be body-local.
-- The rollback guarantee covers created bodies, not previously assigned world settings.
+- A failed apply reports whether the caller must discard the world; do not ignore that flag.
 
 Use [Troubleshooting](troubleshooting.md) for startup error codes and
 [Recipes](recipes.md) for deployment and two-peer verification flows.

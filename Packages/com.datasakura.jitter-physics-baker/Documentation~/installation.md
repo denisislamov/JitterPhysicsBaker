@@ -8,7 +8,7 @@ Install the core package first, choose exactly one compatible Jitter2, and then 
 Jitter-dependent adapter. Importing the core package does not run an installer and does not write
 files under `Assets/`.
 
-The examples on this page pin package version `0.0.12`. Pin a release tag in production instead of
+The examples on this page pin package version `0.7.0`. Pin a release tag in production instead of
 tracking `main`, so every developer and build machine resolves the same source tree.
 
 ## Before you begin
@@ -33,12 +33,12 @@ This is the recommended installation for a normal consumer project.
 4. Enter:
 
    ```text
-   https://github.com/denisislamov/jitter-physics-baker.git#v0.0.12
+   https://github.com/denisislamov/jitter-physics-baker.git#v0.7.0
    ```
 
 5. Wait for Package Manager resolution and Unity compilation to finish.
 6. Select **DataSakura Jitter Physics Baker** in Package Manager and confirm that version
-   `0.0.12` is shown.
+   `0.7.0` is shown.
 
 Expected result: the package appears under **Packages** and the project compiles even when no
 `Jitter2.Core` exists yet. Baking remains unavailable until Jitter2 is configured.
@@ -50,7 +50,7 @@ The equivalent manifest entry is:
 ```json
 {
   "dependencies": {
-    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.12"
+    "com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.7.0"
   }
 }
 ```
@@ -71,7 +71,7 @@ the folder that directly contains `package.json`.
 4. Select the package's `package.json` itself. In this development repository it is
    `Packages/com.datasakura.jitter-physics-baker/package.json`.
 5. Wait for Package Manager resolution and Unity compilation to finish.
-6. Select **DataSakura Jitter Physics Baker** and confirm version `0.0.12`.
+6. Select **DataSakura Jitter Physics Baker** and confirm version `0.7.0`.
 
 Expected result: the package appears under **Packages** and the project compiles without Jitter2,
 just as for the Git install. Continue with the explicit Jitter2 and integration setup below.
@@ -98,7 +98,7 @@ the files in that checkout and is not an immutable release. Replace it with a ta
 before producing a reproducible build.
 
 After editing `Packages/manifest.json`, wait for Unity to update `Packages/packages-lock.json`, then
-select the package in Package Manager and confirm version `0.0.12`. If resolution fails, resolve the
+select the package in Package Manager and confirm version `0.7.0`. If resolution fails, resolve the
 `file:` path relative to the consumer project's `Packages` folder and confirm that its target
 contains this package's `package.json`.
 
@@ -234,7 +234,7 @@ cannot enforce that prerequisite.
 Unity imports this release to:
 
 ```text
-Assets/Samples/DataSakura Jitter Physics Baker/0.0.12/Physics Baking Demos/
+Assets/Samples/DataSakura Jitter Physics Baker/0.7.0/Physics Baking Demos/
 ```
 
 The sample runtime scripts use Jitter2 types directly. The receipt-owned fallback is an

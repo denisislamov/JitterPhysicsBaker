@@ -8,7 +8,7 @@ The package owns authoring, validation, baking, artifact verification, and stati
 construction. Your game continues to own dynamic bodies, networking, scene lifetime, connection
 approval, and every call to `World.Step`.
 
-Current package version: **0.0.12**. Artifact schema: **1**.
+Current package version: **0.7.0**. Artifact schema: **1**.
 
 ## Highlights
 
@@ -38,7 +38,7 @@ for the precise verified and unverified scope.
 In **Window > Package Manager**, choose **Install package from git URL...** and enter:
 
 ```text
-https://github.com/denisislamov/jitter-physics-baker.git#v0.0.12
+https://github.com/denisislamov/jitter-physics-baker.git#v0.7.0
 ```
 
 Then open **Tools > DataSakura > Jitter Physics Baker Window**. In a clean scene, press

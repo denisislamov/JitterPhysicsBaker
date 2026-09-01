@@ -1,6 +1,6 @@
 # Runtime API
 
-Applies to package version **0.0.12**.
+Applies to package version **0.7.0**.
 
 [Documentation index](index.md) · [Quick start](quick-start.md) ·
 [Configuration](configuration.md) · [Troubleshooting](troubleshooting.md) ·
@@ -30,9 +30,11 @@ explicitly after the project has exactly one compatible `Jitter2.Core`; see
 
 ## Loading a Unity artifact
 
-`JitterPhysicsArtifactLoader.Load` treats both the serialized asset metadata and its `TextAsset`
-payload as untrusted. It hashes and decodes the payload, validates the artifact, checks selected
-asset metadata, and optionally checks the runtime compatibility ID.
+After explicit Setup, `JitterNativeUnityArtifactLoader.Load` treats both the serialized asset
+metadata and its `TextAsset` payload as untrusted. It hashes and decodes the payload directly into
+the Jitter-native graph, validates the artifact, checks selected asset metadata, and optionally
+checks the runtime compatibility ID. The always-available `JitterPhysicsArtifactLoader` remains a
+Jitter-free inspection API; do not feed its portable DTO graph into simulation.
 
 Always supply the runtime compatibility ID in code that will simulate the artifact. Omitting it
 is appropriate only for an inspection tool that intentionally reads artifacts it cannot run.
@@ -187,7 +189,7 @@ level, and short hash.
 Null arguments, invalid locally constructed options, a request to write a non-canonical DTO, and
 `RequireReady()` on a failed server state are programmer errors and may throw.
 
-## Current 0.0.12 runtime limitations
+## Current 0.7.0 runtime limitations
 
 These are implementation facts, not future promises:
 

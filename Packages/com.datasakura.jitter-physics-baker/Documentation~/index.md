@@ -9,7 +9,7 @@ The package owns authoring, validation, baking, artifact delivery contracts, and
 construction. Your game still owns dynamic bodies, networking, connection approval, scene
 lifetime, and every call to `World.Step`.
 
-> **Important:** The current package version is **0.0.12** and the artifact schema is **1**.
+> **Important:** The current package version is **0.7.0** and the artifact schema is **1**.
 > Package version, artifact schema, and runtime compatibility are separate identities. An
 > ordinary documentation update can change the first without changing the other two.
 
@@ -84,7 +84,7 @@ Unity scene
                 |                                  |
                 +---------- strict load/verify ----+
                                    |
-                          PhysicsArtifact DTO
+                      Jitter-native artifact graph
                                    |
                     JitterPhysicsWorldBuilder.Apply
                                    |
@@ -121,14 +121,14 @@ In particular, the current release does not claim a completed IL2CPP/mobile acce
 See [Requirements and compatibility](requirements-and-compatibility.md) for the evidence
 boundary and [Troubleshooting](troubleshooting.md) for player-build checks.
 
-## Known correctness limitations in 0.0.12
+## Known correctness limitations in 0.7.0
 
 These are implementation facts, not future promises:
 
 - `SubstepCount` is serialized and validated but is not currently applied by
   `JitterPhysicsWorldBuilder`.
-- A failed `Apply` removes bodies created during that call, but world settings assigned before
-  the failure are not restored. Discard the failed world.
+- A failed `Apply` removes created bodies and restores prior world settings. Discard the world
+  when `RequiresWorldDiscard` reports that complete restoration could not be proven.
 - `TopologyFingerprint` does not hash mesh vertex/index contents, materials, or world settings.
   Use `artifactHash + runtimeCompatibilityId` as the compatibility proof.
 - Mesh vertices must already be body-local; the current builder does not apply a mesh record's

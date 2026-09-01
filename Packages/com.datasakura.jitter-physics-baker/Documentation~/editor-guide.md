@@ -4,7 +4,7 @@
 [Configuration](configuration.md) · [Troubleshooting](troubleshooting.md)
 
 This page describes the Editor workflow and visible side effects of DataSakura Jitter Physics
-Baker `0.0.12`. The package performs no install, bake, export, upload, or removal on import or
+Baker `0.7.0`. The package performs no install, bake, export, upload, or removal on import or
 selection. Those operations begin only from an explicit command.
 
 ## Entry points

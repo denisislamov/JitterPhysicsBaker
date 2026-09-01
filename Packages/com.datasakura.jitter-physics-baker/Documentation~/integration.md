@@ -1,6 +1,6 @@
 # Integration
 
-Applies to package version **0.0.12**.
+Applies to package version **0.7.0**.
 
 [Documentation index](index.md) · [Quick start](quick-start.md) ·
 [Configuration](configuration.md) · [Troubleshooting](troubleshooting.md) ·
@@ -13,7 +13,7 @@ details, see [Runtime API](runtime-api.md). For process startup and connection a
 ## Why integration is installed explicitly
 
 The package must import into a Unity project that has no Jitter2. Its always-compiled assemblies
-therefore have no `Jitter2.Core` reference. The two Jitter-dependent source files live under
+therefore have no `Jitter2.Core` reference. The Jitter-dependent source files live under
 `JitterIntegration~`, which Unity ignores.
 
 After the project has exactly one compatible Jitter2 assembly, use the package's explicit
@@ -170,9 +170,10 @@ same session scope that created it.
 ### Addressables and other content systems
 
 The package has no Addressables dependency. A Unity content layer may load a
-`JitterPhysicsArtifactAsset`, retain its handle for the world lifetime, and pass the asset to
-`JitterPhysicsArtifactLoader`. A server content layer should implement
-`IPhysicsArtifactProvider` and return only a fully hash/manifest/runtime-checked result. Releasing
+`JitterPhysicsArtifactAsset`, retain its handle for the world lifetime, and pass the asset to the
+installed `JitterNativeUnityArtifactLoader`. A server content layer should implement
+`IPhysicsArtifactProvider` and return a fully hash/manifest/runtime-checked result with exact
+payload bytes. Releasing
 an Addressables handle while the asset is still needed is a consumer lifecycle bug; the package
 does not retain that handle for you.
 
@@ -203,7 +204,7 @@ The package guarantees canonical artifact bytes and validates that both sides us
 artifact hash and runtime semantics identity. It deliberately does not claim bit-exact physics
 ticks across Unity/IL2CPP and .NET JIT runtimes. The server remains authoritative.
 
-`TopologyFingerprint` is useful for a repeatable smoke log, but in 0.0.12 it is incomplete: mesh
+`TopologyFingerprint` is useful for a repeatable smoke log, but in 0.7.0 it is incomplete: mesh
 contents, world settings, friction, and restitution are not all represented. It must not replace
 the artifact hash/runtime ID pair in a handshake or release gate.
 
@@ -211,8 +212,8 @@ the artifact hash/runtime ID pair in a handshake or release gate.
 
 - `SubstepCount` is present in the artifact but is not assigned to the Jitter2 world by the
   current builder.
-- A build exception rolls back created bodies, but previously assigned world settings remain
-  changed. Always build into a disposable candidate world.
+- A build exception rolls back created bodies and settings. Discard the candidate world when
+  `RequiresWorldDiscard` reports incomplete restoration.
 - Mesh local translation and rotation are not applied. Mesh producers must supply body-local
   vertices and an identity mesh-local pose.
 - Public artifact arrays/list references are not deeply immutable. Freeze ownership before load

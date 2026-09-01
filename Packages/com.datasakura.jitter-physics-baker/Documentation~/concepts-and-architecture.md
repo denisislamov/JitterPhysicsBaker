@@ -106,7 +106,7 @@ rate, substep count, solver iterations, relaxation iterations, and deactivation 
 the artifact. Deterministic solve mode and single-threaded stepping are format invariants rather
 than Inspector options.
 
-> **Known limitation:** Version 0.0.12 stores `SubstepCount`, but the current world builder does
+> **Known limitation:** Version 0.7.0 stores `SubstepCount`, but the current world builder does
 > not apply it to the Jitter world. Do not use that field as evidence of active runtime substeps.
 
 ## Validation and baking lifecycle
@@ -161,8 +161,8 @@ See [Artifact format v1](artifact-format-v1.md) for limits and layout.
 ### Unity client
 
 1. Obtain a `JitterPhysicsArtifactAsset` through the game's normal scene/content flow.
-2. Call `JitterPhysicsArtifactLoader.Load` with the independently derived runtime ID of this
-   simulating build.
+2. After explicit Setup, call `JitterNativeUnityArtifactLoader.Load` with the independently
+   derived runtime ID of this simulating build.
 3. Create a new Jitter `World`.
 4. Call `JitterPhysicsWorldBuilder.Apply` once.
 5. Only after success, create dynamic bodies and expose the world to gameplay.
@@ -201,9 +201,9 @@ arbitrary exception thrown by provider code.
 loop starts. The builder tracks successful application per world and refuses a second
 artifact. It has no unload, merge, or hot-reload API.
 
-If shape/body creation throws, bodies created during the attempt are removed. World settings
-are assigned before body creation and are not restored on failure. The safe recovery is to
-dispose that world and create a fresh one; do not add gameplay bodies to it.
+If shape/body creation throws, bodies created during the attempt are removed and the prior world
+settings are restored. If `RequiresWorldDiscard` is true, cleanup could not prove full restoration;
+dispose that world and create a fresh one before adding gameplay bodies.
 
 All world mutation belongs to one simulation owner. Do not call `Apply`, `World.Step`, or
 provider first-load paths concurrently. The package supplies no locks around a Jitter world.
@@ -216,7 +216,7 @@ Use both:
 - `runtimeCompatibilityId` to prove those bytes are interpreted with matching pinned runtime
   semantics.
 
-`TopologyFingerprint` is useful in logs but is not complete in 0.0.12. Mesh fingerprints
+`TopologyFingerprint` is useful in logs but is not complete in 0.7.0. Mesh fingerprints
 include vertex/index counts rather than their contents, and the value omits material and world
 settings. Do not substitute it for the hash/runtime-ID pair.
 

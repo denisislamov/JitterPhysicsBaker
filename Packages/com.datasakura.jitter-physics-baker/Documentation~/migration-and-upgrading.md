@@ -76,16 +76,16 @@ the current client and server may simulate them.
 
 ## Update the UPM package
 
-For the `0.0.12` release, change the pinned dependency to:
+For the `0.7.0` release, change the pinned dependency to:
 
 ```json
-"com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.0.12"
+"com.datasakura.jitter-physics-baker": "https://github.com/denisislamov/jitter-physics-baker.git#v0.7.0"
 ```
 
 Then:
 
 1. Let Package Manager resolve the new tag and finish compilation.
-2. Confirm **DataSakura Jitter Physics Baker 0.0.12** in Package Manager.
+2. Confirm **DataSakura Jitter Physics Baker 0.7.0** in Package Manager.
 3. Open **Tools > DataSakura > Jitter Physics Baker Window** and select the relevant level.
 4. Open **Settings > Advanced installation and maintenance > Open installation details**.
 5. Review the Jitter2 compatibility status before running an update action.
@@ -165,11 +165,11 @@ Unity imports samples as versioned copies:
 Assets/Samples/DataSakura Jitter Physics Baker/<package-version>/Physics Baking Demos/
 ```
 
-An update does not modify or remove an older imported folder. After installing `0.0.12`, choose
+An update does not modify or remove an older imported folder. After installing `0.7.0`, choose
 one of these explicitly:
 
 - **Keep** the old sample when it is only reference material and still meets your needs.
-- **Import** the `0.0.12` sample alongside it to inspect the new version.
+- **Import** the `0.7.0` sample alongside it to inspect the new version.
 - **Compare** and migrate local sample changes before removing an older copy.
 
 Never assume an imported sample is package-owned after import. It is a consumer copy and may
@@ -225,9 +225,10 @@ manifest, and payload are one validated delivery.
 
 ## Serialized assets and public API
 
-Version `0.0.12` does not intentionally rename public namespaces, assembly names, serialized
-fields, component types, or artifact schema. Existing scenes and world profiles therefore do not
-need a serialized-data migration solely for this update.
+Version `0.7.0` does not rename serialized fields, authoring component types, assembly names, or
+artifact schema. Existing scenes and world profiles therefore do not need a serialized-data
+migration. The installed simulation API does change to Jitter-native records, and custom artifact
+providers must return exact validated payload bytes before server startup can use them.
 
 For future releases:
 
