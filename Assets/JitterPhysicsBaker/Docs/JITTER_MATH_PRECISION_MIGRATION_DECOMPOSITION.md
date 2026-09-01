@@ -453,50 +453,54 @@ Evidence: `JMP_E01_CANONICAL_JITTER_RUNTIME_EVIDENCE.md`. Первые два ac
 
 Subtasks:
 
-- [ ] Сделать inventory существующих constants/methods.
-- [ ] Для каждого API записать domain, exceptional inputs, `-0`, error bound и determinism.
-- [ ] Определить supported surface и XML-doc на английском.
-- [ ] Запретить consumer-local дубликаты.
+- [x] Сделать inventory существующих constants/methods.
+- [x] Для каждого API записать domain, exceptional inputs, `-0`, error bound и determinism.
+- [x] Определить supported surface и XML-doc на английском.
+- [x] Запретить consumer-local дубликаты.
 
 ### JMP-T02.2. Расширить canonical implementation
 
 Subtasks:
 
-- [ ] Сделать `StableMath` public.
-- [ ] Сделать public `Pi`, `HalfPi`, `QuarterPi`, `TwoPi`.
-- [ ] Сделать public `Sin`, `Cos`, `SinCos`, `Atan2`, `Asin`, `Acos`.
-- [ ] Добавить `Abs`, `Min`, `Max`, `Clamp`, `Clamp01`.
-- [ ] Добавить deterministic `Sqrt` либо documented inverse-length path.
-- [ ] Добавить `Lerp`.
-- [ ] Добавить rounding/quantization с `MidpointRounding.AwayFromZero` semantics.
-- [ ] Не реализовывать determinism-critical API пустыми wrappers над platform libm.
+- [x] Сделать `StableMath` public.
+- [x] Сделать public `Pi`, `HalfPi`, `QuarterPi`, `TwoPi`.
+- [x] Сделать public `Sin`, `Cos`, `SinCos`, `Atan2`, `Asin`, `Acos`.
+- [x] Добавить `Abs`, `Min`, `Max`, `Clamp`, `Clamp01`.
+- [x] Добавить deterministic `Sqrt` либо documented inverse-length path.
+- [x] Добавить `Lerp`.
+- [x] Добавить rounding/quantization с `MidpointRounding.AwayFromZero` semantics.
+- [x] Не реализовывать determinism-critical API пустыми wrappers над platform libm.
 
 ### JMP-T02.3. Добавить API и bit-pattern tests
 
 Subtasks:
 
-- [ ] Проверить public surface и signatures.
-- [ ] Добавить golden bits для positive/negative zero.
-- [ ] Добавить positive/negative halfway fixtures.
-- [ ] Добавить near-zero/subnormal fixtures.
-- [ ] Добавить quadrant-boundary fixtures.
-- [ ] Добавить gameplay-range fixtures.
-- [ ] Добавить NaN/Infinity/out-of-domain fixtures.
-- [ ] Сравнить .NET, Unity Editor и IL2CPP evidence отдельно.
+- [x] Проверить public surface и signatures.
+- [x] Добавить golden bits для positive/negative zero.
+- [x] Добавить positive/negative halfway fixtures.
+- [x] Добавить near-zero/subnormal fixtures.
+- [x] Добавить quadrant-boundary fixtures.
+- [x] Добавить gameplay-range fixtures.
+- [x] Добавить NaN/Infinity/out-of-domain fixtures.
+- [x] Сравнить .NET, Unity Editor и IL2CPP evidence отдельно.
 
 ### JMP-T02.4. Удалить consumer-only patch
 
 Subtasks:
 
-- [ ] Найти все локальные копии/модификации `StableMath`.
-- [ ] Перевести consumers на canonical API.
-- [ ] Удалять patch только после direct-reference и test PASS.
-- [ ] Проверить, что source hash/lock отражают canonical change.
+- [x] Найти все локальные копии/модификации `StableMath`.
+- [x] Перевести consumers на canonical API.
+- [x] Удалять patch только после direct-reference и test PASS.
+- [x] Проверить, что source hash/lock отражают canonical change.
 
 Epic acceptance:
 
-- [ ] Required deterministic API находится в canonical Jitter source.
+- [x] Required deterministic API находится в canonical Jitter source.
 - [ ] Public API и golden bit tests зелёные на заявленных runtimes.
+
+Evidence: `JMP_E02_STABLE_MATH_EVIDENCE.md`. Public API и golden bits подтверждены на .NET
+через exact prebuilt DLL. Unity Editor и IL2CPP зафиксированы отдельными gates и не объявляются
+зелёными без свежего runtime evidence.
 
 ## JMP-E03. `Real` и устанавливаемый assembly graph
 

@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "assemblyName": "Jitter2.Core",
   "upstreamRepository": "https://github.com/notgiven688/jitterphysics2",
   "upstreamCommit": "c15bc6abfdda90a936975979a42f7a54a211084e",
-  "patchSetId": "unity-netstandard21-stablemath-v2",
-  "sourceContentHash": "sha256:c4e11cddbf7b0263bfda638def71c0070ce83e087bb210cec2074ac2c7a82212",
-  "integrationApiVersion": 1,
+  "patchSetId": "unity-netstandard21-stablemath-public-v3",
+  "sourceContentHash": "sha256:ca940ca6483ffcedf65854719396cec2d9e038cc43c01e7d35d147cd70766940",
+  "integrationApiVersion": 2,
   "compileProfile": {
     "allowUnsafe": true,
     "continuousIntegrationBuild": true,
@@ -17,18 +17,18 @@
     "targetFramework": "netstandard2.1",
     "unityDefine": ""
   },
-  "consumerPatches": [
+  "canonicalPatches": [
     {
       "path": "LinearMath/StableMath.cs",
-      "sha256": "sha256:14051e8d9217ac0c6201ba90d9f50c287792c190b10b1aa99d25bc1b27bc3ae0",
-      "reason": "Consumer deterministic trigonometry implementation absent from pinned upstream c15bc6abfdda90a936975979a42f7a54a211084e."
+      "sha256": "sha256:ee224074a29593f450fccc7ba1d35a73002f97d32fff6db80166133a7248b3b7",
+      "reason": "Canonical public deterministic f32 math API absent from pinned upstream c15bc6abfdda90a936975979a42f7a54a211084e."
     }
   ],
   "unityAssembly": {
     "targetFramework": "netstandard2.1",
     "project": "Jitter2~/StandaloneUnity/Jitter2.Core.csproj",
     "output": "Jitter2~/Prebuilt",
-    "buildInputHash": "sha256:7d3231824931f38cb8a4873b7ce5b9d2af6542f7e0973e10a8a9e0866e99c7f3",
+    "buildInputHash": "sha256:4cb0fa885c351e799f3d9acc3aab0d903b90f0f27e6bfe8cb73d43b13c537006",
     "reproducibilityPolicy": "byte-identical",
     "unsafePackageVersion": "6.0.0",
     "files": [
@@ -37,8 +37,8 @@
       "System.Runtime.CompilerServices.Unsafe.dll"
     ],
     "artifacts": {
-      "Jitter2.Core.dll": "sha256:a87e1ae1f1475f0e35db8defd54a76c529b088716f2b72397fe849c05cecefee",
-      "Jitter2.Core.xml": "sha256:223aa43183ab78484c0800b84ff7fa483943e693959fb3f592153e9ea2dadc28",
+      "Jitter2.Core.dll": "sha256:1e0aea7a6da1e3887ce90eabe6b508341870b62992b2c79d09382586db3e0321",
+      "Jitter2.Core.xml": "sha256:7472a88c36e6239ad8b2be9cb0d076bd4fb3228080184a40ad7df03c6fc16612",
       "System.Runtime.CompilerServices.Unsafe.dll": "sha256:01748200f2400c742aa689f1f5101bd6298efdfd92c00c18f4fa473847235ba9"
     }
   },

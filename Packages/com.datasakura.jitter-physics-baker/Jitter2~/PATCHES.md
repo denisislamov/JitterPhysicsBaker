@@ -17,10 +17,10 @@ ends with `~`). It is used for three things:
 | Tag | `2.8.9` |
 | Commit | `c15bc6abfdda90a936975979a42f7a54a211084e` |
 | Library path | `src/Jitter2` |
-| Files | 95 upstream `.cs` + 1 declared consumer `.cs` patch |
+| Files | 95 upstream `.cs` + 1 canonical DataSakura `.cs` patch |
 | Included set | `**/*.cs`, `**/csc.rsp` |
 | Excluded set | metadata, asmdefs, build output, tests (see `jitter2.lock.json`) |
-| Patch set | `unity-netstandard21-stablemath-v2` |
+| Patch set | `unity-netstandard21-stablemath-public-v3` |
 | Built assembly | `Prebuilt/Jitter2.Core.dll` (netstandard2.1) |
 
 Reproduce with:
@@ -32,16 +32,17 @@ python3 tools~/verify-jitter2-lock.py
 ```
 
 The sync tool replaces only `Jitter2~/Runtime`, re-applies the 19 netstandard2.1 call-site
-patches, and restores the one lock-declared consumer file after verifying its pre-sync hash. It
+patches, and restores the one lock-declared canonical file after verifying its pre-sync hash. It
 does not write to a consumer's external Jitter checkout.
 
-## Consumer-only source patch
+## Canonical DataSakura source patch
 
 The pinned upstream commit has no `src/Jitter2/LinearMath/StableMath.cs`. The file at
-`Runtime/LinearMath/StableMath.cs` is therefore an explicit additive consumer patch, not an
-upstream file. Its complete reason and SHA-256 are recorded in `consumerPatches` in the lock.
-E01 only transfers and identifies the existing internal implementation; changing its API or
-numerical behavior belongs to E02.
+`Runtime/LinearMath/StableMath.cs` is therefore an explicit maintained part of the canonical
+DataSakura Jitter distribution, not an upstream file and not a consumer-local duplicate. Its
+complete reason and SHA-256 are recorded in `canonicalPatches` in the lock. E02 defines its public
+supported contract in `STABLE_MATH.md`; changing that API or numerical behavior requires a new
+patch-set/source/runtime identity.
 
 ## Why the package ships an assembly and not sources
 
@@ -134,7 +135,7 @@ assembly restate the alias themselves.
 
 1. Pin the revision to sync from.
 2. Run `tools~/sync-jitter2.py` with `--ref` (upstream) or `--source` (a local fork).
-3. The sync command preserves the declared StableMath consumer patch and applies the
+3. The sync command preserves the declared canonical StableMath patch and applies the
    netstandard2.1 call-site patch set; investigate any reported mismatch.
 4. Refresh `sourceContentHash` with `tools~/hash-jitter2.py` after reviewing the source/profile
    change.

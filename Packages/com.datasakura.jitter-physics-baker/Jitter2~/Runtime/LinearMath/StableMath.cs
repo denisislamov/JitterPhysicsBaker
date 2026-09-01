@@ -10,18 +10,26 @@ using System.Runtime.CompilerServices;
 namespace Jitter2.LinearMath;
 
 /// <summary>
-/// Internal trigonometric helpers for bit-identical results on different platforms (not guaranteed by Math and MathF).
+/// Deterministic scalar helpers owned by the canonical Jitter runtime.
 /// </summary>
 /// <remarks>
-/// Until scalar trig in the BCL is both deterministic and fixed by managed source across targets,
-/// this helper keeps its own tiny approximation pipeline so the physics engine owns the behavior.
+/// Until scalar operations in the BCL are both deterministic and fixed by managed source across
+/// targets, this type keeps the supported simulation-critical behavior in one implementation.
+/// The distributed profile is single precision; double-precision compatibility is not claimed.
 /// </remarks>
-internal static class StableMath
+public static class StableMath
 {
-    internal const Real Pi = (Real)3.141592653589793238462643383279502884;
-    internal const Real HalfPi = (Real)1.570796326794896619231321691639751442;
-    internal const Real QuarterPi = (Real)0.785398163397448309615660845819875721;
-    internal const Real TwoPi = (Real)6.283185307179586476925286766559005768;
+    /// <summary>The nearest representable <c>Real</c> value to pi.</summary>
+    public const Real Pi = (Real)3.141592653589793238462643383279502884;
+
+    /// <summary>The nearest representable <c>Real</c> value to pi divided by two.</summary>
+    public const Real HalfPi = (Real)1.570796326794896619231321691639751442;
+
+    /// <summary>The nearest representable <c>Real</c> value to pi divided by four.</summary>
+    public const Real QuarterPi = (Real)0.785398163397448309615660845819875721;
+
+    /// <summary>The nearest representable <c>Real</c> value to two times pi.</summary>
+    public const Real TwoPi = (Real)6.283185307179586476925286766559005768;
 
     // Used by atan's angle-addition identity: atan(x) = pi/4 + atan((x - 1) / (x + 1)).
     private const Real TanPiOver8 = (Real)0.414213562373095048801688724209698079;
@@ -142,8 +150,14 @@ internal static class StableMath
         };
     }
 
-    internal static (Real sin, Real cos) SinCos(Real angle)
+    /// <summary>
+    /// Returns deterministic sine and cosine approximations for a finite angle in radians.
+    /// Non-finite inputs return two canonical quiet NaNs.
+    /// </summary>
+    public static (Real sin, Real cos) SinCos(Real angle)
     {
+        if (!IsFinite(angle)) return (CanonicalNaN(), CanonicalNaN());
+
         if (angle >= -QuarterPi && angle <= QuarterPi)
         {
             return (SinPolynomial(angle), CosPolynomial(angle));
@@ -158,9 +172,15 @@ internal static class StableMath
         return ApplyQuadrant(quadrant, sin, cos);
     }
 
+    /// <summary>
+    /// Returns a deterministic sine approximation for a finite angle in radians.
+    /// A non-finite input returns the canonical quiet NaN.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Real Sin(Real angle)
+    public static Real Sin(Real angle)
     {
+        if (!IsFinite(angle)) return CanonicalNaN();
+
         if (angle >= -QuarterPi && angle <= QuarterPi)
         {
             return SinPolynomial(angle);
@@ -179,9 +199,15 @@ internal static class StableMath
         };
     }
 
+    /// <summary>
+    /// Returns a deterministic cosine approximation for a finite angle in radians.
+    /// A non-finite input returns the canonical quiet NaN.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Real Cos(Real angle)
+    public static Real Cos(Real angle)
     {
+        if (!IsFinite(angle)) return CanonicalNaN();
+
         if (angle >= -QuarterPi && angle <= QuarterPi)
         {
             return CosPolynomial(angle);
@@ -253,8 +279,14 @@ internal static class StableMath
         return value * poly;
     }
 
-    internal static Real Atan2(Real y, Real x)
+    /// <summary>
+    /// Returns the deterministic four-quadrant arctangent approximation for finite inputs.
+    /// A non-finite operand returns the canonical quiet NaN; two zero operands return positive zero.
+    /// </summary>
+    public static Real Atan2(Real y, Real x)
     {
+        if (!IsFinite(y) || !IsFinite(x)) return CanonicalNaN();
+
         // Classic quadrant reconstruction around the scalar atan approximation above.
         if (x > (Real)0.0)
         {
@@ -274,31 +306,41 @@ internal static class StableMath
         return (Real)0.0;
     }
 
-    internal static Real Acos(Real value)
+    /// <summary>
+    /// Returns the deterministic arccosine approximation after clamping finite inputs to
+    /// <c>[-1, 1]</c>. A non-finite input returns the canonical quiet NaN.
+    /// </summary>
+    public static Real Acos(Real value)
     {
-        value = Math.Clamp(value, (Real)(-1.0), (Real)1.0);
+        if (!IsFinite(value)) return CanonicalNaN();
+        value = Clamp(value, (Real)(-1.0), (Real)1.0);
 
         if (value > (Real)0.5)
         {
             // acos(x) = 2 * asin(sqrt((1 - x) / 2))
-            Real reduced = MathR.Sqrt(MathR.Max((Real)0.0, ((Real)1.0 - value) * (Real)0.5));
+            Real reduced = Sqrt(Max((Real)0.0, ((Real)1.0 - value) * (Real)0.5));
             return (Real)2.0 * AsinTaylor(reduced);
         }
 
         if (value < (Real)(-0.5))
         {
             // acos(x) = pi - 2 * asin(sqrt((1 + x) / 2))
-            Real reduced = MathR.Sqrt(MathR.Max((Real)0.0, ((Real)1.0 + value) * (Real)0.5));
+            Real reduced = Sqrt(Max((Real)0.0, ((Real)1.0 + value) * (Real)0.5));
             return Pi - (Real)2.0 * AsinTaylor(reduced);
         }
 
         return HalfPi - AsinTaylor(value);
     }
 
-    internal static Real Asin(Real value)
+    /// <summary>
+    /// Returns the deterministic arcsine approximation after clamping finite inputs to
+    /// <c>[-1, 1]</c>. A non-finite input returns the canonical quiet NaN.
+    /// </summary>
+    public static Real Asin(Real value)
     {
-        value = Math.Clamp(value, (Real)(-1.0), (Real)1.0);
-        Real absValue = MathR.Abs(value);
+        if (!IsFinite(value)) return CanonicalNaN();
+        value = Clamp(value, (Real)(-1.0), (Real)1.0);
+        Real absValue = Abs(value);
 
         if (absValue <= (Real)0.5)
         {
@@ -306,9 +348,290 @@ internal static class StableMath
         }
 
         // asin(x) = pi/2 - 2 * asin(sqrt((1 - |x|) / 2))
-        Real reduced = MathR.Sqrt(MathR.Max((Real)0.0, ((Real)1.0 - absValue) * (Real)0.5));
+        Real reduced = Sqrt(Max((Real)0.0, ((Real)1.0 - absValue) * (Real)0.5));
         Real angle = HalfPi - (Real)2.0 * AsinTaylor(reduced);
 
         return value < (Real)0.0 ? -angle : angle;
+    }
+
+    /// <summary>Returns whether a value is neither NaN nor infinity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsFinite(Real value)
+    {
+        return !Real.IsNaN(value) && !Real.IsInfinity(value);
+    }
+
+    /// <summary>
+    /// Returns the absolute value. Either signed zero becomes positive zero and any NaN becomes
+    /// the canonical quiet NaN.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Real Abs(Real value)
+    {
+        if (Real.IsNaN(value)) return CanonicalNaN();
+        if (value == (Real)0.0) return (Real)0.0;
+        return value < (Real)0.0 ? -value : value;
+    }
+
+    /// <summary>
+    /// Returns the smaller operand. NaN produces the canonical quiet NaN; when both operands are
+    /// zero, negative zero wins.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Real Min(Real first, Real second)
+    {
+        if (Real.IsNaN(first) || Real.IsNaN(second)) return CanonicalNaN();
+        if (first < second) return first;
+        if (second < first) return second;
+        if (first == (Real)0.0 && (IsNegative(first) || IsNegative(second))) return -((Real)0.0);
+        return first;
+    }
+
+    /// <summary>
+    /// Returns the larger operand. NaN produces the canonical quiet NaN; when both operands are
+    /// zero, positive zero wins.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Real Max(Real first, Real second)
+    {
+        if (Real.IsNaN(first) || Real.IsNaN(second)) return CanonicalNaN();
+        if (first > second) return first;
+        if (second > first) return second;
+        if (first == (Real)0.0 && (!IsNegative(first) || !IsNegative(second))) return (Real)0.0;
+        return first;
+    }
+
+    /// <summary>Clamps a value to the inclusive ordered bounds.</summary>
+    /// <exception cref="ArgumentException">
+    /// A bound is NaN or <paramref name="minimum"/> exceeds <paramref name="maximum"/>.
+    /// </exception>
+    public static Real Clamp(Real value, Real minimum, Real maximum)
+    {
+        if (Real.IsNaN(minimum) || Real.IsNaN(maximum) || minimum > maximum)
+        {
+            throw new ArgumentException("Clamp bounds must be ordered non-NaN numbers.");
+        }
+
+        if (Real.IsNaN(value)) return CanonicalNaN();
+        if (value < minimum) return minimum;
+        if (value > maximum) return maximum;
+        return value;
+    }
+
+    /// <summary>Clamps a value to the inclusive range from zero to one.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Real Clamp01(Real value)
+    {
+        return Clamp(value, (Real)0.0, (Real)1.0);
+    }
+
+    /// <summary>
+    /// Linearly interpolates finite values without clamping <paramref name="amount"/>. A
+    /// non-finite operand returns the canonical quiet NaN.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Real Lerp(Real from, Real to, Real amount)
+    {
+        if (!IsFinite(from) || !IsFinite(to) || !IsFinite(amount)) return CanonicalNaN();
+        Real scaled = MultiplyWithoutFusedAdd(to - from, amount);
+        return from + scaled;
+    }
+
+    /// <summary>
+    /// Returns the correctly rounded square root in the canonical f32 profile. Positive infinity
+    /// and either signed zero are returned unchanged; negative and NaN inputs return the canonical
+    /// quiet NaN.
+    /// </summary>
+    /// <exception cref="NotSupportedException">
+    /// A finite positive value is evaluated under the unsupported double-precision profile.
+    /// </exception>
+    public static Real Sqrt(Real value)
+    {
+        if (Real.IsNaN(value) || value < (Real)0.0) return CanonicalNaN();
+        if (value == (Real)0.0 || Real.IsPositiveInfinity(value)) return value;
+
+#if USE_DOUBLE_PRECISION
+        throw new NotSupportedException("StableMath.Sqrt is supported only by the canonical f32 profile.");
+#else
+        uint bits = unchecked((uint)BitConverter.SingleToInt32Bits(value));
+        int biasedExponent = (int)((bits >> 23) & 0xffu);
+        uint significand = bits & 0x007fffffu;
+        int exponent;
+
+        if (biasedExponent == 0)
+        {
+            exponent = -126;
+            while ((significand & 0x00800000u) == 0)
+            {
+                significand <<= 1;
+                exponent--;
+            }
+        }
+        else
+        {
+            significand |= 0x00800000u;
+            exponent = biasedExponent - 127;
+        }
+
+        if ((exponent & 1) != 0)
+        {
+            significand <<= 1;
+            exponent--;
+        }
+
+        ulong radicand = (ulong)significand << 23;
+        ulong root = IntegerSquareRoot(radicand);
+        ulong remainder = radicand - root * root;
+        if (remainder > root) root++;
+
+        int resultExponent = exponent / 2;
+        if (root == 0x01000000u)
+        {
+            root >>= 1;
+            resultExponent++;
+        }
+
+        uint resultBits = (uint)(resultExponent + 127) << 23;
+        resultBits |= (uint)root & 0x007fffffu;
+        return BitConverter.Int32BitsToSingle(unchecked((int)resultBits));
+#endif
+    }
+
+    /// <summary>
+    /// Rounds a finite value to an integral <c>Real</c>, resolving exact half-way cases away from
+    /// zero. Signed zero is preserved; infinities are returned unchanged; NaN becomes canonical.
+    /// </summary>
+    public static Real RoundAwayFromZero(Real value)
+    {
+        if (Real.IsNaN(value)) return CanonicalNaN();
+        if (Real.IsInfinity(value) || value == (Real)0.0) return value;
+
+#if USE_DOUBLE_PRECISION
+        ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
+        ulong sign = bits & 0x8000000000000000UL;
+        ulong magnitude = bits & 0x7fffffffffffffffUL;
+        int biasedExponent = (int)(magnitude >> 52);
+        if (biasedExponent < 1022) return BitConverter.Int64BitsToDouble(unchecked((long)sign));
+        if (biasedExponent == 1022)
+        {
+            return BitConverter.Int64BitsToDouble(unchecked((long)(sign | 0x3ff0000000000000UL)));
+        }
+
+        if (biasedExponent >= 1075) return value;
+        int fractionalBits = 52 - (biasedExponent - 1023);
+        ulong fractionalMask = (1UL << fractionalBits) - 1UL;
+        ulong roundedMagnitude = magnitude & ~fractionalMask;
+        if ((magnitude & fractionalMask) >= (1UL << (fractionalBits - 1)))
+        {
+            roundedMagnitude += 1UL << fractionalBits;
+        }
+
+        return BitConverter.Int64BitsToDouble(unchecked((long)(sign | roundedMagnitude)));
+#else
+        uint bits = unchecked((uint)BitConverter.SingleToInt32Bits(value));
+        uint sign = bits & 0x80000000u;
+        uint magnitude = bits & 0x7fffffffu;
+        int biasedExponent = (int)(magnitude >> 23);
+        if (biasedExponent < 126) return BitConverter.Int32BitsToSingle(unchecked((int)sign));
+        if (biasedExponent == 126)
+        {
+            return BitConverter.Int32BitsToSingle(unchecked((int)(sign | 0x3f800000u)));
+        }
+
+        if (biasedExponent >= 150) return value;
+        int fractionalBits = 23 - (biasedExponent - 127);
+        uint fractionalMask = (1u << fractionalBits) - 1u;
+        uint roundedMagnitude = magnitude & ~fractionalMask;
+        if ((magnitude & fractionalMask) >= (1u << (fractionalBits - 1)))
+        {
+            roundedMagnitude += 1u << fractionalBits;
+        }
+
+        return BitConverter.Int32BitsToSingle(unchecked((int)(sign | roundedMagnitude)));
+#endif
+    }
+
+    /// <summary>Rounds a finite Int64-range value with half-way cases away from zero.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The value is non-finite or outside the supported Int64 range.
+    /// </exception>
+    public static long RoundToInt64AwayFromZero(Real value)
+    {
+        if (!IsFinite(value) || value >= (Real)long.MaxValue || value < (Real)long.MinValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value), value, "A finite Int64-range value is required.");
+        }
+
+        return checked((long)RoundAwayFromZero(value));
+    }
+
+    /// <summary>
+    /// Multiplies by a positive finite scale and rounds to Int64 with half-way cases away from
+    /// zero. This is the canonical deterministic quantization primitive.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The value or scale is invalid, or the scaled result is outside the Int64 range.
+    /// </exception>
+    public static long QuantizeToInt64(Real value, Real scale)
+    {
+        if (!IsFinite(value) || !IsFinite(scale) || scale <= (Real)0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(scale), scale, "A finite value and positive finite scale are required.");
+        }
+
+        return RoundToInt64AwayFromZero(value * scale);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsNegative(Real value)
+    {
+#if USE_DOUBLE_PRECISION
+        return BitConverter.DoubleToInt64Bits(value) < 0;
+#else
+        return BitConverter.SingleToInt32Bits(value) < 0;
+#endif
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Real MultiplyWithoutFusedAdd(Real first, Real second)
+    {
+        return first * second;
+    }
+
+    private static ulong IntegerSquareRoot(ulong value)
+    {
+        ulong remainder = value;
+        ulong root = 0;
+        ulong bit = 1UL << 62;
+        while (bit > remainder) bit >>= 2;
+
+        while (bit != 0)
+        {
+            if (remainder >= root + bit)
+            {
+                remainder -= root + bit;
+                root = (root >> 1) + bit;
+            }
+            else
+            {
+                root >>= 1;
+            }
+
+            bit >>= 2;
+        }
+
+        return root;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Real CanonicalNaN()
+    {
+#if USE_DOUBLE_PRECISION
+        return BitConverter.Int64BitsToDouble(unchecked((long)0x7ff8000000000000UL));
+#else
+        return BitConverter.Int32BitsToSingle(unchecked((int)0x7fc00000u));
+#endif
     }
 }

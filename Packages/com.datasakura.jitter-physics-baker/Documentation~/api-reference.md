@@ -34,6 +34,15 @@ UnityWebRequest modules. It does not declare Jitter2: the package remains import
 and the integration assembly is installed explicitly. See [Installation](installation.md) and
 [Requirements and compatibility](requirements-and-compatibility.md).
 
+### Canonical Jitter StableMath
+
+After the separate Jitter Setup step, the installed `Jitter2.Core` exposes the supported public
+`Jitter2.LinearMath.StableMath` f32 API. It includes deterministic constants, trigonometry,
+square root, scalar helpers, interpolation, and away-from-zero rounding/quantization. The base
+package remains Jitter-free and none of these signatures are referenced by its always-imported
+assemblies. See the exact domains, signed-zero and exceptional-input policy, numerical bounds,
+and signatures in [the StableMath contract](../Jitter2~/STABLE_MATH.md).
+
 ### Provider and typed-result boundary
 
 #### `DataSakura.JitterPhysics.Contracts.IPhysicsArtifactProvider`

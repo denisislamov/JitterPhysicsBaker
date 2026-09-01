@@ -159,10 +159,11 @@ namespace DataSakura.JitterPhysics.Server.Tests
         }
 
         [Test]
-        public void CurrentStableMathSurfaceAndPlatformSqrtDebtAreExplicit()
+        public void E02ReplacesTheInternalSurfaceAndPlatformSqrtDebtExplicitly()
         {
+            Assert.That(StableMathType.IsPublic, Is.True);
             string[] actualMethods = StableMathType
-                .GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                .GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly)
                 .Where(method => !method.IsSpecialName)
                 .Select(method => method.Name)
                 .Distinct(StringComparer.Ordinal)
@@ -171,31 +172,32 @@ namespace DataSakura.JitterPhysics.Server.Tests
 
             Assert.That(actualMethods, Is.EqualTo(new[]
             {
+                "Abs",
                 "Acos",
-                "ApplyQuadrant",
-                "ApplyQuadrantCos",
-                "ApplyQuadrantSin",
                 "Asin",
-                "AsinTaylor",
-                "Atan",
                 "Atan2",
-                "AtanTaylor",
+                "Clamp",
+                "Clamp01",
                 "Cos",
-                "CosPolynomial",
-                "FloorToInt",
-                "ReduceAngle",
-                "ReduceToQuadrant",
+                "IsFinite",
+                "Lerp",
+                "Max",
+                "Min",
+                "QuantizeToInt64",
+                "RoundAwayFromZero",
+                "RoundToInt64AwayFromZero",
                 "Sin",
                 "SinCos",
-                "SinPolynomial",
+                "Sqrt",
             }));
 
             string packageRoot = Path.GetFullPath(Path.Combine(
                 TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", ".."));
             string source = File.ReadAllText(Path.Combine(
                 packageRoot, "Jitter2~", "Runtime", "LinearMath", "StableMath.cs"));
-            Assert.That(source, Does.Contain("MathR.Sqrt"),
-                "JMP-P02 must retain this as migration debt until deterministic Sqrt is implemented.");
+            Assert.That(source, Does.Not.Contain("MathR.Sqrt"));
+            Assert.That(source, Does.Not.Contain("Math.Sqrt("));
+            Assert.That(source, Does.Not.Contain("MathF.Sqrt("));
         }
 
         [Test]
@@ -232,7 +234,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
                 ["Acos(00000000)"] = "3fc90fdb",
                 ["Acos(3f800000)"] = "00000000",
                 ["Acos(bf800000)"] = "40490fdb",
-                ["Acos(ffc00000)"] = "ffc00000",
+                ["Acos(ffc00000)"] = "7fc00000",
                 ["Asin(00000000)"] = "00000000",
                 ["Asin(3f800000)"] = "3fc90fdb",
                 ["Asin(bf800000)"] = "bfc90fdb",
@@ -257,7 +259,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         {
             MethodInfo target = StableMathType.GetMethod(
                 method,
-                BindingFlags.Static | BindingFlags.NonPublic,
+                BindingFlags.Static | BindingFlags.Public,
                 binder: null,
                 types: new[] { typeof(float) },
                 modifiers: null);
@@ -274,7 +276,7 @@ namespace DataSakura.JitterPhysics.Server.Tests
         {
             MethodInfo target = StableMathType.GetMethod(
                 method,
-                BindingFlags.Static | BindingFlags.NonPublic,
+                BindingFlags.Static | BindingFlags.Public,
                 binder: null,
                 types: new[] { typeof(float), typeof(float) },
                 modifiers: null);

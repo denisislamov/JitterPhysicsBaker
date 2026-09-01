@@ -110,37 +110,37 @@ def verify_compile_profile(package_root: Path, lock_data: dict[str, Any]) -> lis
     return errors
 
 
-def verify_consumer_patches(source_root: Path, lock_data: dict[str, Any]) -> list[str]:
+def verify_canonical_patches(source_root: Path, lock_data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    patches = lock_data.get("consumerPatches")
+    patches = lock_data.get("canonicalPatches")
     if not isinstance(patches, list) or not patches:
-        return ["consumerPatches must list every consumer-only source deviation"]
+        return ["canonicalPatches must list every maintained source deviation from upstream"]
 
     seen: set[str] = set()
     for patch in patches:
         if not isinstance(patch, dict):
-            errors.append("consumerPatches entries must be objects")
+            errors.append("canonicalPatches entries must be objects")
             continue
         relative = patch.get("path")
         expected = patch.get("sha256")
         reason = patch.get("reason")
         if not isinstance(relative, str) or not relative or relative in seen:
-            errors.append(f"invalid or duplicate consumer patch path: {relative!r}")
+            errors.append(f"invalid or duplicate canonical patch path: {relative!r}")
             continue
         seen.add(relative)
         if not isinstance(reason, str) or not reason.strip():
-            errors.append(f"consumer patch {relative!r} has no reason")
+            errors.append(f"canonical patch {relative!r} has no reason")
         if not isinstance(expected, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", expected):
-            errors.append(f"consumer patch {relative!r} has an invalid hash")
+            errors.append(f"canonical patch {relative!r} has an invalid hash")
             continue
         path = source_root / relative
         if not path.is_file():
-            errors.append(f"consumer patch is missing: {relative}")
+            errors.append(f"canonical patch is missing: {relative}")
             continue
         actual = sha256_file(path)
         if actual != expected:
             errors.append(
-                f"consumer patch hash mismatch for {relative}: expected {expected}, actual {actual}"
+                f"canonical patch hash mismatch for {relative}: expected {expected}, actual {actual}"
             )
     return errors
 
@@ -166,13 +166,13 @@ def main() -> int:
 
     lock_data = load_lock(lock_path)
     errors: list[str] = []
-    if lock_data.get("schemaVersion") != 2:
-        errors.append("schemaVersion must be 2")
-    if lock_data.get("patchSetId") != "unity-netstandard21-stablemath-v2":
-        errors.append("patchSetId must identify the StableMath v2 patch set")
+    if lock_data.get("schemaVersion") != 3:
+        errors.append("schemaVersion must be 3")
+    if lock_data.get("patchSetId") != "unity-netstandard21-stablemath-public-v3":
+        errors.append("patchSetId must identify the public StableMath v3 patch set")
 
     errors.extend(verify_compile_profile(package_root, lock_data))
-    errors.extend(verify_consumer_patches(source_root, lock_data))
+    errors.extend(verify_canonical_patches(source_root, lock_data))
     errors.extend(verify_source_tree(source_root))
 
     include_patterns = lock_data.get("includedFiles", ["**/*.cs", "**/*.rsp"])
@@ -202,7 +202,7 @@ def main() -> int:
     print(f"OK: {actual}")
     print(f"compileProfileId: {compile_profile_id(lock_data)}")
     print(f"included files: {len(inputs)}")
-    print("consumer patches: " + str(len(lock_data["consumerPatches"])))
+    print("canonical patches: " + str(len(lock_data["canonicalPatches"])))
     print("binary artifacts: " + str(len(lock_data["unityAssembly"]["artifacts"])))
     print("buildInputHash: " + lock_data["unityAssembly"]["buildInputHash"])
     return 0

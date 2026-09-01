@@ -23,11 +23,11 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         {
             JitterPhysicsLock lockFile = LoadLock();
 
-            Assert.That(lockFile.SchemaVersion, Is.EqualTo(2));
+            Assert.That(lockFile.SchemaVersion, Is.EqualTo(3));
             Assert.That(lockFile.AssemblyName, Is.EqualTo(JitterPhysicsPackage.JitterAssemblyName));
             Assert.That(lockFile.IncludedFiles, Is.Not.Empty);
             Assert.That(lockFile.SourceContentHash, Does.StartWith(JitterPhysicsSourceHasher.HashPrefix));
-            Assert.That(lockFile.PatchSetId, Is.EqualTo("unity-netstandard21-stablemath-v2"));
+            Assert.That(lockFile.PatchSetId, Is.EqualTo("unity-netstandard21-stablemath-public-v3"));
             Assert.That(lockFile.UnityArtifactHashes.Keys, Is.EquivalentTo(new[]
             {
                 "Jitter2.Core.dll",
@@ -289,7 +289,6 @@ namespace DataSakura.JitterPhysics.Editor.Tests
         }
     }
 }
-
 
 
 

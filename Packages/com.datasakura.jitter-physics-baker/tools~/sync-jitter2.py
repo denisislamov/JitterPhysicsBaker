@@ -137,30 +137,30 @@ def copy_license(checkout: Path, package_root: Path) -> bool:
     return False
 
 
-def preserve_consumer_patches(
+def preserve_canonical_patches(
     destination: Path, lock_data: dict
 ) -> dict[str, bytes]:
-    """Captures lock-declared consumer files before the upstream tree is replaced."""
+    """Captures lock-declared canonical patches before the upstream tree is replaced."""
     preserved: dict[str, bytes] = {}
-    for patch in lock_data.get("consumerPatches", []):
+    for patch in lock_data.get("canonicalPatches", []):
         relative = patch.get("path")
         expected = patch.get("sha256")
         if not isinstance(relative, str) or not isinstance(expected, str):
-            raise SystemExit("error: malformed consumerPatches entry in jitter2.lock.json")
+            raise SystemExit("error: malformed canonicalPatches entry in jitter2.lock.json")
         path = destination / relative
         if not path.is_file():
-            raise SystemExit(f"error: declared consumer patch is missing before sync: {relative}")
+            raise SystemExit(f"error: declared canonical patch is missing before sync: {relative}")
         content = path.read_bytes()
         actual = "sha256:" + hashlib.sha256(content).hexdigest()
         if actual != expected:
             raise SystemExit(
-                f"error: consumer patch {relative} changed: expected {expected}, actual {actual}"
+                f"error: canonical patch {relative} changed: expected {expected}, actual {actual}"
             )
         preserved[relative] = content
     return preserved
 
 
-def restore_consumer_patches(destination: Path, preserved: dict[str, bytes]) -> None:
+def restore_canonical_patches(destination: Path, preserved: dict[str, bytes]) -> None:
     for relative, content in preserved.items():
         path = destination / relative
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -175,7 +175,7 @@ def main() -> int:
 
     lock_data = load_lock(lock_path)
     previous_hash = lock_data.get("sourceContentHash", "")
-    consumer_patches = preserve_consumer_patches(destination, lock_data)
+    canonical_patches = preserve_canonical_patches(destination, lock_data)
 
     with tempfile.TemporaryDirectory(prefix="sync-jitter2-") as workspace:
         checkout, repository, commit = resolve_source(args, Path(workspace))
@@ -185,7 +185,7 @@ def main() -> int:
             raise SystemExit(f"error: {library_root} does not exist in the source tree")
 
         copied = copy_sources(library_root, destination)
-        restore_consumer_patches(destination, consumer_patches)
+        restore_canonical_patches(destination, canonical_patches)
         license_copied = copy_license(checkout, package_root)
 
     if not copied:
