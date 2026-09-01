@@ -4,19 +4,25 @@
 
 ## Итог
 
-Canonical Jitter release candidate подготовлен и технически готов к отдельному approval/publish
-циклу. Custom Navigation не менялся. Существующий explicit Setup flow Jitter Physics Baker сохранён:
-Jitter устанавливается отдельным действием до integration и до компиляции consumer assemblies.
+Canonical Jitter release candidate опубликован и независимо повторно проверен после скачивания из
+GitHub Release. Custom Navigation не менялся. Существующий explicit Setup flow Jitter Physics Baker
+сохранён: Jitter устанавливается отдельным действием до integration и до компиляции consumer
+assemblies.
 
-`P00-E01` пока имеет verdict **BLOCKED**, а не PASS: предложенный immutable tag и GitHub release
-ещё не опубликованы. Push/tag/publish выполняются только после отдельной команды пользователя.
+`P00-E01` имеет verdict **PASS**. Annotated tag разрешается в exact package-root commit, все три
+release assets загружены, а downloaded ZIP прошёл detached checksum, manifest и clean external
+consumer verification.
 
 ## Предлагаемые immutable coordinates
 
 | Поле | Значение |
 |---|---|
 | Repository | `https://github.com/denisislamov/jitter-physics-baker` |
-| Intended tag | `jitter-v2.8.9-datasakura.1-rc.1` |
+| Release | `https://github.com/denisislamov/jitter-physics-baker/releases/tag/jitter-v2.8.9-datasakura.1-rc.1` |
+| Immutable tag | `jitter-v2.8.9-datasakura.1-rc.1` |
+| Tag object SHA | `37e637b50f8fbf00c35cf95b2305578ef10b3290` |
+| Peeled package commit SHA | `508de73d6d82088d58a74fd41d7e09b70f009b1d` |
+| Source migration commit SHA | `1b9ddd7f3f0ced3a58cf93a7a333eb5589417c44` |
 | Distribution version | `2.8.9-datasakura.1-rc.1` |
 | Asset | `DataSakura.Jitter2.Core-2.8.9-datasakura.1-rc.1.zip` |
 | Asset SHA-256 | `61896c9d63e6262c113c9c353773b36b1825b10a3630d1f9b4eb05af07977bab` |
@@ -32,8 +38,9 @@ Jitter устанавливается отдельным действием до
 | StableMath compatibility ID | `54b456c04074909605d2ba138e5001d39a90a338885eafcb32265483b35054b0` |
 | Baker runtime compatibility ID | `4d83760322e8e89365d6721126b243584b4369e66d052c679a8a12cc34c8212b` |
 
-Full release commit SHA intentionally is not self-declared inside the commit. После публикации он
-должен быть получен из remote tag ref и совпасть с commit, на который указывает immutable tag.
+Remote `git ls-remote` подтвердил annotated tag object и peeled package commit. Package subtree
+tree совпадает с `Packages/com.datasakura.jitter-physics-baker` source migration commit; package
+`main` и UPM tag `v0.0.12` этой публикацией не изменялись.
 
 ## Public StableMath contract
 
@@ -82,16 +89,18 @@ work. Unsupported f64 is rejected by the release probe.
 | Full Unity EditMode | PASS | 97/97 |
 | Full Unity PlayMode | PASS | 57/57 |
 | Player/IL2CPP | NOT RUN | не входит в P00 DoD; остаётся отдельным release/runtime gate |
-| Published immutable remote tag/asset | BLOCKED | требуется отдельное user approval для tag/push/release upload |
+| Published immutable remote tag/asset | PASS | tag peeled to `508de73`; GitHub prerelease содержит ZIP, manifest и checksum |
+| Downloaded release re-verification | PASS | ZIP SHA `61896c9d...`; detached checksum OK; manifest byte-identical; external verifier emitted `CANONICAL_JITTER_OK` |
 
-## Approval/publish checklist
+## Publication completion
 
-1. Review scoped diff and approve this candidate.
-2. Commit the RC implementation branch.
-3. Create signed/annotated tag `jitter-v2.8.9-datasakura.1-rc.1` at the approved commit.
-4. Push branch and tag only after explicit permission.
-5. Upload ZIP, detached manifest and `.sha256` as one GitHub release.
-6. Resolve tag through `git ls-remote`, download the published asset into a clean directory,
-   verify its SHA and rerun the release verifier.
-7. Run the P00 read-only audit against published coordinates. Только после этого verdict может
-   измениться с BLOCKED на PASS и разблокировать Custom Navigation implementation prompts.
+1. User approval получен.
+2. Source migration branch опубликована в `denisislamov/JitterPhysicsBaker`.
+3. Exact package subtree опубликован отдельной migration branch в standalone package repository.
+4. Annotated tag опубликован и remote peel подтверждён.
+5. ZIP, manifest и `.sha256` загружены одним GitHub prerelease.
+6. Assets скачаны в новый каталог; их SHA совпали с GitHub digest/local build.
+7. Downloaded archive прошёл release verifier и clean external compile.
+
+P00 теперь разблокирует Custom Navigation implementation prompts при условии использования именно
+этих immutable coordinates и сохранения separate-install contract.
