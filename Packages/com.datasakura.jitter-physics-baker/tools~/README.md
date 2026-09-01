@@ -10,6 +10,8 @@ Scripts that run outside Unity, used by maintainers and CI:
 | `sync-jitter2` | refresh `Jitter2~/Runtime` from a pinned upstream revision | Jitter snapshot |
 | `validate-package` | package layout, manifests, licenses, `.meta` and LFS checks | release |
 | `test-dotnet.sh` | run `Server~/Tests` under .NET 10 | server delivery |
+| `audit-jitter-math.py` | inventory and enforce the reviewed Jitter math migration boundary | JMP-E00 |
+| `test-jitter-math-audit.py` | exercise lexer, stable identity, policy and negative-new-finding invariants | JMP-E00 |
 
 The folder name ends with `~` so Unity never imports it.
 
@@ -33,3 +35,16 @@ are therefore defined by this package instead of being inherited from a platform
 Consumer-specific files — `.asmdef`, `.meta`, build output — are excluded on purpose: they
 describe where the sources live, not what they are.
 
+## Math migration audit
+
+The reviewed baseline is read-only and does not excuse migration debt:
+
+```sh
+python3 tools~/audit-jitter-math.py inventory \
+  --policy tools~/jitter-math-audit-policy.json
+```
+
+`inventory` passes only when the exact finding identities and their reviewed classification
+still match the policy hash. `check` additionally fails while any `must_migrate` finding exists,
+and is intended for the enforcement milestone after the migration. Reports are written only
+when `--json-report` or `--markdown-report` is supplied explicitly.

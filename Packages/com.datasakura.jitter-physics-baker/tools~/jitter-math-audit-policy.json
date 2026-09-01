@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "repositoryRootMarker": "Packages/com.datasakura.jitter-physics-baker/package.json",
+  "ownedRoots": [
+    "Packages/com.datasakura.jitter-physics-baker/Runtime/Contracts",
+    "Packages/com.datasakura.jitter-physics-baker/Runtime/ArtifactCodec",
+    "Packages/com.datasakura.jitter-physics-baker/Runtime/UnityArtifact",
+    "Packages/com.datasakura.jitter-physics-baker/Authoring",
+    "Packages/com.datasakura.jitter-physics-baker/Editor",
+    "Packages/com.datasakura.jitter-physics-baker/JitterIntegration~",
+    "Packages/com.datasakura.jitter-physics-baker/Server~",
+    "Packages/com.datasakura.jitter-physics-baker/Samples~",
+    "Packages/com.datasakura.jitter-physics-baker/Tests",
+    "Packages/com.datasakura.jitter-physics-baker/tools~/fixtures"
+  ],
+  "vendorRoots": [
+    "Packages/com.datasakura.jitter-physics-baker/Jitter2~"
+  ],
+  "excludedRoots": [
+    "bin",
+    "obj",
+    "Library",
+    "Temp",
+    "Logs",
+    ".git"
+  ],
+  "baselineFindingsHash": "sha256:565d1fb388a7b098a8e2b75b81321e9bf873b922eead6961882afd02efe8370f"
+}
