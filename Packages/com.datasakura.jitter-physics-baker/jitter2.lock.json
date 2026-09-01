@@ -1,26 +1,46 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "assemblyName": "Jitter2.Core",
   "upstreamRepository": "https://github.com/notgiven688/jitterphysics2",
   "upstreamCommit": "c15bc6abfdda90a936975979a42f7a54a211084e",
-  "patchSetId": "unity-netstandard21-v1",
-  "sourceContentHash": "sha256:d67ac0c421687ec7308501bf4b8bcba9c33bed7845a0bfe64d4675b2326cce85",
+  "patchSetId": "unity-netstandard21-stablemath-v2",
+  "sourceContentHash": "sha256:c4e11cddbf7b0263bfda638def71c0070ce83e087bb210cec2074ac2c7a82212",
   "integrationApiVersion": 1,
   "compileProfile": {
-    "precision": "f32",
     "allowUnsafe": true,
-    "unityDefine": "",
+    "continuousIntegrationBuild": true,
+    "deterministic": true,
+    "intrinsicsProfile": "scalar-shim",
+    "languageVersion": "latest",
     "polyfillProfile": "netstandard21",
-    "intrinsicsProfile": "scalar-shim"
+    "precision": "f32",
+    "targetFramework": "netstandard2.1",
+    "unityDefine": ""
   },
+  "consumerPatches": [
+    {
+      "path": "LinearMath/StableMath.cs",
+      "sha256": "sha256:14051e8d9217ac0c6201ba90d9f50c287792c190b10b1aa99d25bc1b27bc3ae0",
+      "reason": "Consumer deterministic trigonometry implementation absent from pinned upstream c15bc6abfdda90a936975979a42f7a54a211084e."
+    }
+  ],
   "unityAssembly": {
     "targetFramework": "netstandard2.1",
     "project": "Jitter2~/StandaloneUnity/Jitter2.Core.csproj",
     "output": "Jitter2~/Prebuilt",
+    "buildInputHash": "sha256:7d3231824931f38cb8a4873b7ce5b9d2af6542f7e0973e10a8a9e0866e99c7f3",
+    "reproducibilityPolicy": "byte-identical",
+    "unsafePackageVersion": "6.0.0",
     "files": [
       "Jitter2.Core.dll",
+      "Jitter2.Core.xml",
       "System.Runtime.CompilerServices.Unsafe.dll"
-    ]
+    ],
+    "artifacts": {
+      "Jitter2.Core.dll": "sha256:a87e1ae1f1475f0e35db8defd54a76c529b088716f2b72397fe849c05cecefee",
+      "Jitter2.Core.xml": "sha256:223aa43183ab78484c0800b84ff7fa483943e693959fb3f592153e9ea2dadc28",
+      "System.Runtime.CompilerServices.Unsafe.dll": "sha256:01748200f2400c742aa689f1f5101bd6298efdfd92c00c18f4fa473847235ba9"
+    }
   },
   "includedFiles": [
     "**/*.cs",
@@ -34,4 +54,3 @@
     "**/Tests/**"
   ]
 }
-

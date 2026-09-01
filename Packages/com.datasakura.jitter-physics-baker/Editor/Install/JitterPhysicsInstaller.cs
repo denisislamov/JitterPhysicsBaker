@@ -152,6 +152,15 @@ namespace DataSakura.JitterPhysics.Editor.Install
                 return new JitterPhysicsInstallResult(null, issues);
             }
 
+            string artifactError = lockFile.VerifyUnityArtifacts(packageRoot);
+            if (artifactError != null)
+            {
+                issues.Error(
+                    "The package-owned Jitter distribution failed its lock verification, so Setup "
+                    + "will not materialize it. " + artifactError);
+                return new JitterPhysicsInstallResult(null, issues);
+            }
+
             // Shipped alongside because netstandard2.1 does not define it and Unity does not
             // deliver it to players. A project that already has one keeps it: two copies of the
             // same assembly is a conflict Unity reports far from its cause.
@@ -286,13 +295,14 @@ namespace DataSakura.JitterPhysics.Editor.Install
             }
 
             JitterPhysicsCompatibilityReport compatibility = JitterPhysicsCompatibilityReport.Create();
-            if (compatibility.Status == JitterPhysicsCompatibilityStatus.Missing)
+            if (!compatibility.CanBake)
             {
-                // The adapter references Jitter2.Core by name; installing it into a project with
-                // no Jitter2 turns a clean import into a wall of CS0246.
+                // The adapter references Jitter2.Core by name. Missing, duplicate, unowned or
+                // source-incompatible Jitter all make this installation invalid; only the exact
+                // compatible state may cross the Jitter-dependent assembly boundary.
                 issues.Error(
-                    "The adapter references Jitter2.Core, which this project does not have. Install "
-                    + "Jitter2 first, or point the project at its own copy.");
+                    "The integration adapter is installed only after Jitter compatibility is "
+                    + "proven. Resolve this state first: " + compatibility.Message);
                 return new JitterPhysicsInstallResult(null, issues);
             }
 
@@ -636,9 +646,18 @@ namespace DataSakura.JitterPhysics.Editor.Install
 
                     File.Move(Path.Combine(staging, staged[i].RelativePath), targetPath);
 
+                    string stagedHash = JitterPhysicsHash.Sha256Hex(staged[i].Content);
+                    string materializedHash = HashFile(targetPath);
+                    if (!JitterPhysicsHash.HexEquals(materializedHash, stagedHash))
+                    {
+                        throw new IOException(
+                            $"'{targetPath}' changed while it was being materialized; expected "
+                            + $"SHA-256 {stagedHash}, actual {materializedHash}.");
+                    }
+
                     written.Add(targetPath);
                     recorded.Add(new JitterPhysicsInstalledFile(
-                        staged[i].RelativePath, JitterPhysicsHash.Sha256Hex(staged[i].Content)));
+                        staged[i].RelativePath, stagedHash));
                 }
             }
             catch (Exception exception)
@@ -1062,9 +1081,6 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
-
-
 
 
 

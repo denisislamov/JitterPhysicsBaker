@@ -19,6 +19,81 @@ def load_lock(lock_path: Path) -> dict[str, Any]:
         return json.load(handle)
 
 
+def sha256_file(path: Path) -> str:
+    """Returns the lock-format SHA-256 of one file without loading it all at once."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+
+def compile_profile_id(lock_data: dict[str, Any]) -> str:
+    """Returns the lowercase hash used by the runtime compatibility contract."""
+    profile = canonical_compile_profile_text(lock_data).encode("utf-8")
+    return hashlib.sha256(profile).hexdigest()
+
+
+def verify_declared_artifacts(package_root: Path, lock_data: dict[str, Any]) -> list[str]:
+    """Checks the exact staged Jitter artifacts declared by the lock."""
+    errors: list[str] = []
+    assembly = lock_data.get("unityAssembly")
+    if not isinstance(assembly, dict):
+        return ["unityAssembly must be an object"]
+
+    output = assembly.get("output")
+    files = assembly.get("files")
+    artifacts = assembly.get("artifacts")
+    if not isinstance(output, str) or not output:
+        errors.append("unityAssembly.output must be a non-empty string")
+        return errors
+    if not isinstance(files, list) or not all(isinstance(item, str) for item in files):
+        errors.append("unityAssembly.files must be a string array")
+        return errors
+    if not isinstance(artifacts, dict):
+        errors.append("unityAssembly.artifacts must be an object")
+        return errors
+
+    if sorted(files) != sorted(artifacts):
+        errors.append("unityAssembly.files and unityAssembly.artifacts must name the same files")
+
+    output_root = package_root / output
+    for relative in sorted(artifacts):
+        expected = artifacts[relative]
+        if not isinstance(expected, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", expected):
+            errors.append(f"invalid artifact hash for {relative!r}: {expected!r}")
+            continue
+
+        path = output_root / relative
+        if not path.is_file():
+            errors.append(f"declared artifact is missing: {output}/{relative}")
+            continue
+
+        actual = sha256_file(path)
+        if actual != expected:
+            errors.append(
+                f"artifact hash mismatch for {output}/{relative}: expected {expected}, actual {actual}"
+            )
+
+    return errors
+
+
+def compute_build_input_hash(package_root: Path, lock_data: dict[str, Any]) -> str:
+    """Hashes every package-owned input that can affect the canonical Jitter DLL."""
+    jitter_root = package_root / "Jitter2~"
+    inputs = collect_inputs(
+        jitter_root,
+        [
+            "Runtime/**/*.cs",
+            "Runtime/**/csc.rsp",
+            "Compat/**/*.cs",
+            "StandaloneUnity/Jitter2.Core.csproj",
+        ],
+        ["**/bin/**", "**/obj/**"],
+    )
+    return compute_source_content_hash(inputs, canonical_compile_profile_text(lock_data))
+
+
 def canonical_compile_profile_text(lock_data: dict[str, Any]) -> str:
     profile = lock_data.get("compileProfile", {})
     return json.dumps(profile, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
@@ -138,7 +213,5 @@ def compute_source_content_hash(inputs: list[tuple[str, bytes]], compile_profile
         digest.update(b"\n")
 
     return "sha256:" + digest.hexdigest()
-
-
 
 

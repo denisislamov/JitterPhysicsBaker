@@ -7,6 +7,7 @@ agree, so the properties are asserted here and mirrored by `JitterPhysicsLockTes
 
 from __future__ import annotations
 
+import copy
 import shutil
 import tempfile
 from pathlib import Path
@@ -14,9 +15,11 @@ from pathlib import Path
 from jitter2_lock_common import (
     canonical_compile_profile_text,
     collect_inputs,
+    compute_build_input_hash,
     compute_source_content_hash,
     glob_matches,
     load_lock,
+    verify_declared_artifacts,
 )
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
@@ -95,6 +98,11 @@ def main() -> int:
         compute_source_content_hash(snapshot, PROFILE) == LOCK["sourceContentHash"],
         failures,
     )
+    check(
+        "shipped binary artifacts match the lock",
+        verify_declared_artifacts(PACKAGE_ROOT, LOCK) == [],
+        failures,
+    )
 
     for path, pattern, expected in GLOB_CASES:
         check(f"glob {path!r} ~ {pattern!r} == {expected}", glob_matches(path, pattern) is expected, failures)
@@ -102,6 +110,8 @@ def main() -> int:
     lf = make_tree([("Core/World.cs", "using System;\nclass A { }\n")])
     crlf = make_tree([("Core/World.cs", "using System;\r\nclass A { }\r\n")])
     profile_tree = make_tree([("Core/World.cs", "namespace Jitter2 { }\n"), ("Core/csc.rsp", "-unsafe\n")])
+    binary_tree = Path(tempfile.mkdtemp(prefix="jitter-physics-binaries-"))
+    build_input_tree = Path(tempfile.mkdtemp(prefix="jitter-physics-build-inputs-"))
 
     try:
         baseline = source_hash(lf)
@@ -117,8 +127,47 @@ def main() -> int:
         profile_baseline = source_hash(profile_tree)
         (profile_tree / "Core" / "csc.rsp").write_text("-unsafe -define:X\n", encoding="utf-8")
         check("csc.rsp edit changes the hash", source_hash(profile_tree) != profile_baseline, failures)
+
+        binary_lock = copy.deepcopy(LOCK)
+        binary_lock["unityAssembly"]["output"] = "Prebuilt"
+        source_output = PACKAGE_ROOT / LOCK["unityAssembly"]["output"]
+        target_output = binary_tree / "Prebuilt"
+        shutil.copytree(source_output, target_output)
+        check(
+            "copied binary set verifies",
+            verify_declared_artifacts(binary_tree, binary_lock) == [],
+            failures,
+        )
+        with (target_output / "Jitter2.Core.dll").open("ab") as handle:
+            handle.write(b"tampered")
+        check(
+            "tampered server DLL is rejected",
+            any(
+                "Jitter2.Core.dll" in error and "hash mismatch" in error
+                for error in verify_declared_artifacts(binary_tree, binary_lock)
+            ),
+            failures,
+        )
+
+        for folder in ("Runtime", "Compat", "StandaloneUnity"):
+            shutil.copytree(
+                PACKAGE_ROOT / "Jitter2~" / folder,
+                build_input_tree / "Jitter2~" / folder,
+                ignore=shutil.ignore_patterns("bin", "obj"),
+            )
+        build_input_baseline = compute_build_input_hash(build_input_tree, LOCK)
+        compat_file = build_input_tree / "Jitter2~" / "Compat" / "NetStandardShims.cs"
+        compat_file.write_text(
+            compat_file.read_text(encoding="utf-8") + "\n// changed\n",
+            encoding="utf-8",
+        )
+        check(
+            "compat source edit changes the build input hash",
+            compute_build_input_hash(build_input_tree, LOCK) != build_input_baseline,
+            failures,
+        )
     finally:
-        for root in (lf, crlf, profile_tree):
+        for root in (lf, crlf, profile_tree, binary_tree, build_input_tree):
             shutil.rmtree(root, ignore_errors=True)
 
     if failures:
@@ -131,6 +180,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
 

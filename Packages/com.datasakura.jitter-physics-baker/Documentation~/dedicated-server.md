@@ -7,8 +7,9 @@ Applies to package version **0.0.12**.
 [Recipes](recipes.md)
 
 The package does not ship a physics server executable or own a network transport. It supplies
-portable artifact code and the same Jitter2 world-builder source used by Unity. A consumer
-compiles that source into its match server and keeps ownership of process startup, ticks,
+portable artifact code, the same Jitter2 world-builder source used by Unity, and the exact
+lock-verified Jitter DLL distribution installed by Unity Setup. A consumer compiles the owned
+projection source into its match server, references the projected DLL, and keeps ownership of startup, ticks,
 connections, dynamic bodies, and shutdown.
 
 `Server~` currently contains a .NET 10 test project, not a production service. It compiles
@@ -17,14 +18,21 @@ the same prebuilt Jitter2 assembly used by the fallback Unity installation.
 
 ## Startup contract
 
+Import `JitterPhysics.Runtime.props` from the explicit server projection. It references
+`JitterRuntime/Jitter2.Core.dll` and its pinned Unsafe dependency; do not add another Jitter
+package/reference or compile Jitter independently. The production build must not resolve anything
+from Unity `Library/PackageCache`.
+
 `JitterPhysicsServerStartup.Start` owns this order:
 
-1. ask one `IPhysicsArtifactProvider` for a fully checked artifact;
-2. enforce the server build's runtime compatibility ID;
-3. optionally enforce the level requested by launch configuration;
-4. optionally enforce the tick rate of the actual server loop;
-5. build static geometry into a fresh world;
-6. return `IsReady == true` only after the complete build succeeds.
+1. hash the loaded `Jitter2.Core.dll` when the expected projection hash is supplied;
+2. refuse a stale/tampered DLL before asking the artifact provider or mutating the world;
+3. ask one `IPhysicsArtifactProvider` for a fully checked artifact;
+4. enforce the server build's runtime compatibility ID;
+5. optionally enforce the level requested by launch configuration;
+6. optionally enforce the tick rate of the actual server loop;
+7. build static geometry into a fresh world;
+8. return `IsReady == true` only after the complete build succeeds.
 
 Do not open connection approval, spawn players, create dynamic match bodies, or start stepping
 before readiness. `ExpectedLevelId == null` and `TickRate == 0` deliberately accept the
@@ -49,21 +57,22 @@ internal static class Program
 {
     public static int Main(string[] args)
     {
-        if (args.Length < 2 || args.Length > 4)
+        if (args.Length < 3 || args.Length > 5)
         {
             Console.Error.WriteLine(
-                "Usage: physics-smoke <manifestPath> <runtimeId> [expectedLevelId] [tickRate]");
+                "Usage: physics-smoke <manifestPath> <runtimeId> <jitterDllSha256> [expectedLevelId] [tickRate]");
             return 64;
         }
 
         string manifestPath = args[0];
         string runtimeCompatibilityId = args[1];
-        string expectedLevelId = args.Length >= 3 ? args[2] : null;
+        string jitterAssemblySha256 = args[2];
+        string expectedLevelId = args.Length >= 4 ? args[3] : null;
         int tickRate = 0;
 
-        if (args.Length == 4
+        if (args.Length == 5
             && !int.TryParse(
-                args[3],
+                args[4],
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
                 out tickRate))
@@ -78,7 +87,8 @@ internal static class Program
         var options = new JitterPhysicsServerOptions(
             runtimeCompatibilityId,
             expectedLevelId,
-            tickRate);
+            tickRate,
+            jitterAssemblySha256);
 
         using var world = new World();
         JitterPhysicsServerState state = JitterPhysicsServerStartup.Start(
@@ -99,9 +109,10 @@ internal static class Program
 }
 ```
 
-The runtime ID argument must come from the verified Jitter2 lock/profile and package semantics,
-not from the artifact being loaded. Adopting the file's identity would make the compatibility
-check circular.
+The runtime ID must come from the verified source/profile/package semantics. The Jitter DLL hash
+must come from `jitterAssemblySha256` in the verified `JitterPhysics.projection.json`, without the
+lock's optional `sha256:` prefix. Neither value comes from the artifact being loaded; adopting the
+file's identity would make the compatibility check circular.
 
 ## Providers
 

@@ -17,17 +17,31 @@ ends with `~`). It is used for three things:
 | Tag | `2.8.9` |
 | Commit | `c15bc6abfdda90a936975979a42f7a54a211084e` |
 | Library path | `src/Jitter2` |
-| Files | 96 `.cs` |
-| Patch set | `unity-netstandard21-v1` |
+| Files | 95 upstream `.cs` + 1 declared consumer `.cs` patch |
+| Included set | `**/*.cs`, `**/csc.rsp` |
+| Excluded set | metadata, asmdefs, build output, tests (see `jitter2.lock.json`) |
+| Patch set | `unity-netstandard21-stablemath-v2` |
 | Built assembly | `Prebuilt/Jitter2.Core.dll` (netstandard2.1) |
 
 Reproduce with:
 
 ```sh
-tools~/sync-jitter2.py --ref 2.8.9
-python3 tools~/patch-jitter2-netstandard.py
+python3 tools~/sync-jitter2.py --ref 2.8.9
 bash tools~/build-jitter2-unity.sh
+python3 tools~/verify-jitter2-lock.py
 ```
+
+The sync tool replaces only `Jitter2~/Runtime`, re-applies the 19 netstandard2.1 call-site
+patches, and restores the one lock-declared consumer file after verifying its pre-sync hash. It
+does not write to a consumer's external Jitter checkout.
+
+## Consumer-only source patch
+
+The pinned upstream commit has no `src/Jitter2/LinearMath/StableMath.cs`. The file at
+`Runtime/LinearMath/StableMath.cs` is therefore an explicit additive consumer patch, not an
+upstream file. Its complete reason and SHA-256 are recorded in `consumerPatches` in the lock.
+E01 only transfers and identifies the existing internal implementation; changing its API or
+numerical behavior belongs to E02.
 
 ## Why the package ships an assembly and not sources
 
@@ -89,6 +103,27 @@ not deliver it to players, so it travels with the plugin. The installer skips it
 project already provides one, because two copies of the same assembly is a conflict Unity
 reports far from its cause.
 
+The dependency is pinned to NuGet `System.Runtime.CompilerServices.Unsafe` `6.0.0`; its exact DLL
+hash is part of `unityAssembly.artifacts` in the lock.
+
+## Reproducible binary policy
+
+The canonical profile is f32, `netstandard2.1`, unsafe enabled, no Unity define, scalar
+intrinsics shim, netstandard2.1 polyfills, latest compiler language, deterministic build and
+continuous-integration build enabled. `Jitter2.Core.csproj` is checked against those scalar lock
+fields by `verify-jitter2-lock.py`.
+
+`unityAssembly.buildInputHash` additionally hashes the compile profile, `Runtime`, `Compat`, and
+the canonical csproj. This keeps an edited shim/project from pairing with an old binary while the
+upstream-only `sourceContentHash` still happens to match an external source distribution.
+
+`build-jitter2-unity.sh` is the only documented staging command. It delegates to
+`build-jitter2-reproducible.py`, which creates two isolated clean source trees, disables shared
+compiler/build servers, builds both, and requires byte-identical `Jitter2.Core.dll`, XML docs and
+the pinned Unsafe dependency. Only after all three hashes match does it replace `Prebuilt` and
+refresh `unityAssembly.artifacts`. PE metadata differences are not allowed by the current policy;
+any byte difference fails the build instead of being normalized or waived.
+
 ## Precision
 
 The lock declares `"precision": "f32"`. `Real` is a global using in `Precision.cs`, which
@@ -99,13 +134,16 @@ assembly restate the alias themselves.
 
 1. Pin the revision to sync from.
 2. Run `tools~/sync-jitter2.py` with `--ref` (upstream) or `--source` (a local fork).
-3. Run `tools~/patch-jitter2-netstandard.py`; investigate any patch it reports as failed.
-4. Run `tools~/build-jitter2-unity.sh` and commit `Prebuilt/`.
-5. Refresh `sourceContentHash` and verify with `tools~/verify-jitter2-lock.py`.
-6. Run `tools~/test-dotnet.sh`.
-7. Release the package and the consumer lock update as one atomic change.
+3. The sync command preserves the declared StableMath consumer patch and applies the
+   netstandard2.1 call-site patch set; investigate any reported mismatch.
+4. Refresh `sourceContentHash` with `tools~/hash-jitter2.py` after reviewing the source/profile
+   change.
+5. Run `tools~/build-jitter2-unity.sh`; it performs two clean builds, stages only matching bytes,
+   and refreshes the binary hashes in the lock.
+6. Verify source/profile/patch/binary consistency with `tools~/verify-jitter2-lock.py`.
+7. Run `tools~/test-dotnet.sh`.
+8. Release the package and the consumer lock update as one atomic change.
 
 Any of these changes `sourceContentHash` and therefore `runtimeCompatibilityId`, which is
 intended: a client and a server built against different Jitter sources must not be able to
 claim compatibility, and existing artifacts must be re-baked.
-

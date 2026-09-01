@@ -35,6 +35,8 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
             string precision,
             string intrinsicsProfile,
             string polyfillProfile,
+            string unityAssemblyOutput,
+            IReadOnlyDictionary<string, string> unityArtifactHashes,
             IReadOnlyList<string> includedFiles,
             IReadOnlyList<string> excludedFiles)
         {
@@ -49,6 +51,8 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
             Precision = precision;
             IntrinsicsProfile = intrinsicsProfile;
             PolyfillProfile = polyfillProfile;
+            UnityAssemblyOutput = unityAssemblyOutput;
+            UnityArtifactHashes = unityArtifactHashes;
             IncludedFiles = includedFiles;
             ExcludedFiles = excludedFiles;
         }
@@ -98,6 +102,15 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
         /// uses; <c>none</c> means it carries none.
         /// </summary>
         public string PolyfillProfile { get; }
+
+        /// <summary>Package-relative folder containing the verified prebuilt artifacts.</summary>
+        public string UnityAssemblyOutput { get; }
+
+        /// <summary>
+        /// Expected lowercase SHA-256 for every file in the canonical prebuilt distribution,
+        /// keyed by file name. Values do not include the lock JSON's <c>sha256:</c> prefix.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> UnityArtifactHashes { get; }
 
         /// <summary>
         /// Whether this snapshot can be compiled by Unity at all.
@@ -160,6 +173,8 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
 
             string profileText = CanonicalCompileProfileText(profile);
             JitterPhysicsJsonValue schema = root.Member("schemaVersion");
+            JitterPhysicsJsonValue unityAssembly = root.Member("unityAssembly");
+            JitterPhysicsJsonValue artifacts = unityAssembly?.Member("artifacts");
 
             return new JitterPhysicsLock(
                 schema != null && int.TryParse(schema.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int schemaVersion)
@@ -175,8 +190,78 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
                 profile.StringMember("precision", string.Empty),
                 profile.StringMember("intrinsicsProfile", string.Empty),
                 profile.StringMember("polyfillProfile", string.Empty),
+                unityAssembly?.StringMember("output", string.Empty) ?? string.Empty,
+                ArtifactHashes(artifacts),
                 root.StringArrayMember("includedFiles"),
                 root.StringArrayMember("excludedFiles"));
+        }
+
+        /// <summary>Returns the expected hash for a canonical artifact, or <c>null</c>.</summary>
+        public string ExpectedUnityArtifactHash(string fileName)
+        {
+            return UnityArtifactHashes != null
+                && UnityArtifactHashes.TryGetValue(fileName, out string hash)
+                    ? hash
+                    : null;
+        }
+
+        /// <summary>
+        /// Verifies every staged Jitter artifact before Setup or server projection is allowed
+        /// to materialize it. This is read-only and never repairs a stale distribution.
+        /// </summary>
+        public string VerifyUnityArtifacts(string packageRootPath)
+        {
+            if (string.IsNullOrEmpty(UnityAssemblyOutput) || UnityArtifactHashes == null
+                || UnityArtifactHashes.Count == 0)
+            {
+                return "The lock declares no canonical Unity artifacts.";
+            }
+
+            foreach (KeyValuePair<string, string> artifact in UnityArtifactHashes)
+            {
+                string path = Path.Combine(packageRootPath, UnityAssemblyOutput, artifact.Key);
+                if (!File.Exists(path))
+                {
+                    return $"The lock-declared Jitter artifact '{path}' is missing.";
+                }
+
+                string actual = ArtifactCodec.JitterPhysicsHash.Sha256Hex(File.ReadAllBytes(path));
+                if (!ArtifactCodec.JitterPhysicsHash.HexEquals(actual, artifact.Value))
+                {
+                    return $"The lock-declared Jitter artifact '{path}' has SHA-256 {actual}, "
+                        + $"but the lock expects {artifact.Value}. Rebuild it with "
+                        + "tools~/build-jitter2-unity.sh.";
+                }
+            }
+
+            return null;
+        }
+
+        private static IReadOnlyDictionary<string, string> ArtifactHashes(
+            JitterPhysicsJsonValue artifacts)
+        {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (artifacts == null || artifacts.Kind != JitterPhysicsJsonKind.Object)
+            {
+                return result;
+            }
+
+            for (int i = 0; i < artifacts.Members.Count; i++)
+            {
+                KeyValuePair<string, JitterPhysicsJsonValue> member = artifacts.Members[i];
+                if (member.Value.Kind != JitterPhysicsJsonKind.String)
+                {
+                    throw new FormatException("Unity artifact hashes must be strings.");
+                }
+
+                const string prefix = "sha256:";
+                string value = member.Value.Text;
+                result.Add(
+                    member.Key,
+                    value.StartsWith(prefix, StringComparison.Ordinal) ? value.Substring(prefix.Length) : value);
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -281,7 +366,6 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
         }
     }
 }
-
 
 
 

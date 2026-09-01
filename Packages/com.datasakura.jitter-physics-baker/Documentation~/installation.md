@@ -256,13 +256,16 @@ sample folder or local edits. See [Migration and upgrading](migration-and-upgrad
 ## Install server runtime sources
 
 The UPM package is not a standalone server executable. It projects the portable contracts, codec,
-and shared world builder into an SDK-style consumer server project.
+shared world builder, and the exact lock-verified Jitter runtime into an SDK-style consumer server
+project. The server must not rebuild Jitter with another target/profile.
 
 Open installation details, expand **Advanced**, and press
 **Install server runtime sources...**. Choose a folder inside the consumer server source tree.
 
-The projection is receipt-managed, contains a hashed `JitterPhysics.projection.json`, and refuses
-to overwrite modified projected files. Build and startup requirements are documented in
+The projection is receipt-managed, contains `JitterRuntime/Jitter2.Core.dll`, its pinned Unsafe
+dependency, XML docs, an importable `JitterPhysics.Runtime.props`, and a hashed
+`JitterPhysics.projection.json`. It refuses stale/tampered package binaries and modified projected
+files. Build and startup requirements are documented in
 [Dedicated server integration](dedicated-server.md).
 
 ## Safe removal

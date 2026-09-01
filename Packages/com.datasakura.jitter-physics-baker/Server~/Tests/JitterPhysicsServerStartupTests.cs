@@ -161,6 +161,24 @@ namespace DataSakura.JitterPhysics.Server.Tests
             Assert.That(() => new JitterPhysicsServerOptions(null), Throws.ArgumentException);
         }
 
+        [Test]
+        public void RefusesAStaleOrTamperedJitterDllBeforeLoadingTheArtifact()
+        {
+            var world = new World();
+            int before = world.RigidBodies.Count;
+            var options = new JitterPhysicsServerOptions(
+                RuntimeId,
+                expectedJitterAssemblySha256: new string('0', 64));
+
+            JitterPhysicsServerState state = JitterPhysicsServerStartup.Start(
+                world, Deliver(), options);
+
+            Assert.That(state.IsReady, Is.False);
+            Assert.That(state.Error.Code, Is.EqualTo(PhysicsArtifactErrorCode.IncompatibleRuntime));
+            Assert.That(state.Error.Message, Does.Contain("Jitter2.Core.dll"));
+            Assert.That(world.RigidBodies.Count - before, Is.Zero);
+        }
+
         private IPhysicsArtifactProvider Deliver()
         {
             PhysicsArtifactPayload baked = PhysicsArtifactWriter.WriteWithManifest(

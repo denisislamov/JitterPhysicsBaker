@@ -167,7 +167,7 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
 
                 if (installed != null && string.IsNullOrEmpty(receiptError))
                 {
-                    string verificationError = VerifyInstalledPlugin(installed);
+                    string verificationError = VerifyInstalledPlugin(installed, lockFile);
                     if (verificationError == null)
                     {
                         bool installedMatches = string.Equals(
@@ -256,7 +256,9 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
                 lockFile.IsPlaceholder);
         }
 
-        private static string VerifyInstalledPlugin(JitterPhysicsInstalledComponent component)
+        private static string VerifyInstalledPlugin(
+            JitterPhysicsInstalledComponent component,
+            JitterPhysicsLock lockFile)
         {
             if (component.Ownership != JitterPhysicsOwnership.Package)
             {
@@ -282,6 +284,30 @@ namespace DataSakura.JitterPhysics.Editor.Bootstrap
                 {
                     return $"The package-owned plugin file '{path}' changed after installation.";
                 }
+
+                string expected = lockFile.ExpectedUnityArtifactHash(file.RelativePath);
+                if (expected != null && !JitterPhysicsHash.HexEquals(actualHash, expected))
+                {
+                    return $"The package-owned plugin file '{path}' matches its old receipt but "
+                        + "not the current Jitter lock. Run the explicit Setup update.";
+                }
+            }
+
+            string expectedJitter = lockFile.ExpectedUnityArtifactHash("Jitter2.Core.dll");
+            bool foundJitter = false;
+            for (int i = 0; i < component.Files.Count; i++)
+            {
+                if (string.Equals(
+                    component.Files[i].RelativePath, "Jitter2.Core.dll", StringComparison.Ordinal))
+                {
+                    foundJitter = true;
+                    break;
+                }
+            }
+
+            if (expectedJitter == null || !foundJitter)
+            {
+                return "The package-owned plugin receipt has no lock-declared Jitter2.Core.dll.";
             }
 
             return null;

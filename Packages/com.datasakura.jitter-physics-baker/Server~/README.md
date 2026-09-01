@@ -2,8 +2,9 @@
 
 This folder is the server-side half of the package. It does **not** contain a physics
 server: physics is a stateful part of the match simulation, so the package ships a
-source-compatible runtime that is compiled *inside* the consumer's match server, against
-the consumer's own Jitter2 copy.
+source-compatible owned runtime plus the exact verified Jitter DLL used by Unity. The consumer
+compiles the projected package source *inside* its match server and imports the generated props;
+it does not compile or resolve another Jitter copy.
 
 Planned contents:
 
@@ -36,7 +37,8 @@ var provider = new FilePhysicsArtifactProvider(manifestPath);   // e.g. --physic
 var options = new JitterPhysicsServerOptions(
     runtimeCompatibilityId: ThisBuild.RuntimeCompatibilityId,
     expectedLevelId: launchArguments.Level,   // optional, but it catches a wrong mount
-    tickRate: 30);                            // the rate this server actually steps at
+    tickRate: 30,                             // the rate this server actually steps at
+    expectedJitterAssemblySha256: ThisBuild.JitterAssemblySha256);
 
 JitterPhysicsServerState physics = JitterPhysicsServerStartup.Start(world, provider, options);
 Console.WriteLine(physics.SelfCheck);         // the line a Docker smoke test greps for
@@ -69,7 +71,7 @@ Unity never builds it.
 
 Two rules apply to everything here:
 
-1. Sources are included by reference. There are no hand-maintained copies of package code
-   in this folder, because a copy is a fork that nobody notices.
-2. A server build never reads sources from `Library/PackageCache`. That folder is a cache,
+1. Owned package sources are projected explicitly, while Jitter is copied as exact verified DLL
+   bytes and referenced through `JitterPhysics.Runtime.props`.
+2. A server build never reads sources or binaries from `Library/PackageCache`. That folder is a cache,
    it is not reproducible, and it disappears.

@@ -386,61 +386,64 @@ Epic acceptance:
 
 Subtasks:
 
-- [ ] Зафиксировать upstream commit и полный included/excluded source set.
-- [ ] Перенести только подтверждённый consumer `StableMath` patch.
-- [ ] Обновить `PATCHES.md` с reason для каждого отклонения.
-- [ ] Проверить отсутствие случайных generated/vendor файлов.
-- [ ] Не менять external consumer copy напрямую.
+- [x] Зафиксировать upstream commit и полный included/excluded source set.
+- [x] Перенести только подтверждённый consumer `StableMath` patch.
+- [x] Обновить `PATCHES.md` с reason для каждого отклонения.
+- [x] Проверить отсутствие случайных generated/vendor файлов.
+- [x] Не менять external consumer copy напрямую.
 
 ### JMP-T01.2. Сделать build identity воспроизводимой
 
 Subtasks:
 
-- [ ] Канонизировать compile profile JSON.
-- [ ] Зафиксировать target framework, unsafe, defines, intrinsics и polyfills.
-- [ ] Выполнить два clean builds из одного source tree.
-- [ ] Сравнить SHA-256 `Jitter2.Core.dll`, Unsafe dependency и XML docs.
-- [ ] Разделить deterministic binary requirement и допустимые PE metadata differences;
+- [x] Канонизировать compile profile JSON.
+- [x] Зафиксировать target framework, unsafe, defines, intrinsics и polyfills.
+- [x] Выполнить два clean builds из одного source tree.
+- [x] Сравнить SHA-256 `Jitter2.Core.dll`, Unsafe dependency и XML docs.
+- [x] Разделить deterministic binary requirement и допустимые PE metadata differences;
   если byte identity невозможна, принять проверяемую reproducibility policy.
 
 ### JMP-T01.3. Обновить lock и provenance
 
 Subtasks:
 
-- [ ] Обновить source content hash.
-- [ ] Повысить `patchSetId`.
-- [ ] Обновить compile profile id.
-- [ ] Записать Jitter DLL SHA-256 и dependency hashes.
-- [ ] Обновить prebuilt DLL только через documented build tool.
-- [ ] Добавить verifier source/profile/binary consistency.
+- [x] Обновить source content hash.
+- [x] Повысить `patchSetId`.
+- [x] Обновить compile profile id.
+- [x] Записать Jitter DLL SHA-256 и dependency hashes.
+- [x] Обновить prebuilt DLL только через documented build tool.
+- [x] Добавить verifier source/profile/binary consistency.
 
 ### JMP-T01.4. Сохранить отдельную установку
 
 Subtasks:
 
-- [ ] Не добавлять mandatory Jitter dependency в base `package.json`.
-- [ ] Сохранить no-write package import.
-- [ ] Устанавливать package-owned Jitter только explicit action.
-- [ ] Устанавливать integration layer только после успешного compatibility check.
-- [ ] Обновить receipt expected hashes и ownership.
-- [ ] Не перезаписывать compatible external Jitter.
-- [ ] Блокировать duplicate/incompatible/unowned conflicts.
+- [x] Не добавлять mandatory Jitter dependency в base `package.json`.
+- [x] Сохранить no-write package import.
+- [x] Устанавливать package-owned Jitter только explicit action.
+- [x] Устанавливать integration layer только после успешного compatibility check.
+- [x] Обновить receipt expected hashes и ownership.
+- [x] Не перезаписывать compatible external Jitter.
+- [x] Блокировать duplicate/incompatible/unowned conflicts.
 
 ### JMP-T01.5. Обеспечить exact server runtime
 
 Subtasks:
 
-- [ ] Запретить независимую server-компиляцию с иным profile.
-- [ ] Проецировать/копировать exact verified DLL bytes явной командой.
-- [ ] Проверять SHA-256 после materialization и перед server startup.
-- [ ] Не использовать Unity `Library/PackageCache` как production dependency.
-- [ ] Добавить negative test для stale/tampered server DLL.
+- [x] Запретить независимую server-компиляцию с иным profile.
+- [x] Проецировать/копировать exact verified DLL bytes явной командой.
+- [x] Проверять SHA-256 после materialization и перед server startup.
+- [x] Не использовать Unity `Library/PackageCache` как production dependency.
+- [x] Добавить negative test для stale/tampered server DLL.
 
 Epic acceptance:
 
 - [ ] Clean import без Jitter сохранён.
 - [ ] Separate Setup устанавливает ровно одну проверенную `Jitter2.Core`.
-- [ ] Unity и server DLL hashes равны.
+- [x] Unity и server DLL hashes равны.
+
+Evidence: `JMP_E01_CANONICAL_JITTER_RUNTIME_EVIDENCE.md`. Первые два acceptance gate требуют
+фактического Unity Editor прогона; они не отмечаются выполненными по source/.NET evidence.
 
 ## JMP-E02. Публичный supported `StableMath`
 

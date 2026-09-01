@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using DataSakura.JitterPhysics.ArtifactCodec;
 using DataSakura.JitterPhysics.Contracts;
 using Jitter2;
 
@@ -39,10 +41,18 @@ namespace DataSakura.JitterPhysics.Integration
         /// </summary>
         public int TickRate { get; }
 
+        /// <summary>
+        /// Lowercase SHA-256 of the exact <c>Jitter2.Core.dll</c> distribution projected by the
+        /// package, or <c>null</c> for legacy callers. New server integrations must pass the
+        /// <c>jitterAssemblySha256</c> value from <c>JitterPhysics.projection.json</c>.
+        /// </summary>
+        public string ExpectedJitterAssemblySha256 { get; }
+
         public JitterPhysicsServerOptions(
             string runtimeCompatibilityId,
             string expectedLevelId = null,
-            int tickRate = 0)
+            int tickRate = 0,
+            string expectedJitterAssemblySha256 = null)
         {
             if (string.IsNullOrEmpty(runtimeCompatibilityId))
             {
@@ -54,6 +64,7 @@ namespace DataSakura.JitterPhysics.Integration
             RuntimeCompatibilityId = runtimeCompatibilityId;
             ExpectedLevelId = expectedLevelId;
             TickRate = tickRate;
+            ExpectedJitterAssemblySha256 = expectedJitterAssemblySha256;
         }
     }
 
@@ -241,6 +252,12 @@ namespace DataSakura.JitterPhysics.Integration
                 throw new ArgumentNullException(nameof(options));
             }
 
+            PhysicsArtifactError runtimeAssemblyError = VerifyRuntimeAssembly(options);
+            if (runtimeAssemblyError.IsError)
+            {
+                return JitterPhysicsServerState.Failed(runtimeAssemblyError, "loaded Jitter2.Core.dll");
+            }
+
             // The provider already enforces the runtime id, the payload hash and the manifest
             // cross-check, so anything it returns is decoded and consistent with itself.
             PhysicsArtifactLoadResult load = provider.Load(options.RuntimeCompatibilityId);
@@ -263,6 +280,50 @@ namespace DataSakura.JitterPhysics.Integration
             }
 
             return JitterPhysicsServerState.Ready(load, build);
+        }
+
+        private static PhysicsArtifactError VerifyRuntimeAssembly(JitterPhysicsServerOptions options)
+        {
+            if (string.IsNullOrEmpty(options.ExpectedJitterAssemblySha256))
+            {
+                return default;
+            }
+
+            string location = typeof(World).Assembly.Location;
+            if (string.IsNullOrEmpty(location) || !File.Exists(location))
+            {
+                return new PhysicsArtifactError(
+                    PhysicsArtifactErrorCode.IncompatibleRuntime,
+                    "The loaded Jitter2.Core assembly has no verifiable file location. A server "
+                    + "must start from the exact DLL projected by the package.");
+            }
+
+            string actual;
+            try
+            {
+                using (FileStream stream = File.OpenRead(location))
+                {
+                    actual = JitterPhysicsHash.Sha256Hex(stream);
+                }
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+            {
+                return new PhysicsArtifactError(
+                    PhysicsArtifactErrorCode.IncompatibleRuntime,
+                    "The loaded Jitter2.Core assembly could not be hashed before server startup: "
+                    + exception.Message);
+            }
+
+            if (!JitterPhysicsHash.HexEquals(actual, options.ExpectedJitterAssemblySha256))
+            {
+                return new PhysicsArtifactError(
+                    PhysicsArtifactErrorCode.IncompatibleRuntime,
+                    $"The loaded Jitter2.Core.dll has SHA-256 {actual}, but the server projection "
+                    + $"requires {options.ExpectedJitterAssemblySha256}. Startup was refused before "
+                    + "artifact loading or world mutation.");
+            }
+
+            return default;
         }
 
         private static PhysicsArtifactError CheckExpectations(
@@ -296,4 +357,3 @@ namespace DataSakura.JitterPhysics.Integration
         }
     }
 }
-

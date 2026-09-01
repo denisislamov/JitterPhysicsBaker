@@ -13,14 +13,12 @@ using UnityEngine;
 namespace DataSakura.JitterPhysics.Editor.Install
 {
     /// <summary>
-    /// Copies the engine-independent half of the package into a consumer's server project.
+    /// Copies the portable package sources and the exact lock-verified Jitter runtime into a
+    /// consumer's server project.
     /// <para>
-    /// The package delivers server code as <em>sources</em>, not as a DLL, and the reason is
-    /// concrete: Unity compiles Jitter2 into one assembly identity and a consumer's server may
-    /// compile the same sources into another. A single precompiled Jitter-dependent binary
-    /// cannot satisfy both without editing the server project, which is exactly what this
-    /// delivery is supposed to avoid. An SDK-style project compiles whatever <c>.cs</c> is under
-    /// its folder, so a copied projection needs no csproj change at all.
+    /// The package-owned contracts, codec and adapter remain source-projected. Jitter itself is
+    /// never rebuilt by the server: the projection carries the same <c>Jitter2.Core.dll</c> bytes
+    /// that explicit Unity Setup installs, plus an importable MSBuild props file referencing it.
     /// </para>
     /// <para>
     /// The projection is generated and package-owned: it carries a manifest of file hashes, is
@@ -39,6 +37,13 @@ namespace DataSakura.JitterPhysics.Editor.Install
             (Path.Combine("Runtime", "Contracts"), "Contracts"),
             (Path.Combine("Runtime", "ArtifactCodec"), "ArtifactCodec"),
             (Path.Combine("JitterIntegration~", "Runtime"), "Integration"),
+        };
+
+        private static readonly (string Source, string Target)[] RuntimeArtifacts =
+        {
+            ("Jitter2.Core.dll", "JitterRuntime/Jitter2.Core.dll"),
+            ("Jitter2.Core.xml", "JitterRuntime/Jitter2.Core.xml"),
+            ("System.Runtime.CompilerServices.Unsafe.dll", "JitterRuntime/System.Runtime.CompilerServices.Unsafe.dll"),
         };
 
         /// <summary>Installs or updates the projection in <paramref name="targetFolder"/>.</summary>
@@ -89,6 +94,14 @@ namespace DataSakura.JitterPhysics.Editor.Install
                     string path = Path.Combine(targetFolder, files[i].RelativePath);
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
                     WriteAtomic(path, files[i].Content);
+
+                    string materializedHash = JitterPhysicsHash.Sha256Hex(File.ReadAllBytes(path));
+                    if (!JitterPhysicsHash.HexEquals(materializedHash, files[i].Hash))
+                    {
+                        throw new IOException(
+                            $"'{files[i].RelativePath}' changed during server materialization; "
+                            + $"expected SHA-256 {files[i].Hash}, actual {materializedHash}.");
+                    }
 
                     written.Add(path);
                     recorded.Add(new JitterPhysicsInstalledFile(files[i].RelativePath, files[i].Hash));
@@ -174,6 +187,18 @@ namespace DataSakura.JitterPhysics.Editor.Install
             {
                 issues.Error("The projection manifest is missing; this folder was not written by the package.");
             }
+            else
+            {
+                checkedFiles.Add(manifestPath);
+                string expectedManifest = BuildManifest(files);
+                string actualManifest = File.ReadAllText(manifestPath);
+                if (!string.Equals(actualManifest, expectedManifest, StringComparison.Ordinal))
+                {
+                    issues.Error(
+                        "The projection manifest is stale or modified; re-run the explicit server "
+                        + "runtime installation before starting the server.");
+                }
+            }
 
             if (!issues.HasErrors)
             {
@@ -235,6 +260,47 @@ namespace DataSakura.JitterPhysics.Editor.Install
                 }
             }
 
+            JitterPhysicsLock lockFile;
+            try
+            {
+                lockFile = JitterPhysicsLock.Load(packageRoot);
+            }
+            catch (Exception exception)
+            {
+                issues.Error($"'{JitterPhysicsLock.FileName}' could not be read: {exception.Message}");
+                return false;
+            }
+
+            string artifactError = lockFile.VerifyUnityArtifacts(packageRoot);
+            if (artifactError != null)
+            {
+                issues.Error(
+                    "The canonical Jitter distribution is stale or tampered, so it cannot be "
+                    + "projected to a server. " + artifactError);
+                return false;
+            }
+
+            string artifactRoot = Path.Combine(packageRoot, lockFile.UnityAssemblyOutput);
+            for (int i = 0; i < RuntimeArtifacts.Length; i++)
+            {
+                byte[] content = File.ReadAllBytes(Path.Combine(artifactRoot, RuntimeArtifacts[i].Source));
+                files.Add(new ProjectedFile(
+                    RuntimeArtifacts[i].Target,
+                    content,
+                    JitterPhysicsHash.Sha256Hex(content)));
+            }
+
+            const string props =
+                "<Project>\n"
+                + "  <ItemGroup>\n"
+                + "    <Reference Include=\"Jitter2.Core\" HintPath=\"$(MSBuildThisFileDirectory)JitterRuntime/Jitter2.Core.dll\" Private=\"true\" />\n"
+                + "    <Reference Include=\"System.Runtime.CompilerServices.Unsafe\" HintPath=\"$(MSBuildThisFileDirectory)JitterRuntime/System.Runtime.CompilerServices.Unsafe.dll\" Private=\"true\" />\n"
+                + "  </ItemGroup>\n"
+                + "</Project>\n";
+            byte[] propsBytes = new UTF8Encoding(false).GetBytes(props);
+            files.Add(new ProjectedFile(
+                "JitterPhysics.Runtime.props", propsBytes, JitterPhysicsHash.Sha256Hex(propsBytes)));
+
             files.Sort((left, right) => string.CompareOrdinal(left.RelativePath, right.RelativePath));
             return files.Count > 0;
         }
@@ -265,12 +331,18 @@ namespace DataSakura.JitterPhysics.Editor.Install
         {
             var builder = new StringBuilder(files.Count * 96 + 256);
             builder.Append("{\n");
-            builder.Append("  \"schemaVersion\": 1,\n");
+            JitterPhysicsLock lockFile = JitterPhysicsLock.Load(
+                JitterPhysicsCompatibilityReport.ResolvePackageRootPath());
+            builder.Append("  \"schemaVersion\": 2,\n");
             builder.Append("  \"package\": \"").Append(JitterPhysicsPackage.PackageName).Append("\",\n");
             builder.Append("  \"packageVersion\": \"").Append(JitterPhysicsPackage.PackageVersion).Append("\",\n");
             builder.Append("  \"artifactSchemaVersion\": ")
                 .Append(JitterPhysicsPackage.ArtifactSchemaVersion.ToString(CultureInfo.InvariantCulture))
                 .Append(",\n");
+            builder.Append("  \"jitterSourceContentHash\": \"")
+                .Append(lockFile.SourceContentHash).Append("\",\n");
+            builder.Append("  \"jitterAssemblySha256\": \"")
+                .Append(lockFile.ExpectedUnityArtifactHash("Jitter2.Core.dll")).Append("\",\n");
             builder.Append("  \"files\": [\n");
 
             for (int i = 0; i < files.Count; i++)
@@ -419,6 +491,4 @@ namespace DataSakura.JitterPhysics.Editor.Install
         }
     }
 }
-
-
 

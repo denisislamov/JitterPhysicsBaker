@@ -464,8 +464,8 @@ consumer.
 
 | Exact signature | Parameters, return, effects, errors, and state |
 | --- | --- |
-| `JitterPhysicsServerOptions`: `public JitterPhysicsServerOptions(string runtimeCompatibilityId, string expectedLevelId = null, int tickRate = 0)` | Throws `ArgumentException` for null/empty runtime ID. `expectedLevelId = null` accepts the artifact level; `tickRate = 0` accepts its tick rate. It does not validate canonical level ID or tick range itself. |
-| `JitterPhysicsServerStartup`: `public static JitterPhysicsServerState Start(Jitter2.World world, IPhysicsArtifactProvider provider, JitterPhysicsServerOptions options)` | Throws `ArgumentNullException` for null arguments. Calls provider load, level/tick expectations, then world apply. Expected package failures return a non-ready state; custom provider exceptions are not caught. Call once on a fresh candidate world, before accepting peers. On build failure, discard the world because settings may have changed. |
+| `JitterPhysicsServerOptions`: `public JitterPhysicsServerOptions(string runtimeCompatibilityId, string expectedLevelId = null, int tickRate = 0, string expectedJitterAssemblySha256 = null)` | Throws `ArgumentException` for null/empty runtime ID. `expectedLevelId = null` accepts the artifact level; `tickRate = 0` accepts its tick rate. Production projections pass the manifest's exact Jitter DLL hash; null preserves source compatibility for legacy callers but skips that binary gate. |
+| `JitterPhysicsServerStartup`: `public static JitterPhysicsServerState Start(Jitter2.World world, IPhysicsArtifactProvider provider, JitterPhysicsServerOptions options)` | Throws `ArgumentNullException` for null arguments. When an expected Jitter hash is supplied, hashes the loaded assembly before provider load or world mutation; then calls provider load, level/tick expectations, and world apply. Expected package failures return a non-ready state; custom provider exceptions are not caught. |
 | `JitterPhysicsServerState`: `public JitterPhysicsServerState RequireReady()` | Returns the same state when ready; throws `InvalidOperationException` containing the typed error otherwise. No mutation. Use only when aborting startup is the desired policy. |
 | `JitterPhysicsServerState`: `public string SelfCheck { get; }` | Formats a success/failure log line with shortened hashes and invariant timing. Read-only and repeatable for the immutable state. |
 | `JitterPhysicsServerState`: `public override string ToString()` | Returns `SelfCheck`; no mutation. |
@@ -673,7 +673,7 @@ See [Editor API handoff](npi-editor-api.md) and [Recipes](recipes.md) for comple
 | --- | --- | --- |
 | `JitterPhysicsInstaller` | Explicit receipt-managed install/update/remove operations | `Editor/Install/JitterPhysicsInstaller.cs` |
 | `JitterPhysicsInstallResult` | Written/removed paths plus the complete issue log | `Editor/Install/JitterPhysicsInstaller.cs` |
-| `JitterPhysicsServerProjection` | Copies the portable/server source projection to a chosen destination | `Editor/Install/JitterPhysicsServerProjection.cs` |
+| `JitterPhysicsServerProjection` | Copies portable/server source plus the exact lock-verified Jitter distribution to a chosen destination | `Editor/Install/JitterPhysicsServerProjection.cs` |
 | `JitterPhysicsOwnership` | Receipt ownership state for an installed file | `Editor/Install/JitterPhysicsInstallReceipt.cs` |
 | `JitterPhysicsComponentIds` | Stable receipt component identifiers | `Editor/Install/JitterPhysicsInstallReceipt.cs` |
 | `JitterPhysicsInstalledFile` | One installed path and recorded hash | `Editor/Install/JitterPhysicsInstallReceipt.cs` |
@@ -736,7 +736,7 @@ Source root before installation: `JitterIntegration~/Runtime/`
 | `JitterPhysicsWorldBuilder` | Apply one validated static artifact to a Jitter2 world | `JitterIntegration~/Runtime/JitterPhysicsWorldBuilder.cs` |
 | `PhysicsWorldBuildResult` | Typed build outcome and diagnostics | `JitterIntegration~/Runtime/JitterPhysicsWorldBuilder.cs` |
 | `JitterPhysicsServerStartup` | Provider → expectation checks → world build → readiness | `JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs` |
-| `JitterPhysicsServerOptions` | Required runtime ID, optional expected level/tick | `JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs` |
+| `JitterPhysicsServerOptions` | Required runtime ID, optional expected level/tick, and production Jitter DLL hash gate | `JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs` |
 | `JitterPhysicsServerState` | Readiness, loaded identity, counts, self-check, typed error | `JitterIntegration~/Runtime/JitterPhysicsServerStartup.cs` |
 
 The integration is consumer-installed and references `Jitter2.Core` by name. The package owns no

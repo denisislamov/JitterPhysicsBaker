@@ -117,10 +117,13 @@ The package supplies portable sources and startup contracts, not a server execut
 
 1. In installation details, expand **Advanced** and run
    **Install server runtime sources...** into an SDK-style server source folder.
-2. Build that projection against the server's single compatible Jitter2.
+2. Import `JitterPhysics.Runtime.props` from that projection; do not compile or resolve a second
+   server-owned Jitter2.
 3. Deliver the `.physics.bytes` and `.physics.manifest.json` pair, or use a generated embedded
    provider.
-4. Call `JitterPhysicsServerStartup.Start(...)` before enabling connection approval.
+4. Pass `jitterAssemblySha256` from `JitterPhysics.projection.json` in
+   `JitterPhysicsServerOptions`, then call `JitterPhysicsServerStartup.Start(...)` before enabling
+   connection approval.
 5. Require `IsReady`; log the self-check only after successful load, compatibility validation,
    and static-world construction.
 6. Carry both compatibility values in the consumer's own handshake and refuse a mismatch before
